@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/dashboard_familiar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <img src="../assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo">
+                    <div class="sidebar-brand">
+                        <h1>Vital+</h1>
+                        <span>Familiar Cuidador</span>
+                    </div>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="dashboard_familiar.html">
+                            <i data-feather="home"></i>
+                            <span>Meu Dependente</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="medicamentos_familiar.html">
+                            <i data-feather="plus-square"></i>
+                            <span>Medicamentos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="sinais_vitais_familiar.html">
+                            <i data-feather="activity"></i>
+                            <span>Sinais Vitais</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="agenda_familiar.html">
+                            <i data-feather="calendar"></i>
+                            <span>Agenda</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="relatorios_familiar.html">
+                            <i data-feather="file-text"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <small>Vital+ &copy; 2025</small>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <header class="header">
+                <div class="header-title">
+                    <h1>Acompanhamento do Dependente</h1>
+                    <p>Monitoramento em tempo real da saúde</p>
+                </div>
+
+                <div class="header-actions">
+                    <button class="btn btn-primary" id="addRecordBtn">
+                        <i data-feather="plus"></i> Novo Registro
+                    </button>
+
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#">
+                            <i data-feather="user"></i>
+                            <span id="userName">Familiar</span>
+                        </a>
+                        <div class="dropdown-menu">
+                            <a class="dropdown-item" href="perfil_familiar.html">
+                                <i data-feather="settings"></i> Configurações
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item" href="#" id="logoutBtn">
+                                <i data-feather="log-out"></i> Sair
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <main class="dashboard">
+                <!-- Perfil do Dependente -->
+                <div class="card patient-profile">
+                    <div class="patient-avatar">
+                        <img id="dependenteFoto" src="../assets/velha.png" alt="Foto do Dependente">
+                        <h4 id="dependenteNome">Carregando...</h4>
+                        <span class="badge bg-info" id="dependenteIdade">...</span>
+                    </div>
+
+                    <div class="patient-status">
+                        <div class="health-status">
+                            <i data-feather="heart"></i>
+                            <div>
+                                <h5 id="statusGeral">Carregando...</h5>
+                                <p class="text-muted" id="statusDetalhes">Aguardando dados</p>
+                            </div>
+                        </div>
+
+                        <div class="patient-info">
+                            <div class="info-item">
+                                <small>Condição Principal</small>
+                                <p id="condicaoPrincipal">...</p>
+                            </div>
+                            <div class="info-item">
+                                <small>Parentesco</small>
+                                <p id="parentesco">...</p>
+                            </div>
+                            <div class="info-item">
+                                <small>Última Atualização</small>
+                                <p id="ultimaAtualizacao">...</p>
+                            </div>
+                            <div class="info-item">
+                                <small>Plano de Saúde</small>
+                                <p id="planoSaude">...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sinais Vitais -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-feather="activity"></i> Sinais Vitais</h3>
+                        <button class="btn btn-sm btn-outline" onclick="registrarSinaisVitais()">
+                            <i data-feather="plus"></i> Registrar
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="vitals-grid" id="vitalsGrid">
+                            <!-- Sinais vitais carregados via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Medicamentos -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-feather="pill"></i> Medicamentos de Hoje</h3>
+                        <a href="medicamentos_familiar.html" class="btn btn-sm btn-outline">Ver todos</a>
+                    </div>
+                    <div class="card-body">
+                        <div class="medication-list" id="medicationList">
+                            <!-- Medicamentos carregados via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tarefas e Compromissos -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-feather="calendar"></i> Agenda de Hoje</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="schedule-container">
+                            <div class="schedule-section">
+                                <h4><i data-feather="check-square"></i> Tarefas</h4>
+                                <div class="tasks-list" id="tasksList"></div>
+                            </div>
+                            <div class="schedule-section">
+                                <h4><i data-feather="clock"></i> Compromissos</h4>
+                                <div class="appointments-list" id="appointmentsList"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal de Registro -->
+    <div id="recordModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Sinais Vitais</h3>
+                <span class="close">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="vitalForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="modalSistolica">Pressão Sistólica</label>
+                            <input type="number" id="modalSistolica" placeholder="120">
+                        </div>
+                        <div class="form-group">
+                            <label for="modalDiastolica">Pressão Diastólica</label>
+                            <input type="number" id="modalDiastolica" placeholder="80">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="modalGlicemia">Glicemia (mg/dL)</label>
+                            <input type="number" id="modalGlicemia" placeholder="100">
+                        </div>
+                        <div class="form-group">
+                            <label for="modalTemperatura">Temperatura (°C)</label>
+                            <input type="number" step="0.1" id="modalTemperatura" placeholder="36.5">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="modalObservacoes">Observações</label>
+                        <textarea id="modalObservacoes" rows="3" placeholder="Observações adicionais..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="save"></i> Salvar Registro
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/dashboard_familiar.js"></script>
+</body>
+</html>

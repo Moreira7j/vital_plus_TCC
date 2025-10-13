@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Recuperar Senha</title>
+    <link rel="stylesheet" href="../styles/LandingPage.css">
+    <link rel="stylesheet" href="../styles/esqueciSenha.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+</head>
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="LandingPage.html" class="logo">
+                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 120px; width: auto;">
+                </a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="LandingPage.html#hero" class="nav-link">Início</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#about" class="nav-link">Sobre</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#mobile-app" class="nav-link">App Mobile</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#web-platform" class="nav-link">Plataforma Web</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#login" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#contact" class="nav-link">Contato</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Área de Recuperação de Senha -->
+    <section id="forgot-password" class="login">
+        <div class="container">
+            <div class="login-container">
+                <div class="login-info">
+                    <h2>Recuperar Senha</h2>
+                    <p>Informe seu e-mail para receber instruções de recuperação de senha.</p>
+                    <div class="login-features">
+                        <div class="login-feature">
+                            <i class="fas fa-shield-alt"></i>
+                            <span>Processo seguro</span>
+                        </div>
+                        <div class="login-feature">
+                            <i class="fas fa-envelope"></i>
+                            <span>Instruções por e-mail</span>
+                        </div>
+                        <div class="login-feature">
+                            <i class="fas fa-clock"></i>
+                            <span>Link com validade</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="login-form">
+                    <div class="success-message" id="successMessage">
+                        <i class="fas fa-check-circle"></i> E-mail enviado com sucesso! Verifique sua caixa de entrada.
+                    </div>
+                    
+                    <form id="forgotPasswordForm" class="auth-form visible">
+                        <h3>Recuperar Senha</h3>
+                        
+                        <div class="form-group">
+                            <label for="recoveryEmail">E-mail</label>
+                            <input type="email" id="recoveryEmail" name="recoveryEmail" required placeholder="seu@email.com">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full" id="sendInstructionsBtn">
+                            <i class="fas fa-paper-plane"></i> Enviar Instruções
+                        </button>
+                        
+                        <div class="login-links">
+                            <a href="LandingPage.html#login"><i class="fas fa-arrow-left"></i> Voltar para o login</a>
+                            <a href="criar-conta.html"><i class="fas fa-user-plus"></i> Criar uma conta</a>
+                        </div>
+                    </form>
+                    
+                    <!-- Etapa 2: Redefinir senha (inicialmente oculta) -->
+                    <form id="resetPasswordForm" class="auth-form hidden">
+                        <h3>Redefinir Senha</h3>
+                        <p class="reset-instructions">Digite o código enviado para seu e-mail e sua nova senha.</p>
+                        
+                        <div class="verification-input">
+                            <input type="text" maxlength="1" pattern="[0-9]">
+                            <input type="text" maxlength="1" pattern="[0-9]">
+                            <input type="text" maxlength="1" pattern="[0-9]">
+                            <input type="text" maxlength="1" pattern="[0-9]">
+                            <input type="text" maxlength="1" pattern="[0-9]">
+                            <input type="text" maxlength="1" pattern="[0-9]">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="newPassword">Nova Senha</label>
+                            <input type="password" id="newPassword" name="newPassword" required placeholder="Crie uma nova senha">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="confirmNewPassword">Confirmar Nova Senha</label>
+                            <input type="password" id="confirmNewPassword" name="confirmNewPassword" required placeholder="Digite novamente a nova senha">
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary btn-full" id="resetPasswordBtn">
+                            <i class="fas fa-lock"></i> Redefinir Senha
+                        </button>
+                        
+                        <div class="resend-timer">
+                            Não recebeu o código? <a href="#" class="resend-link" id="resendLink">Reenviar código</a>
+                            <span id="timerText" style="display: none;"> (aguarde <span id="countdown">60</span>s)</span>
+                        </div>
+                        
+                        <div class="login-links">
+                            <a href="#" id="backToEmail"><i class="fas fa-arrow-left"></i> Voltar</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo-footer">
+                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 120px; width: auto;">
+                    </div>
+                    <p>Simplificando o cuidado com quem mais importa.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contato@vitalmais.com.br</li>
+                        <li><i class="fas fa-phone"></i> (11) 99999-9999</li>
+                        <li><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Links Rápidos</h4>
+                    <ul>
+                        <li><a href="LandingPage.html#hero">Início</a></li>
+                        <li><a href="LandingPage.html#about">Sobre</a></li>
+                        <li><a href="LandingPage.html#mobile-app">App Mobile</a></li>
+                        <li><a href="LandingPage.html#web-platform">Plataforma Web</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Tutoriais</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2023 Vital+ - Todos os direitos reservados. Desenvolvido como projeto de TCC.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/esqueciSenha.js"></script>
+</body>
+</html>

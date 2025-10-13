@@ -1,0 +1,262 @@
+/* ===== ESTILOS ESPECÍFICOS PARA PÁGINA DE RECUPERAÇÃO DE SENHA ===== */
+
+/* CORREÇÃO DO POSICIONAMENTO */
+body {
+    padding-top: 100px !important; /* Compensa a altura do navbar fixo */
+}
+
+#forgot-password.login {
+    padding: 60px 0 !important;
+    min-height: calc(100vh - 100px) !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.login-container {
+    margin-top: 0 !important;
+    background: linear-gradient(135deg, var(--primary-turquoise), var(--primary-purple));
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* CORREÇÃO DAS CORES - TEXTO BRANCO NO DEGRADÊ AZUL/ROXO */
+.login-info {
+    background: linear-gradient(135deg, var(--primary-turquoise), var(--primary-purple));
+    padding: 3rem;
+    color: white !important;
+}
+
+.login-info h2 {
+    color: white !important;
+    margin-bottom: 1rem;
+    font-size: 2rem;
+}
+
+.login-info p {
+    color: rgba(255, 255, 255, 0.9) !important;
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+}
+
+.login-feature {
+    color: white !important;
+}
+
+.login-feature i {
+    color: white !important;
+    background: none !important;
+    -webkit-text-fill-color: initial !important;
+    font-size: 1.2rem;
+}
+
+.login-features {
+    margin-top: 2rem;
+}
+
+/* Restante do CSS permanece igual... */
+
+/* Estilos para formulário de recuperação de senha */
+.reset-instructions {
+    color: var(--text-light);
+    margin-bottom: 1.5rem;
+    text-align: center;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    padding: 0.75rem;
+    background-color: rgba(0, 181, 194, 0.05);
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-turquoise);
+}
+
+/* Transição entre formulários */
+.auth-form {
+    transition: all 0.4s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.auth-form.hidden {
+    opacity: 0;
+    transform: translateY(20px);
+    display: none;
+}
+
+.auth-form.visible {
+    opacity: 1;
+    transform: translateY(0);
+    display: block;
+}
+
+/* Estilo para o código de verificação */
+.verification-input {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-bottom: 1.5rem;
+}
+
+.verification-input input {
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    font-size: 1.5rem;
+    font-weight: bold;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.verification-input input:focus {
+    border-color: var(--primary-turquoise);
+    box-shadow: 0 0 0 3px rgba(10, 177, 186, 0.1);
+    outline: none;
+    transform: scale(1.05);
+}
+
+/* Mensagem de sucesso */
+.success-message {
+    background-color: rgba(39, 174, 96, 0.1);
+    color: var(--success);
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    border-left: 4px solid var(--success);
+    display: none;
+}
+
+.success-message.visible {
+    display: block;
+    animation: fadeIn 0.5s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Botão de voltar */
+#backToEmail {
+    display: inline-flex;
+    align-items: center;
+    color: var(--primary-turquoise);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+#backToEmail:hover {
+    color: var(--dark-turquoise);
+    text-decoration: underline;
+}
+
+#backToEmail i {
+    margin-right: 0.5rem;
+}
+
+/* Responsividade específica para recuperação de senha */
+@media (max-width: 992px) {
+    #forgot-password.login {
+        padding: 50px 0 !important;
+    }
+    
+    .login-info {
+        padding: 2rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .verification-input {
+        gap: 0.5rem;
+    }
+    
+    .verification-input input {
+        width: 45px;
+        height: 45px;
+        font-size: 1.25rem;
+    }
+    
+    #forgot-password.login {
+        padding: 40px 0 !important;
+    }
+    
+    .login-info {
+        padding: 1.5rem;
+    }
+    
+    .login-info h2 {
+        font-size: 1.75rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .verification-input {
+        gap: 0.25rem;
+    }
+    
+    .verification-input input {
+        width: 40px;
+        height: 40px;
+        font-size: 1.1rem;
+    }
+    
+    #forgot-password.login {
+        padding: 30px 0 !important;
+    }
+    
+    .login-info {
+        padding: 1rem;
+    }
+    
+    .login-info h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Efeitos de foco melhorados */
+.form-group input:focus {
+    border-color: var(--primary-turquoise);
+    box-shadow: 0 0 0 3px rgba(10, 177, 186, 0.1);
+    outline: none;
+}
+
+/* Estilo para botões */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-turquoise), var(--primary-purple));
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px rgba(74, 0, 130, 0.3);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
+}
+
+/* Timer para reenvio de código */
+.resend-timer {
+    text-align: center;
+    margin-top: 1rem;
+    color: var(--text-light);
+    font-size: 0.9rem;
+}
+
+.resend-link {
+    color: var(--primary-turquoise);
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.resend-link:hover {
+    text-decoration: underline;
+}
+
+.resend-link.disabled {
+    color: var(--text-light);
+    cursor: not-allowed;
+    text-decoration: none;
+}

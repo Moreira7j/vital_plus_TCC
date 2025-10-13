@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Selecionar Dependente</title>
+    <link rel="stylesheet" href="../styles/dependentes.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+</head>
+<body>
+    <div class="dependentes-container">
+        <div class="dependentes-header">
+            <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 100px; width: auto;">
+            <h1>Selecionar Dependente</h1>
+            <p>Escolha o dependente que deseja acompanhar</p>
+        </div>
+
+        <div class="dependentes-grid">
+            <div class="dependente-card" data-id="1">
+                <div class="dependente-avatar">
+                    <img src="../assets/velha.png" alt="Maria Oliveira">
+                </div>
+                <div class="dependente-info">
+                    <h3>Maria Oliveira</h3>
+                    <p>78 anos • Diabetes Tipo 2</p>
+                    <div class="dependente-status">
+                        <span class="status-badge status-estavel">Estável</span>
+                    </div>
+                </div>
+                <button class="btn-selecionar">Selecionar</button>
+            </div>
+
+            <div class="dependente-card" data-id="2">
+                <div class="dependente-avatar">
+                    <img src="../assets/idosos.png" alt="João Silva">
+                </div>
+                <div class="dependente-info">
+                    <h3>João Silva</h3>
+                    <p>72 anos • Hipertensão</p>
+                    <div class="dependente-status">
+                        <span class="status-badge status-atencao">Necessita atenção</span>
+                    </div>
+                </div>
+                <button class="btn-selecionar">Selecionar</button>
+            </div>
+
+            <div class="dependente-card" data-id="3">
+                <div class="dependente-avatar">
+                    <div class="avatar-placeholder">
+                        <i data-feather="plus"></i>
+                    </div>
+                </div>
+                <div class="dependente-info">
+                    <h3>Adicionar Dependente</h3>
+                    <p>Adicione um novo dependente para acompanhar</p>
+                </div>
+                <button class="btn-adicionar">Adicionar</button>
+            </div>
+        </div>
+
+        <div class="dependentes-footer">
+            <a href="#" class="logout-link">Sair</a>
+        </div>
+    </div>
+
+   <script>
+document.addEventListener("DOMContentLoaded", function() {
+    feather.replace();
+
+    // Mostrar usuário logado
+    const usuarioNome = localStorage.getItem("usuarioNome");
+    const usuarioId = localStorage.getItem("usuarioId");
+    if (usuarioNome) {
+        const header = document.querySelector(".dependentes-header h1");
+        header.textContent = `Olá, ${usuarioNome} - Selecionar Dependente`;
+    }
+
+    // Carregar dependentes do usuário
+    carregarDependentes();
+
+    // Selecionar um dependente
+    document.addEventListener("click", function(e) {
+        if (e.target.classList.contains("btn-selecionar")) {
+            const card = e.target.closest(".dependente-card");
+            const dependenteId = card.getAttribute("data-id");
+            const dependenteNome = card.querySelector("h3").textContent;
+
+            // Salvar no localStorage
+            localStorage.setItem("dependenteSelecionado", JSON.stringify({
+                id: dependenteId,
+                nome: dependenteNome
+            }));
+
+            // Redirecionar para a tela principal de sinais vitais ou dashboard de supervisão
+            const tipoUsuario = localStorage.getItem("usuarioTipo");
+            if (tipoUsuario === "familiar_cuidador") {
+                window.location.href = "/dashboard_familiar"; // Dashboard de cuidado pessoal
+            } else if (tipoUsuario === "familiar_contratante") {
+                window.location.href = "/dashboard_supervisor"; // Dashboard de supervisão
+            }
+        }
+    });
+
+    // Adicionar novo dependente
+    const btnAdicionar = document.querySelector(".btn-adicionar");
+    if (btnAdicionar) {
+        btnAdicionar.addEventListener("click", function() {
+            window.location.href = "cadastroPaciente.html";
+        });
+    }
+
+    // Logout
+    document.querySelector(".logout-link").addEventListener("click", function(e) {
+        e.preventDefault();
+        localStorage.removeItem("dependenteSelecionado");
+        localStorage.removeItem("usuarioNome");
+        localStorage.removeItem("usuarioId");
+        localStorage.removeItem("usuarioTipo"); // Remover tipo de usuário também
+        window.location.href = "/";
+    });
+});
+
+async function carregarDependentes() {
+    const usuarioId = localStorage.getItem("usuarioId");
+    const tipoUsuario = localStorage.getItem("usuarioTipo");
+    if (!usuarioId || !tipoUsuario) return;
+
+    try {
+        let url;
+        if (tipoUsuario === "familiar_cuidador") {
+            url = `/api/familiares/${usuarioId}/pacientes_cuidador`;
+        } else if (tipoUsuario === "familiar_contratante") {
+            url = `/api/familiares/${usuarioId}/pacientes_contratante`;
+        } else {
+            console.error("Tipo de usuário desconhecido:", tipoUsuario);
+            return;
+        }
+
+        const response = await fetch(url);
+        if (response.ok) {
+            const pacientes = await response.json();
+            exibirDependentes(pacientes);
+        } else {
+            console.error("Erro ao carregar dependentes:", response.statusText);
+        }
+    } catch (error) {
+        console.error("Erro ao carregar dependentes:", error);
+    }
+}
+
+function exibirDependentes(pacientes) {
+    const grid = document.querySelector(".dependentes-grid");
+    
+    // Limpar cards existentes (exceto o de adicionar)
+    const cardsExistentes = grid.querySelectorAll(".dependente-card:not(:last-child)");
+    cardsExistentes.forEach(card => card.remove());
+
+    // Adicionar cards dos pacientes
+    pacientes.forEach(paciente => {
+        const card = criarCardDependente(paciente);
+        grid.insertBefore(card, grid.lastElementChild);
+    });
+}
+
+function criarCardDependente(paciente) {
+    const card = document.createElement("div");
+    card.className = "dependente-card";
+    card.setAttribute("data-id", paciente.id);
+    
+    const idade = calcularIdade(paciente.data_nascimento);
+    const condicao = paciente.condicao_principal || "Sem condição específica";
+    
+    card.innerHTML = `
+        <div class="dependente-avatar">
+            <div class="avatar-placeholder">
+                <i data-feather="user"></i>
+            </div>
+        </div>
+        <div class="dependente-info">
+            <h3>${paciente.nome}</h3>
+            <p>${idade} anos • ${condicao}</p>
+            <div class="dependente-status">
+                <span class="status-badge status-estavel">Estável</span>
+            </div>
+        </div>
+        <button class="btn-selecionar">Selecionar</button>
+    `;
+    
+    return card;
+}
+
+function calcularIdade(dataNascimento) {
+    const hoje = new Date();
+    const nascimento = new Date(dataNascimento);
+    let idade = hoje.getFullYear() - nascimento.getFullYear();
+    const mes = hoje.getMonth() - nascimento.getMonth();
+    
+    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+        idade--;
+    }
+    
+    return idade;
+}
+</script>
+
+</body>
+</html>

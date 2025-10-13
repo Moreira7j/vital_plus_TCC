@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Área Administrativa</title>
+    <link rel="stylesheet" href="../styles/adm.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="admin-wrapper">
+        <!-- Sidebar -->
+        <nav class="admin-sidebar">
+            <div class="sidebar-header">
+                <img src="assets/logo-minimalista.png" alt="Vital+" class="sidebar-logo" style="width: 80px; height: 80px;">
+                <h2>Vital+ Admin</h2>
+            </div>
+
+            <ul class="sidebar-nav">
+                <li class="nav-item active">
+                    <a class="nav-link" href="#dashboard">
+                        <i data-feather="home"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#usuarios">
+                        <i data-feather="users"></i>
+                        <span>Usuários</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#dependentes">
+                        <i data-feather="heart"></i>
+                        <span>Dependentes</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#medicamentos">
+                        <i data-feather="package"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#alertas">
+                        <i data-feather="bell"></i>
+                        <span>Alertas</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#relatorios">
+                        <i data-feather="bar-chart-2"></i>
+                        <span>Relatórios</span>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="#configuracoes">
+                        <i data-feather="settings"></i>
+                        <span>Configurações</span>
+                    </a>
+                </li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <img src="assets/admin-avatar.png" alt="Admin" class="user-avatar">
+                    <div class="user-details">
+                        <span class="user-name">Admin Master</span>
+                        <span class="user-role">Administrador</span>
+                    </div>
+                </div>
+                <a href="#" class="logout-btn">
+                    <i data-feather="log-out"></i>
+                </a>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <div class="admin-main">
+            <!-- Top Navigation -->
+            <header class="admin-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle">
+                        <i data-feather="menu"></i>
+                    </button>
+                    <h1>Dashboard Administrativo</h1>
+                </div>
+                
+                <div class="header-right">
+                    <div class="search-box">
+                        <i data-feather="search"></i>
+                        <input type="text" placeholder="Pesquisar...">
+                    </div>
+                    
+                    <div class="header-actions">
+                        <button class="notification-btn">
+                            <i data-feather="bell"></i>
+                            <span class="notification-badge">3</span>
+                        </button>
+                        
+                        <div class="user-menu">
+                            <button class="user-btn">
+                                <img src="assets/admin-avatar.png" alt="Admin">
+                                <span>Admin Master</span>
+                                <i data-feather="chevron-down"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Conteúdo -->
+            <main class="admin-content">
+                <!-- Dashboard -->
+                <section id="dashboard" class="content-section active">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon primary">
+                                <i data-feather="users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>1,248</h3>
+                                <p>Usuários Totais</p>
+                                <span class="stat-trend positive">+12%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon success">
+                                <i data-feather="heart"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>856</h3>
+                                <p>Dependentes Ativos</p>
+                                <span class="stat-trend positive">+8%</span>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-card">
+                                <div class="stat-icon warning">
+                                    <i data-feather="bell"></i>
+                                </div>
+                                <div class="stat-info">
+                                    <h3>42</h3>
+                                    <p>Alertas Hoje</p>
+                                    <span class="stat-trend negative">-5%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon danger">
+                                <i data-feather="activity"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3>98.3%</h3>
+                                <p>Uptime Sistema</p>
+                                <span class="stat-trend positive">+0.2%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Atividade de Usuários</h3>
+                                <select class="chart-filter">
+                                    <option>7 Dias</option>
+                                    <option>30 Dias</option>
+                                    <option selected>90 Dias</option>
+                                </select>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="userActivityChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div class="chart-card">
+                            <div class="chart-header">
+                                <h3>Distribuição de Dependentes</h3>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="dependentsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="recent-activity">
+                        <div class="activity-header">
+                            <h3>Atividade Recente</h3>
+                            <a href="#" class="view-all">Ver Tudo</a>
+                        </div>
+                        <div class="activity-list">
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i data-feather="user-plus"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Novo usuário registrado: <strong>Maria Silva</strong></p>
+                                    <span class="activity-time">2 minutos atrás</span>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i data-feather="alert-circle"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Alerta crítico: <strong>Glicemia elevada</strong> em João Santos</p>
+                                    <span class="activity-time">15 minutos atrás</span>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i data-feather="settings"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Configurações do sistema atualizadas</p>
+                                    <span class="activity-time">1 hora atrás</span>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon">
+                                    <i data-feather="download"></i>
+                                </div>
+                                <div class="activity-content">
+                                    <p>Relatório mensal gerado</p>
+                                    <span class="activity-time">2 horas atrás</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Outras seções serão implementadas aqui -->
+                <section id="usuarios" class="content-section">
+                    <div class="section-header">
+                        <h2>Gestão de Usuários</h2>
+                        <button class="btn btn-primary">
+                            <i data-feather="plus"></i> Novo Usuário
+                        </button>
+                    </div>
+                    <!-- Conteúdo de usuários -->
+                </section>
+
+                <!-- Adicione outras seções conforme necessário -->
+            </main>
+        </div>
+    </div>
+
+    <script src="../js/adm.js"></script>
+</body>
+</html>

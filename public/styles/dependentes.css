@@ -1,0 +1,199 @@
+:root {
+    --primary: #00B5C2;
+    --secondary: #4B0082;
+    --success: #27ae60;
+    --warning: #f39c12;
+    --danger: #e74c3c;
+    --light: #F8F9FA;
+    --dark: #2D2D2D;
+    --text-muted: #6C757D;
+    --border-color: #e0e0e0;
+    --card-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: linear-gradient(135deg, #E0F7FA 0%, #F3E5F5 100%);
+    color: var(--dark);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.dependentes-container {
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 900px;
+    overflow: hidden;
+}
+
+.dependentes-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 2rem;
+    text-align: center;
+}
+
+.dependentes-header .logo-img {
+    height: 80px;
+    margin-bottom: 1rem;
+}
+
+.dependentes-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.dependentes-header p {
+    opacity: 0.9;
+}
+
+.dependentes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    padding: 2rem;
+}
+
+.dependente-card {
+    background: var(--light);
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dependente-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow);
+    border-color: var(--primary);
+}
+
+.dependente-avatar {
+    margin-bottom: 1rem;
+}
+
+.dependente-avatar img {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--primary);
+}
+
+.avatar-placeholder {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    border: 2px dashed var(--text-muted);
+}
+
+.dependente-info {
+    margin-bottom: 1.5rem;
+    flex-grow: 1;
+}
+
+.dependente-info h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: var(--secondary);
+}
+
+.dependente-info p {
+    color: var(--text-muted);
+    margin-bottom: 0.75rem;
+    font-size: 0.9rem;
+}
+
+.status-badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.status-estavel {
+    background-color: rgba(39, 174, 96, 0.2);
+    color: var(--success);
+}
+
+.status-atencao {
+    background-color: rgba(243, 156, 18, 0.2);
+    color: var(--warning);
+}
+
+.btn-selecionar, .btn-adicionar {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    width: 100%;
+}
+
+.btn-selecionar {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+}
+
+.btn-selecionar:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 181, 194, 0.3);
+}
+
+.btn-adicionar {
+    background: transparent;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+}
+
+.btn-adicionar:hover {
+    background: var(--primary);
+    color: white;
+}
+
+.dependentes-footer {
+    padding: 1.5rem;
+    text-align: center;
+    border-top: 1px solid var(--border-color);
+}
+
+.logout-link {
+    color: var(--text-muted);
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.logout-link:hover {
+    color: var(--danger);
+}
+
+@media (max-width: 768px) {
+    .dependentes-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .dependentes-header h1 {
+        font-size: 1.5rem;
+    }
+}
