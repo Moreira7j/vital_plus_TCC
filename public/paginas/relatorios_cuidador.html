@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Relatórios</title>
+    <link rel="stylesheet" href="../styles/relatorios_cuidador.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <img src="../assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo">
+                    <div class="sidebar-brand">
+                        <h1>Vital+</h1>
+                        <span>Cuidador Profissional</span>
+                    </div>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="dashboard_cuidador.html">
+                            <i data-feather="home"></i>
+                            <span>Visão Geral</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="medicamentos_cuidador.html">
+                            <i data-feather="pill"></i>
+                            <span>Medicamentos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="atividades_cuidador.html">
+                            <i data-feather="activity"></i>
+                            <span>Atividades</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="relatorios_cuidador.html">
+                            <i data-feather="file-text"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="comunicacao_cuidador.html">
+                            <i data-feather="message-square"></i>
+                            <span>Comunicação</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <small>Vital+ &copy; 2025</small>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h1>Relatórios do Paciente</h1>
+                    <p>Relatórios detalhados do acompanhamento do paciente</p>
+                </div>
+                
+                <div class="header-actions">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                <i data-feather="bell"></i>
+                                <span>Notificações</span>
+                                <span class="badge bg-danger">0</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                <i data-feather="user"></i>
+                                <span id="userName">Cuidador</span>
+                                <i data-feather="chevron-down"></i>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a href="#" class="dropdown-item">
+                                    <i data-feather="user"></i>
+                                    Meu Perfil
+                                </a>
+                                <a href="#" class="dropdown-item">
+                                    <i data-feather="settings"></i>
+                                    Configurações
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="#" class="dropdown-item" id="logoutBtn">
+                                    <i data-feather="log-out"></i>
+                                    Sair
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Dashboard -->
+            <div class="dashboard">
+                <!-- Estatísticas Rápidas -->
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="bar-chart-2"></i> Resumo do Mês</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="vitals-grid">
+                                <div class="vital-card">
+                                    <i data-feather="file-text"></i>
+                                    <h4 id="totalRelatorios">0</h4>
+                                    <small>Relatórios Gerados</small>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="check-circle"></i>
+                                    <h4 id="adesaoMedia">0%</h4>
+                                    <small>Adesão à Medicação</small>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="activity"></i>
+                                    <h4 id="atividadesRealizadas">0</h4>
+                                    <small>Atividades Realizadas</small>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="trending-up"></i>
+                                    <h4 id="evolucaoPositiva">0</h4>
+                                    <small>Indicadores Positivos</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="trending-up"></i> Evolução da Saúde</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="evolucaoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="filtroPeriodo">Período</label>
+                                <select id="filtroPeriodo" class="form-control">
+                                    <option value="hoje">Hoje</option>
+                                    <option value="semana">Esta Semana</option>
+                                    <option value="mes" selected>Este Mês</option>
+                                    <option value="trimestre">Este Trimestre</option>
+                                    <option value="customizado">Personalizado</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filtroDataInicio">Data Início</label>
+                                <input type="date" id="filtroDataInicio" class="form-control">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filtroDataFim">Data Fim</label>
+                                <input type="date" id="filtroDataFim" class="form-control">
+                            </div>
+                            
+                            <div class="filter-group filter-button">
+                                <button id="aplicarFiltros" class="btn btn-primary">
+                                    <i data-feather="filter"></i>
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ações Rápidas -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Gestão de Relatórios</h4>
+                            <div>
+                                <button id="novoRelatorioBtn" class="btn btn-primary me-2">
+                                    <i data-feather="plus"></i>
+                                    Novo Relatório
+                                </button>
+                                <button id="exportarRelatorioBtn" class="btn btn-outline">
+                                    <i data-feather="download"></i>
+                                    Exportar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Relatórios -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-feather="list"></i> Relatórios Gerados</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="relatorios-container" id="relatoriosContainer">
+                            <!-- Relatórios serão carregados aqui via JavaScript -->
+                            <div class="empty-state">
+                                <i data-feather="inbox"></i>
+                                <h4>Carregando relatórios...</h4>
+                                <p>Aguarde enquanto carregamos os relatórios do paciente</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Novo Relatório -->
+    <div id="relatorioModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Novo Relatório</h2>
+                <button type="button" class="btn-icon" id="fecharModal">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            
+            <form id="relatorioForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="relatorioTitulo">Título do Relatório *</label>
+                        <input type="text" id="relatorioTitulo" name="titulo" required class="form-control" placeholder="Digite o título do relatório">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="relatorioTipo">Tipo de Relatório *</label>
+                            <select id="relatorioTipo" name="tipo" required class="form-control">
+                                <option value="diario">Relatório Diário</option>
+                                <option value="semanal">Relatório Semanal</option>
+                                <option value="mensal">Relatório Mensal</option>
+                                <option value="medicamento">Relatório de Medicação</option>
+                                <option value="atividades">Relatório de Atividades</option>
+                                <option value="incidente">Relatório de Incidente</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="relatorioPeriodo">Período *</label>
+                            <select id="relatorioPeriodo" name="periodo" required class="form-control">
+                                <option value="hoje">Hoje</option>
+                                <option value="semana">Esta Semana</option>
+                                <option value="mes">Este Mês</option>
+                                <option value="customizado">Personalizado</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="relatorioConteudo">Conteúdo do Relatório *</label>
+                        <textarea id="relatorioConteudo" name="conteudo" required class="form-control" placeholder="Descreva o relatório em detalhes..." rows="6"></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="relatorioObservacoes">Observações e Recomendações</label>
+                        <textarea id="relatorioObservacoes" name="observacoes" class="form-control" placeholder="Observações adicionais e recomendações..." rows="3"></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" id="cancelarBtn" class="btn btn-outline">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="save"></i>
+                        Salvar Relatório
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/relatorios_cuidador.js"></script>
+</body>
+</html>

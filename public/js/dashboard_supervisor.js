@@ -1,6 +1,14 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 DOM carregado, inicializando dashboard...');
     
+    // DEBUG: Verificar o que está no localStorage
+    console.log('🔍 DEBUG - localStorage completo:');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log(`📦 ${key}:`, value);
+    }
+    
     // Verificar se todos os elementos existem
     const domPronto = verificarElementosDOM();
     
@@ -9,7 +17,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Inicializar ícones do Feather
-    feather.replace();
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
     
     // Carregar dados do dependente
     carregarDadosDependente();
@@ -20,16 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🎯 Dashboard inicializado com sucesso!');
 });
 
-
-    // DEBUG: Verificar o que está no localStorage
-    console.log('🔍 DEBUG - localStorage completo:');
-    for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        const value = localStorage.getItem(key);
-        console.log(`📦 ${key}:`, value);
-    }
-
-    
 // Função para verificar se todos os elementos necessários existem
 function verificarElementosDOM() {
     const elementosNecessarios = [
@@ -38,7 +38,7 @@ function verificarElementosDOM() {
         'familiarName', 'ultimaAtualizacao', 'statusGeral',
         'pressaoMedia', 'glicemiaMedia', 'temperaturaMedia',
         'activityFeed', 'alertsList', 'lastMessage',
-        'relatoriosLink' // Novo elemento adicionado
+        'relatoriosLink'
     ];
 
     const elementosFaltantes = [];
@@ -96,14 +96,8 @@ async function carregarDadosDependente() {
         const dependente = await response.json();
         console.log('✅ Dados do dependente recebidos:', dependente);
 
-        // Aguardar o DOM estar completamente carregado
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => {
-                atualizarInterfaceDependente(dependente);
-            });
-        } else {
-            atualizarInterfaceDependente(dependente);
-        }
+        // Atualizar interface imediatamente
+        atualizarInterfaceDependente(dependente);
 
         // Carregar dados adicionais
         console.log('🔄 Carregando dados adicionais...');
@@ -147,19 +141,32 @@ function atualizarInterfaceDependente(dependente) {
         }
     });
 
-    // Foto do dependente - CORREÇÃO PRINCIPAL
+    // Foto do dependente - CORREÇÃO DA FOTO
     const fotoElement = document.getElementById('dependenteFoto');
     if (fotoElement) {
-        if (dependente.foto_url) {
-            fotoElement.src = dependente.foto_url;
+        if (dependente.foto_url && dependente.foto_url !== 'null' && dependente.foto_url !== 'undefined') {
+            // Verificar se a URL é completa ou relativa
+            let fotoUrl = dependente.foto_url;
+            if (!fotoUrl.startsWith('http') && !fotoUrl.startsWith('/')) {
+                fotoUrl = '/' + fotoUrl;
+            }
+            fotoElement.src = fotoUrl;
+            
             // Adicionar tratamento de erro para a imagem
             fotoElement.onerror = function() {
-                console.error('Erro ao carregar imagem:', dependente.foto_url);
+                console.error('❌ Erro ao carregar imagem:', fotoUrl);
                 this.src = '../assets/default-avatar.png';
+                this.alt = 'Foto não disponível';
             };
-            console.log('✅ Foto definida:', dependente.foto_url);
+            
+            fotoElement.onload = function() {
+                console.log('✅ Foto carregada com sucesso:', fotoUrl);
+            };
+            
+            console.log('✅ Foto definida:', fotoUrl);
         } else {
             fotoElement.src = '../assets/default-avatar.png';
+            fotoElement.alt = 'Foto padrão';
             console.log('✅ Foto padrão definida');
         }
     } else {
@@ -170,25 +177,30 @@ function atualizarInterfaceDependente(dependente) {
 // Função para carregar sinais vitais
 async function carregarSinaisVitais(pacienteId) {
     try {
+        console.log('💓 Carregando sinais vitais...');
         const response = await fetch(`/api/pacientes/${pacienteId}/sinais-vitais/recentes`);
         
         if (response.ok) {
             const sinais = await response.json();
+            console.log('✅ Sinais vitais recebidos:', sinais);
             atualizarSinaisVitais(sinais);
         } else {
-            // Usar dados padrão se a API não responder
+            console.log('⚠️ API de sinais vitais não respondeu, usando dados padrão');
             atualizarSinaisVitais([]);
         }
     } catch (error) {
-        console.error('Erro ao carregar sinais vitais:', error);
+        console.error('❌ Erro ao carregar sinais vitais:', error);
         atualizarSinaisVitais([]);
     }
 }
 
 // Função para atualizar sinais vitais na tela
 function atualizarSinaisVitais(sinais) {
+    console.log('📊 Atualizando sinais vitais na interface:', sinais);
+    
     if (!sinais || sinais.length === 0) {
         // Dados padrão quando não há sinais
+        console.log('📋 Usando sinais vitais padrão');
         const sinaisPadrao = [
             { tipo: 'pressao_arterial', valor_principal: '120', valor_secundario: '80' },
             { tipo: 'glicemia', valor_principal: '98' },
@@ -200,22 +212,34 @@ function atualizarSinaisVitais(sinais) {
     sinais.forEach(sinal => {
         switch(sinal.tipo) {
             case 'pressao_arterial':
-                document.getElementById('pressaoMedia').textContent = 
-                    `${sinal.valor_principal || '--'}/${sinal.valor_secundario || '--'}`;
-                document.getElementById('pressaoStatus').textContent = avaliarPressao(sinal);
-                document.getElementById('pressaoStatus').className = `badge ${obterClasseStatusPressao(sinal)}`;
+                if (document.getElementById('pressaoMedia')) {
+                    document.getElementById('pressaoMedia').textContent = 
+                        `${sinal.valor_principal || '--'}/${sinal.valor_secundario || '--'}`;
+                }
+                if (document.getElementById('pressaoStatus')) {
+                    document.getElementById('pressaoStatus').textContent = avaliarPressao(sinal);
+                    document.getElementById('pressaoStatus').className = `badge ${obterClasseStatusPressao(sinal)}`;
+                }
                 break;
                 
             case 'glicemia':
-                document.getElementById('glicemiaMedia').textContent = sinal.valor_principal || '--';
-                document.getElementById('glicemiaStatus').textContent = avaliarGlicemia(sinal);
-                document.getElementById('glicemiaStatus').className = `badge ${obterClasseStatusGlicemia(sinal)}`;
+                if (document.getElementById('glicemiaMedia')) {
+                    document.getElementById('glicemiaMedia').textContent = sinal.valor_principal || '--';
+                }
+                if (document.getElementById('glicemiaStatus')) {
+                    document.getElementById('glicemiaStatus').textContent = avaliarGlicemia(sinal);
+                    document.getElementById('glicemiaStatus').className = `badge ${obterClasseStatusGlicemia(sinal)}`;
+                }
                 break;
                 
             case 'temperatura':
-                document.getElementById('temperaturaMedia').textContent = sinal.valor_principal || '--';
-                document.getElementById('temperaturaStatus').textContent = avaliarTemperatura(sinal);
-                document.getElementById('temperaturaStatus').className = `badge ${obterClasseStatusTemperatura(sinal)}`;
+                if (document.getElementById('temperaturaMedia')) {
+                    document.getElementById('temperaturaMedia').textContent = sinal.valor_principal || '--';
+                }
+                if (document.getElementById('temperaturaStatus')) {
+                    document.getElementById('temperaturaStatus').textContent = avaliarTemperatura(sinal);
+                    document.getElementById('temperaturaStatus').className = `badge ${obterClasseStatusTemperatura(sinal)}`;
+                }
                 break;
         }
     });
@@ -227,17 +251,20 @@ function atualizarSinaisVitais(sinais) {
 // Função para carregar atividades
 async function carregarAtividades(pacienteId) {
     try {
+        console.log('📅 Carregando atividades...');
         const periodo = document.getElementById('periodoFilter')?.value || 'hoje';
         const response = await fetch(`/api/pacientes/${pacienteId}/atividades?periodo=${periodo}`);
         
         if (response.ok) {
             const atividades = await response.json();
+            console.log('✅ Atividades recebidas:', atividades);
             exibirAtividades(atividades);
         } else {
+            console.log('⚠️ API de atividades não respondeu, exibindo estado vazio');
             exibirAtividades([]);
         }
     } catch (error) {
-        console.error('Erro ao carregar atividades:', error);
+        console.error('❌ Erro ao carregar atividades:', error);
         exibirAtividades([]);
     }
 }
@@ -245,6 +272,10 @@ async function carregarAtividades(pacienteId) {
 // Função para exibir atividades
 function exibirAtividades(atividades) {
     const activityFeed = document.getElementById('activityFeed');
+    if (!activityFeed) {
+        console.error('❌ Elemento activityFeed não encontrado');
+        return;
+    }
     
     if (!atividades || atividades.length === 0) {
         activityFeed.innerHTML = `
@@ -254,7 +285,9 @@ function exibirAtividades(atividades) {
                 <small class="text-muted">As atividades aparecerão aqui quando forem registradas</small>
             </div>
         `;
-        feather.replace();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
         return;
     }
 
@@ -272,22 +305,28 @@ function exibirAtividades(atividades) {
     `).join('');
 
     activityFeed.innerHTML = atividadesHTML;
-    feather.replace();
+    
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 // Função para carregar alertas
 async function carregarAlertas(pacienteId) {
     try {
+        console.log('🚨 Carregando alertas...');
         const response = await fetch(`/api/pacientes/${pacienteId}/alertas/recentes`);
         
         if (response.ok) {
             const alertas = await response.json();
+            console.log('✅ Alertas recebidos:', alertas);
             exibirAlertas(alertas);
         } else {
+            console.log('⚠️ API de alertas não respondeu, exibindo estado vazio');
             exibirAlertas([]);
         }
     } catch (error) {
-        console.error('Erro ao carregar alertas:', error);
+        console.error('❌ Erro ao carregar alertas:', error);
         exibirAlertas([]);
     }
 }
@@ -295,6 +334,10 @@ async function carregarAlertas(pacienteId) {
 // Função para exibir alertas
 function exibirAlertas(alertas) {
     const alertsList = document.getElementById('alertsList');
+    if (!alertsList) {
+        console.error('❌ Elemento alertsList não encontrado');
+        return;
+    }
     
     if (!alertas || alertas.length === 0) {
         alertsList.innerHTML = `
@@ -304,7 +347,9 @@ function exibirAlertas(alertas) {
                 <small class="text-muted">Todos os indicadores estão dentro dos parâmetros normais</small>
             </div>
         `;
-        feather.replace();
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
         return;
     }
 
@@ -320,7 +365,10 @@ function exibirAlertas(alertas) {
     `).join('');
 
     alertsList.innerHTML = alertasHTML;
-    feather.replace();
+    
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }
 
 // Funções auxiliares
@@ -425,15 +473,21 @@ function atualizarStatusGeral(sinais) {
 }
 
 function configurarEventos() {
+    console.log('⚙️ Configurando eventos...');
+    
     // Filtro de período
     const periodoFilter = document.getElementById('periodoFilter');
     if (periodoFilter) {
         periodoFilter.addEventListener('change', function() {
+            console.log('🔍 Filtro de período alterado:', this.value);
             const dependente = JSON.parse(localStorage.getItem('dependenteSelecionado'));
             if (dependente && dependente.id) {
                 carregarAtividades(dependente.id);
             }
         });
+        console.log('✅ Filtro de período configurado');
+    } else {
+        console.error('❌ Filtro de período não encontrado');
     }
 
     // Formulário de mensagem
@@ -449,20 +503,36 @@ function configurarEventos() {
                 textarea.value = '';
             }
         });
+        console.log('✅ Formulário de mensagem configurado');
+    } else {
+        console.error('❌ Formulário de mensagem não encontrado');
     }
 
     // Botão de exportar relatório
     const exportBtn = document.getElementById('exportReportBtn');
     if (exportBtn) {
         exportBtn.addEventListener('click', exportarRelatorio);
+        console.log('✅ Botão de exportar relatório configurado');
+    } else {
+        console.error('❌ Botão de exportar relatório não encontrado');
     }
 
-    // Link de Relatórios - CORREÇÃO PRINCIPAL AQUI
+    // Link de Relatórios - CORREÇÃO COMPLETA
     const relatoriosLink = document.getElementById('relatoriosLink');
     if (relatoriosLink) {
         relatoriosLink.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('📊 Navegando para relatórios...');
+            
+            // DEBUG: Verificar localStorage novamente no momento do clique
+            console.log('🔍 DEBUG no clique - localStorage:');
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key.includes('user') || key.includes('usuario') || key.includes('login')) {
+                    const value = localStorage.getItem(key);
+                    console.log(`📦 ${key}:`, value);
+                }
+            }
             
             // Verificar se há um dependente selecionado
             const dependenteSelecionado = JSON.parse(localStorage.getItem('dependenteSelecionado'));
@@ -471,48 +541,85 @@ function configurarEventos() {
                 return;
             }
             
-            // ✅ CORREÇÃO: Verificação flexível do usuário logado
-            const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado')) || 
-                                JSON.parse(localStorage.getItem('currentUser')) ||
-                                JSON.parse(sessionStorage.getItem('usuarioLogado'));
+            // ✅ CORREÇÃO: Buscar usuário no formato atual (chaves separadas)
+            let usuarioLogado = null;
+            
+            // Verificar se existe nas chaves separadas
+            const usuarioTipo = localStorage.getItem('usuarioTipo');
+            const usuarioId = localStorage.getItem('usuarioId');
+            const usuarioNome = localStorage.getItem('usuarioNome');
+            
+            if (usuarioTipo && usuarioId) {
+                // ✅ CORREÇÃO: Montar objeto do usuário a partir das chaves separadas
+                usuarioLogado = {
+                    tipo: usuarioTipo,
+                    id: parseInt(usuarioId),
+                    nome: usuarioNome || 'Usuário'
+                };
+                console.log('✅ Usuário montado a partir de chaves separadas:', usuarioLogado);
+            } else {
+                // Tentar o método antigo (objeto único)
+                const possiveisChaves = [
+                    'usuarioLogado', 'currentUser', 'userData', 'loginData',
+                    'usuario', 'user', 'loggedUser', 'userInfo'
+                ];
+                
+                for (const chave of possiveisChaves) {
+                    const dados = localStorage.getItem(chave) || sessionStorage.getItem(chave);
+                    if (dados) {
+                        try {
+                            usuarioLogado = JSON.parse(dados);
+                            console.log(`✅ Usuário encontrado na chave: ${chave}`, usuarioLogado);
+                            break;
+                        } catch (e) {
+                            console.log(`❌ Erro ao parsear chave ${chave}:`, e);
+                        }
+                    }
+                }
+            }
             
             if (!usuarioLogado) {
-                console.error('❌ Usuário não autenticado');
-                mostrarErro('Usuário não autenticado. Faça login novamente.');
+                console.error('❌ Nenhum usuário encontrado!');
+                mostrarErro('Sessão expirada. Redirecionando para login...');
                 setTimeout(() => {
+                    localStorage.clear();
+                    sessionStorage.clear();
                     window.location.href = '../paginas/LandingPage.html';
                 }, 2000);
                 return;
             }
             
+            // ✅ CORREÇÃO: Garantir que o usuário está salvo corretamente PARA O FUTURO
+            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+            localStorage.setItem('currentUser', JSON.stringify(usuarioLogado));
+            
+            console.log('✅ Usuário garantido no localStorage:', usuarioLogado);
+            
             // ✅ CORREÇÃO: Verificação flexível do tipo de usuário
-            const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role;
+            const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role || usuarioLogado.type;
             console.log('👤 Tipo de usuário detectado:', tipoUsuario);
             
             const isFamiliarContratante = 
                 tipoUsuario === 'familiar_contratante' || 
                 tipoUsuario === 'familiar contratante' ||
                 tipoUsuario === 'supervisor' ||
-                tipoUsuario === 'admin';
+                tipoUsuario === 'admin' ||
+                tipoUsuario === 'familiar';
 
             if (!isFamiliarContratante) {
                 console.error('❌ Usuário não é familiar contratante:', tipoUsuario);
                 mostrarErro('Acesso não autorizado. Apenas familiares contratantes podem acessar esta página.');
-                setTimeout(() => {
-                    window.location.href = 'dashboard_supervisor.html';
-                }, 3000);
                 return;
             }
             
             console.log('✅ Usuário autorizado, redirecionando para relatórios...');
             
-            // ✅ CORREÇÃO: Salvar informações necessárias no localStorage
-            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
-            localStorage.setItem('currentUser', JSON.stringify(usuarioLogado));
-            
-            // Redirecionar para a página de relatórios
+            // ✅ CORREÇÃO: Redirecionar para a página de relatórios
             window.location.href = 'relatorios_supervisor.html';
         });
+        console.log('✅ Link de relatórios configurado');
+    } else {
+        console.error('❌ Link de relatórios não encontrado');
     }
 
     // Logout
@@ -520,13 +627,14 @@ function configurarEventos() {
     if (logoutBtn) {
         logoutBtn.addEventListener('click', function(e) {
             e.preventDefault();
-            localStorage.removeItem('dependenteSelecionado');
-            localStorage.removeItem('usuarioLogado');
-            localStorage.removeItem('currentUser');
-            sessionStorage.removeItem('usuarioLogado');
-            sessionStorage.removeItem('currentUser');
+            console.log('🚪 Efetuando logout...');
+            localStorage.clear();
+            sessionStorage.clear();
             window.location.href = '../paginas/index.html';
         });
+        console.log('✅ Botão de logout configurado');
+    } else {
+        console.error('❌ Botão de logout não encontrado');
     }
 }
 
@@ -540,10 +648,13 @@ async function enviarMensagem(mensagem) {
         mostrarSucesso('Mensagem enviada com sucesso!');
         
         // Atualizar preview da última mensagem
-        document.getElementById('lastMessage').innerHTML = `
-            <p><strong>Você:</strong> ${mensagem}</p>
-            <small class="text-muted">Agora</small>
-        `;
+        const lastMessageElement = document.getElementById('lastMessage');
+        if (lastMessageElement) {
+            lastMessageElement.innerHTML = `
+                <p><strong>Você:</strong> ${mensagem}</p>
+                <small class="text-muted">Agora</small>
+            `;
+        }
         
     } catch (error) {
         console.error('Erro ao enviar mensagem:', error);
@@ -554,6 +665,7 @@ async function enviarMensagem(mensagem) {
 async function exportarRelatorio() {
     try {
         // Implementar lógica de exportação de relatório
+        console.log('📄 Exportando relatório...');
         mostrarSucesso('Relatório exportado com sucesso!');
     } catch (error) {
         console.error('Erro ao exportar relatório:', error);
@@ -563,16 +675,141 @@ async function exportarRelatorio() {
 
 // Funções de notificação
 function mostrarSucesso(mensagem) {
-    // Implementação simples - você pode usar uma biblioteca de toast depois
+    console.log('✅ ' + mensagem);
     alert('✅ ' + mensagem);
 }
 
 function mostrarErro(mensagem) {
-    // Implementação simples - você pode usar uma biblioteca de toast depois
+    console.error('❌ ' + mensagem);
     alert('❌ ' + mensagem);
 }
 
 // Atualizar ícones periodicamente
 setInterval(() => {
-    feather.replace();
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
 }, 1000);
+
+console.log('🎯 dashboard_supervisor.js carregado com sucesso!');
+
+// Adicione esta função no seu dashboard_supervisor.js, na seção de configurarEventos():
+
+function configurarEventos() {
+    console.log('⚙️ Configurando eventos...');
+    
+    // ... (código existente) ...
+
+    // ✅ CORREÇÃO: Links de Alertas e Comunicação
+    const alertasLink = document.getElementById('alertasLink');
+    const comunicacaoLink = document.getElementById('comunicacaoLink');
+
+    // Configurar link de Alertas
+    if (alertasLink) {
+        alertasLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🚨 Navegando para alertas...');
+            navegarParaPaginaSupervisor('alertas_supervisor.html');
+        });
+        console.log('✅ Link de alertas configurado');
+    } else {
+        console.error('❌ Link de alertas não encontrado');
+    }
+
+    // Configurar link de Comunicação
+    if (comunicacaoLink) {
+        comunicacaoLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('💬 Navegando para comunicação...');
+            navegarParaPaginaSupervisor('comunicacao_supervisor.html');
+        });
+        console.log('✅ Link de comunicação configurado');
+    } else {
+        console.error('❌ Link de comunicação não encontrado');
+    }
+
+    // ... (restante do código existente) ...
+}
+
+// ✅ CORREÇÃO: Função auxiliar para navegação do supervisor
+function navegarParaPaginaSupervisor(pagina) {
+    // Verificar se há um dependente selecionado
+    const dependenteSelecionado = JSON.parse(localStorage.getItem('dependenteSelecionado'));
+    if (!dependenteSelecionado || !dependenteSelecionado.id) {
+        mostrarErro('Nenhum dependente selecionado. Por favor, selecione um dependente primeiro.');
+        return;
+    }
+    
+    // Buscar usuário no formato atual (chaves separadas)
+    let usuarioLogado = null;
+    const usuarioTipo = localStorage.getItem('usuarioTipo');
+    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioNome = localStorage.getItem('usuarioNome');
+    
+    if (usuarioTipo && usuarioId) {
+        usuarioLogado = {
+            tipo: usuarioTipo,
+            id: parseInt(usuarioId),
+            nome: usuarioNome || 'Usuário'
+        };
+        console.log('✅ Usuário montado a partir de chaves separadas:', usuarioLogado);
+    } else {
+        // Tentar o método antigo (objeto único)
+        const possiveisChaves = [
+            'usuarioLogado', 'currentUser', 'userData', 'loginData',
+            'usuario', 'user', 'loggedUser', 'userInfo'
+        ];
+        
+        for (const chave of possiveisChaves) {
+            const dados = localStorage.getItem(chave) || sessionStorage.getItem(chave);
+            if (dados) {
+                try {
+                    usuarioLogado = JSON.parse(dados);
+                    console.log(`✅ Usuário encontrado na chave: ${chave}`, usuarioLogado);
+                    break;
+                } catch (e) {
+                    console.log(`❌ Erro ao parsear chave ${chave}:`, e);
+                }
+            }
+        }
+    }
+    
+    if (!usuarioLogado) {
+        console.error('❌ Nenhum usuário encontrado!');
+        mostrarErro('Sessão expirada. Redirecionando para login...');
+        setTimeout(() => {
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '../paginas/LandingPage.html';
+        }, 2000);
+        return;
+    }
+    
+    // Garantir que o usuário está salvo corretamente
+    localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+    localStorage.setItem('currentUser', JSON.stringify(usuarioLogado));
+    
+    console.log('✅ Usuário garantido no localStorage:', usuarioLogado);
+    
+    // Verificação flexível do tipo de usuário
+    const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role || usuarioLogado.type;
+    console.log('👤 Tipo de usuário detectado:', tipoUsuario);
+    
+    const isFamiliarContratante = 
+        tipoUsuario === 'familiar_contratante' || 
+        tipoUsuario === 'familiar contratante' ||
+        tipoUsuario === 'supervisor' ||
+        tipoUsuario === 'admin' ||
+        tipoUsuario === 'familiar';
+
+    if (!isFamiliarContratante) {
+        console.error('❌ Usuário não é familiar contratante:', tipoUsuario);
+        mostrarErro('Acesso não autorizado. Apenas familiares contratantes podem acessar esta página.');
+        return;
+    }
+    
+    console.log(`✅ Usuário autorizado, redirecionando para ${pagina}...`);
+    
+    // Redirecionar para a página solicitada
+    window.location.href = pagina;
+}

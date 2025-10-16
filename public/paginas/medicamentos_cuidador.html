@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Medicamentos</title>
+    <link rel="stylesheet" href="../styles/medicamentos_cuidador.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <img src="../assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo">
+                    <div class="sidebar-brand">
+                        <h1>Vital+</h1>
+                        <span>Cuidador Profissional</span>
+                    </div>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="dashboard_cuidador.html">
+                            <i data-feather="home"></i>
+                            <span>Visão Geral</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="medicamentos_cuidador.html">
+                            <i data-feather="pill"></i>
+                            <span>Medicamentos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="atividades_cuidador.html">
+                            <i data-feather="activity"></i>
+                            <span>Atividades</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="relatorios_cuidador.html">
+                            <i data-feather="file-text"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="comunicacao_cuidador.html">
+                            <i data-feather="message-square"></i>
+                            <span>Comunicação</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <small>Vital+ &copy; 2025</small>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h1>Gestão de Medicamentos</h1>
+                    <p>Controle e administração de medicamentos do paciente</p>
+                </div>
+                
+                <div class="header-actions">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                <i data-feather="bell"></i>
+                                <span>Notificações</span>
+                                <span class="badge bg-danger">2</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="#" class="nav-link">
+                                <i data-feather="user"></i>
+                                <span id="userName">Cuidador</span>
+                                <i data-feather="chevron-down"></i>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a href="#" class="dropdown-item">
+                                    <i data-feather="user"></i>
+                                    Meu Perfil
+                                </a>
+                                <a href="#" class="dropdown-item">
+                                    <i data-feather="settings"></i>
+                                    Configurações
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a href="#" class="dropdown-item" id="logoutBtn">
+                                    <i data-feather="log-out"></i>
+                                    Sair
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Dashboard -->
+            <div class="dashboard">
+                <!-- Estatísticas Rápidas -->
+                <div class="dashboard-grid">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="calendar"></i> Medicamentos de Hoje</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="vitals-grid">
+                                <div class="vital-card">
+                                    <i data-feather="clock"></i>
+                                    <h4 id="totalMedicamentos">0</h4>
+                                    <small>Total para Hoje</small>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="check-circle"></i>
+                                    <h4 id="medicamentosAdministrados">0</h4>
+                                    <small>Administrados</small>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="alert-triangle"></i>
+                                    <h4 id="medicamentosPendentes">0</h4>
+                                    <small>Pendentes</small>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="skip-forward"></i>
+                                    <h4 id="proximoHorario">--:--</h4>
+                                    <small>Próximo Horário</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="bar-chart-2"></i> Adesão à Medicação</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="adesaoChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filtros -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="filtroData">Data</label>
+                                <input type="date" id="filtroData" class="form-control" value="">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filtroStatus">Status</label>
+                                <select id="filtroStatus" class="form-control">
+                                    <option value="todos">Todos os Status</option>
+                                    <option value="pendente">Pendentes</option>
+                                    <option value="administrado">Administrados</option>
+                                    <option value="atrasado">Atrasados</option>
+                                </select>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label for="filtroBusca" class="hidden-label">Buscar</label>
+                                <div class="search-input">
+                                    <i data-feather="search"></i>
+                                    <input type="text" id="filtroBusca" placeholder="Buscar medicamentos..." class="form-control">
+                                </div>
+                            </div>
+                            
+                            <div class="filter-group filter-button">
+                                <button id="aplicarFiltros" class="btn btn-primary">
+                                    <i data-feather="filter"></i>
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ações Rápidas -->
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h4 class="mb-0">Gestão de Medicamentos</h4>
+                            <button id="novoMedicamentoBtn" class="btn btn-primary">
+                                <i data-feather="plus"></i>
+                                Novo Medicamento
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Medicamentos -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-feather="list"></i> Medicamentos do Dia</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="medicamentos-container" id="medicamentosContainer">
+                            <!-- Medicamentos serão carregados aqui via JavaScript -->
+                            <div class="empty-state">
+                                <i data-feather="inbox"></i>
+                                <h4>Carregando medicamentos...</h4>
+                                <p>Aguarde enquanto carregamos os medicamentos do paciente</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal para Novo Medicamento -->
+    <div id="medicamentoModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Novo Medicamento</h2>
+                <button type="button" class="btn-icon" id="fecharModal">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            
+            <form id="medicamentoForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="medicamentoNome">Nome do Medicamento *</label>
+                        <input type="text" id="medicamentoNome" name="nome" required class="form-control" placeholder="Digite o nome do medicamento">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="medicamentoDosagem">Dosagem *</label>
+                            <input type="text" id="medicamentoDosagem" name="dosagem" required class="form-control" placeholder="Ex: 500mg, 10ml">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="medicamentoFrequencia">Frequência *</label>
+                            <select id="medicamentoFrequencia" name="frequencia" required class="form-control">
+                                <option value="uma_vez">1x ao dia</option>
+                                <option value="duas_vezes">2x ao dia</option>
+                                <option value="tres_vezes">3x ao dia</option>
+                                <option value="quatro_vezes">4x ao dia</option>
+                                <option value="a_cada_6h">A cada 6 horas</option>
+                                <option value="a_cada_8h">A cada 8 horas</option>
+                                <option value="a_cada_12h">A cada 12 horas</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="medicamentoHorario">Horário *</label>
+                            <input type="time" id="medicamentoHorario" name="horario" required class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="medicamentoVia">Via de Administração *</label>
+                            <select id="medicamentoVia" name="via" required class="form-control">
+                                <option value="oral">Oral</option>
+                                <option value="sublingual">Sublingual</option>
+                                <option value="topica">Tópica</option>
+                                <option value="inalatoria">Inalatória</option>
+                                <option value="intramuscular">Intramuscular</option>
+                                <option value="intravenosa">Intravenosa</option>
+                                <option value="subcutanea">Subcutânea</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="medicamentoInstrucoes">Instruções Especiais</label>
+                        <textarea id="medicamentoInstrucoes" name="instrucoes" class="form-control" placeholder="Instruções de administração..." rows="3"></textarea>
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" id="cancelarBtn" class="btn btn-outline">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-feather="save"></i>
+                        Salvar Medicamento
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/medicamentos_cuidador.js"></script>
+</body>
+</html>

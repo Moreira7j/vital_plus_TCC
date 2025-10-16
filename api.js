@@ -14,8 +14,10 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
-// Adicione esta linha após os outros app.use():
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
+app.use('/styles', express.static(path.join(__dirname, 'public/styles')));
+app.use('/js', express.static(path.join(__dirname, 'public/js')));
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 
 // Configuração do multer para upload de arquivos
 const storage = multer.diskStorage({
@@ -60,7 +62,25 @@ db.connect(err => {
   console.log("✅ Conectado ao MySQL!");
 });
 
-// ROTAS PRINCIPAIS
+// ====================== ROTAS PARA ARQUIVOS ESTÁTICOS ====================== //
+
+// Rotas específicas para arquivos CSS e JS
+app.get("/styles/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/styles", filename));
+});
+
+app.get("/js/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/js", filename));
+});
+
+app.get("/assets/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/assets", filename));
+});
+
+// ====================== ROTAS PRINCIPAIS ====================== //
 
 // Página inicial
 app.get("/", (req, res) => {
@@ -129,69 +149,36 @@ app.get("/ativar_conta", (req, res) => {
   res.sendFile(path.join(__dirname, "public/paginas/ativar_conta.html"));
 });
 
-// Rotas com extensão .html para compatibilidade
-app.get("/LandingPage.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/LandingPage.html"));
+// ====================== ROTAS PARA CUIDADOR ====================== //
+
+app.get("/medicamentos_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/medicamentos_cuidador.html"));
 });
 
-app.get("/index.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/index.html"));
+app.get("/atividades_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/atividades_cuidador.html"));
 });
 
-app.get("/criarContaFamiliarCuidador.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/criarContaFamiliarCuidador.html"));
+app.get("/relatorios_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/relatorios_cuidador.html"));
 });
 
-app.get("/criarContaFamiliarContratante.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/criarContaFamiliarContratante.html"));
+app.get("/comunicacao_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/comunicacao_cuidador.html"));
 });
 
-app.get("/dependentes.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/dependentes.html"));
+// ====================== ROTAS PARA SUPERVISOR ====================== //
+
+app.get("/relatorios_supervisor", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/relatorios_supervisor.html"));
 });
 
-app.get("/dashboard_cuidador.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/dashboard_cuidador.html"));
+app.get("/alertas_supervisor", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/alertas_supervisor.html"));
 });
 
-app.get("/dashboard_familiar.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/dashboard_familiar.html"));
-});
-
-app.get("/dashboard_supervisor.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/dashboard_supervisor.html"));
-});
-
-app.get("/adm.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/adm.html"));
-});
-
-app.get("/medicamentos.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/medicamentos.html"));
-});
-
-app.get("/alertas.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/alertas.html"));
-});
-
-app.get("/historico.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/historico.html"));
-});
-
-app.get("/relatorios.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/relatorios.html"));
-});
-
-app.get("/esqueciSenha.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/esqueciSenha.html"));
-});
-
-app.get("/ativar_conta.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/ativar_conta.html"));
-});
-
-app.get("/selecaoTipoUsuario.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/selecaoTipoUsuario.html"));
+app.get("/comunicacao_supervisor", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/comunicacao_supervisor.html"));
 });
 
 // ====================== SISTEMA DE CONVITES PARA CUIDADORES ====================== //
@@ -209,7 +196,6 @@ app.post("/api/convites/enviar-convite", (req, res) => {
         return res.status(400).json({ error: "Dados incompletos para enviar convite" });
     }
 
-    // Verificar se o email já está cadastrado como cuidador
     const checkCuidadorQuery = `
         SELECT u.id, u.email, u.tipo 
         FROM usuarios u 
@@ -222,7 +208,6 @@ app.post("/api/convites/enviar-convite", (req, res) => {
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
 
-        // Verificar se já existe um convite pendente para este email e paciente
         const checkConviteQuery = `
             SELECT id FROM convites_cuidadores 
             WHERE cuidador_email = ? AND paciente_id = ? AND status = 'pendente'
@@ -238,11 +223,9 @@ app.post("/api/convites/enviar-convite", (req, res) => {
                 return res.status(400).json({ error: "Já existe um convite pendente para este cuidador e paciente" });
             }
 
-            // Gerar token único para o convite
             const token_convite = crypto.randomBytes(32).toString('hex');
-            const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
+            const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-            // Inserir convite
             const insertConviteQuery = `
                 INSERT INTO convites_cuidadores 
                 (familiar_contratante_id, cuidador_email, paciente_id, token_convite, expiracao, mensagem_personalizada)
@@ -262,7 +245,6 @@ app.post("/api/convites/enviar-convite", (req, res) => {
                     return res.status(500).json({ error: "Erro interno do servidor" });
                 }
 
-                // Buscar informações do paciente e familiar para o email
                 const infoQuery = `
                     SELECT 
                         p.nome as paciente_nome,
@@ -277,12 +259,10 @@ app.post("/api/convites/enviar-convite", (req, res) => {
                 db.query(infoQuery, [paciente_id], (err, infoResults) => {
                     if (err) {
                         console.error("Erro ao buscar informações:", err);
-                        // Continua mesmo com erro, pois o convite já foi criado
                     }
 
                     const info = infoResults[0] || {};
                     
-                    // Enviar email de convite
                     if (isEmailConfigured()) {
                         const baseUrl = process.env.BASE_URL || "http://localhost:3000";
                         const mailOptions = {
@@ -400,7 +380,7 @@ app.get("/api/convites/verificar/:token", (req, res) => {
     });
 });
 
-// Aceitar convite - VERSÃO DEFINITIVAMENTE CORRIGIDA
+// Aceitar convite
 app.post("/api/convites/aceitar", (req, res) => {
     const { token, cuidador_nome, cuidador_telefone, cuidador_senha } = req.body;
 
@@ -412,7 +392,6 @@ app.post("/api/convites/aceitar", (req, res) => {
         return res.status(400).json({ error: "Senha é obrigatória" });
     }
 
-    // Verificar convite
     const checkQuery = `
         SELECT * FROM convites_cuidadores 
         WHERE token_convite = ? AND status = 'pendente' AND expiracao > NOW()
@@ -430,7 +409,6 @@ app.post("/api/convites/aceitar", (req, res) => {
 
         const convite = results[0];
 
-        // Verificar se o email já está cadastrado
         const checkEmailQuery = "SELECT id, senha FROM usuarios WHERE email = ?";
         db.query(checkEmailQuery, [convite.cuidador_email], (err, emailResults) => {
             if (err) {
@@ -441,7 +419,6 @@ app.post("/api/convites/aceitar", (req, res) => {
             let usuarioCuidadorId;
 
             if (emailResults.length > 0) {
-                // Email já existe - ATUALIZAR SENHA E TIPO
                 usuarioCuidadorId = emailResults[0].id;
                 console.log("📧 Usuário existente encontrado. Atualizando senha...");
                 
@@ -455,7 +432,6 @@ app.post("/api/convites/aceitar", (req, res) => {
                     
                     console.log("✅ Senha do usuário existente atualizada para:", cuidador_senha);
                     
-                    // Verificar se já existe vínculo com este paciente
                     const checkVinculoQuery = `
                         SELECT cpp.id 
                         FROM cuidadores_profissionais cp
@@ -469,18 +445,15 @@ app.post("/api/convites/aceitar", (req, res) => {
                         }
                         
                         if (vinculoResults.length === 0) {
-                            // Criar vínculo se não existir
                             vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res);
                         } else {
-                            // Já existe vínculo, apenas atualizar convite
                             atualizarConviteAceito(token, res, usuarioCuidadorId);
                         }
                     });
                 });
                 
             } else {
-                // Criar NOVO usuário cuidador com a SENHA FORNECIDA
-                const senha = cuidador_senha; // USA A SENHA DO FORMULÁRIO
+                const senha = cuidador_senha;
                 const nome = cuidador_nome || convite.cuidador_email.split('@')[0];
                 
                 console.log("👤 Criando novo usuário com senha:", senha);
@@ -499,7 +472,6 @@ app.post("/api/convites/aceitar", (req, res) => {
                     usuarioCuidadorId = usuarioResult.insertId;
                     console.log("✅ Novo usuário criado com ID:", usuarioCuidadorId);
 
-                    // Criar registro na tabela cuidadores_profissionais
                     const insertCuidadorQuery = `
                         INSERT INTO cuidadores_profissionais (usuario_id, especializacao, disponibilidade)
                         VALUES (?, 'A definir', 'A combinar')
@@ -512,8 +484,6 @@ app.post("/api/convites/aceitar", (req, res) => {
                         }
                         
                         console.log("✅ Cuidador profissional criado");
-                        
-                        // Vincular ao paciente
                         vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res);
                     });
                 });
@@ -524,7 +494,6 @@ app.post("/api/convites/aceitar", (req, res) => {
 
 // Função auxiliar para vincular cuidador ao paciente
 function vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res) {
-    // Buscar o ID do cuidador profissional
     const getCuidadorIdQuery = "SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?";
     
     db.query(getCuidadorIdQuery, [usuarioCuidadorId], (err, cuidadorResults) => {
@@ -540,7 +509,6 @@ function vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res) {
 
         const cuidadorProfissionalId = cuidadorResults[0].id;
 
-        // Vincular cuidador ao paciente
         const vinculoQuery = `
             INSERT INTO cuidadores_profissionais_pacientes (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
             VALUES (?, ?, TRUE, CURDATE(), 'ativo')
@@ -553,8 +521,6 @@ function vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res) {
             }
 
             console.log("✅ Cuidador vinculado ao paciente");
-            
-            // Finalizar atualizando o convite
             atualizarConviteAceito(token, res, usuarioCuidadorId);
         });
     });
@@ -640,7 +606,7 @@ app.get("/aceitar-convite", (req, res) => {
     res.sendFile(path.join(__dirname, "public/paginas/aceitar-convite.html"));
 });
 
-// APIS
+// ====================== APIS PRINCIPAIS ====================== //
 
 // Login
 app.post("/api/login", (req, res) => {
@@ -692,11 +658,10 @@ app.post("/api/login", (req, res) => {
     
     let redirectUrl = "/";
     
-    // CORREÇÃO: Familiares vão primeiro para a página de dependentes
     if (usuario.tipo === 'familiar_cuidador') {
-      redirectUrl = "/dependentes";  // Vai para dependentes primeiro
+      redirectUrl = "/dependentes";
     } else if (usuario.tipo === 'familiar_contratante') {
-      redirectUrl = "/dependentes";  // Vai para dependentes primeiro
+      redirectUrl = "/dependentes";
     } else if (usuario.tipo === 'cuidador_profissional') {
       redirectUrl = "/dashboard_cuidador";
     } else if (usuario.tipo === 'admin') {
@@ -769,7 +734,6 @@ app.post("/api/cadastrar", (req, res) => {
         }
         console.log("Cuidador profissional cadastrado com sucesso:", usuarioId);
 
-        // Enviar e-mail para o cuidador profissional
         if (isEmailConfigured()) {
           const baseUrl = process.env.BASE_URL || "http://localhost:3000";
           const mailOptions = {
@@ -863,7 +827,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
   console.log("Arquivo recebido:", req.file);
 
   const { 
-    // Dados do familiar
     familiar_nome, 
     familiar_email, 
     familiar_senha, 
@@ -872,7 +835,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
     familiar_parentesco, 
     familiar_endereco,
     
-    // Dados do dependente
     dependente_nome,
     dependente_data_nascimento,
     dependente_genero,
@@ -882,7 +844,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
     dependente_historico_medico,
     dependente_contato_emergencia,
     
-    // Dados do cuidador
     cuidador_nome,
     cuidador_email,
     cuidador_telefone,
@@ -893,7 +854,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
     cuidador_disponibilidade
   } = req.body;
 
-  // 1. CADASTRAR FAMILIAR CONTRATANTE
   console.log("1. Cadastrando familiar contratante...");
   const usuarioFamiliarQuery = `
     INSERT INTO usuarios (nome, email, senha, tipo, telefone, data_nascimento)
@@ -909,7 +869,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
     const usuarioFamiliarId = usuarioFamiliarResult.insertId;
     console.log("Familiar usuario ID:", usuarioFamiliarId);
 
-    // Inserir na tabela familiares_contratantes
     const familiarContratanteQuery = "INSERT INTO familiares_contratantes (usuario_id, endereco) VALUES (?, ?)";
     db.query(familiarContratanteQuery, [usuarioFamiliarId, familiar_endereco], (err2, familiarContratanteResult) => {
       if (err2) {
@@ -920,7 +879,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
       const familiarContratanteId = familiarContratanteResult.insertId;
       console.log("Familiar contratante ID:", familiarContratanteId);
 
-      // 2. CADASTRAR CUIDADOR PROFISSIONAL
       console.log("2. Cadastrando cuidador profissional...");
       const usuarioCuidadorQuery = `
         INSERT INTO usuarios (nome, email, senha, tipo, telefone)
@@ -938,7 +896,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
         const usuarioCuidadorId = usuarioCuidadorResult.insertId;
         console.log("Cuidador usuario ID:", usuarioCuidadorId);
 
-        // Inserir na tabela cuidadores_profissionais
         const cuidadorProfissionalQuery = `
           INSERT INTO cuidadores_profissionais (usuario_id, especializacao, registro_profissional, disponibilidade)
           VALUES (?, ?, ?, ?)
@@ -953,7 +910,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
           const cuidadorProfissionalId = cuidadorProfissionalResult.insertId;
           console.log("Cuidador profissional ID:", cuidadorProfissionalId);
 
-          // 3. CADASTRAR PACIENTE/DEPENDENTE
           console.log("3. Cadastrando paciente/dependente...");
           const foto_perfil = req.file ? req.file.filename : null;
           
@@ -982,7 +938,6 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
             const pacienteId = pacienteResult.insertId;
             console.log("Paciente ID:", pacienteId);
 
-            // 4. VINCULAR CUIDADOR AO PACIENTE
             console.log("4. Vinculando cuidador ao paciente...");
             const vinculoQuery = `
               INSERT INTO cuidadores_profissionais_pacientes (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
@@ -992,12 +947,10 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
             db.query(vinculoQuery, [cuidadorProfissionalId, pacienteId], (err6) => {
               if (err6) {
                 console.error("Erro ao criar vínculo:", err6);
-                // Não retorna erro, pois o principal já foi cadastrado
               }
               
               console.log("✅ Cadastro completo realizado com sucesso!");
               
-              // Enviar e-mail para o cuidador
               if (isEmailConfigured()) {
                 const baseUrl = process.env.BASE_URL || "http://localhost:3000";
                 const mailOptions = {
@@ -1131,7 +1084,6 @@ app.post("/api/pacientes", upload.single("foto_perfil"), (req, res) => {
     const pacienteId = results.insertId;
     console.log("Paciente cadastrado com sucesso! ID:", pacienteId);
     
-    // Se houver cuidador profissional, criar o vínculo
     if (cuidador_profissional_id) {
       const vinculoQuery = `
         INSERT INTO cuidadores_profissionais_pacientes (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
@@ -1288,17 +1240,6 @@ app.post("/api/ativar_conta", (req, res) => {
   });
 });
 
-// Rota para vincular cuidador a dependente após ativação (se necessário)
-app.post("/api/vincular_cuidador_dependente", (req, res) => {
-  const { cuidadorId, dependenteId } = req.body;
-
-  if (!cuidadorId || !dependenteId) {
-    return res.status(400).json({ error: "ID do cuidador e do dependente são obrigatórios." });
-  }
-
-  res.json({ message: "Funcionalidade de vinculação de cuidador a dependente (placeholder)." });
-});
-
 // Buscar cuidador de um paciente
 app.get("/api/pacientes/:pacienteId/cuidador", (req, res) => {
     const pacienteId = req.params.pacienteId;
@@ -1324,38 +1265,6 @@ app.get("/api/pacientes/:pacienteId/cuidador", (req, res) => {
         
         res.json(results[0]);
     });
-});
-
-// Buscar atividades do paciente
-app.get("/api/pacientes/:pacienteId/atividades", (req, res) => {
-    const pacienteId = req.params.pacienteId;
-    const periodo = req.query.periodo || 'hoje';
-    
-    // Por enquanto, retornar array vazio - implementar lógica real depois
-    res.json([]);
-});
-
-// Buscar métricas de saúde
-app.get("/api/pacientes/:pacienteId/metricas", (req, res) => {
-    const pacienteId = req.params.pacienteId;
-    
-    // Dados de exemplo - implementar lógica real depois
-    res.json({
-        pressao: "120/80",
-        glicemia: "98",
-        temperatura: "36.5",
-        adesao: "95%",
-        status: "Estável"
-    });
-});
-
-// Buscar alertas do paciente
-app.get("/api/pacientes/:pacienteId/alertas", (req, res) => {
-    const pacienteId = req.params.pacienteId;
-    const limit = req.query.limit || 5;
-    
-    // Por enquanto, retornar array vazio - implementar lógica real depois
-    res.json([]);
 });
 
 // Buscar paciente vinculado ao cuidador
@@ -1394,11 +1303,270 @@ app.get("/api/cuidadores/:cuidadorId/paciente", (req, res) => {
     });
 });
 
-// Dados de exemplo para medicamentos (remova depois)
+// ====================== ROTAS PARA ATIVIDADES DO CUIDADOR ====================== //
+
+// CORREÇÃO: Rota para atividades do cuidador - COMPLETA E FUNCIONAL
+app.get("/api/cuidadores/:cuidadorId/atividades", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    console.log(`Buscando atividades para cuidador: ${cuidadorId}`);
+    
+    // Query corrigida - busca atividades do paciente vinculado ao cuidador
+    const query = `
+        SELECT 
+            a.*,
+            p.nome as paciente_nome,
+            a.status as status_atividade
+        FROM atividades a
+        INNER JOIN pacientes p ON a.paciente_id = p.id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo'
+        ORDER BY a.data_prevista DESC
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${results.length} atividades encontradas para cuidador ${cuidadorId}`);
+        res.json(results);
+    });
+});
+
+// ====================== ROTAS PARA SUPERVISOR ====================== //
+
+// Relatórios do supervisor
+app.get("/api/supervisor/:familiarId/relatorios", (req, res) => {
+    const familiarId = req.params.familiarId;
+    
+    const query = `
+        SELECT 
+            r.*,
+            p.nome as paciente_nome
+        FROM relatorios r
+        INNER JOIN pacientes p ON r.paciente_id = p.id
+        WHERE p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?
+        ORDER BY r.data_criacao DESC
+    `;
+    
+    db.query(query, [familiarId, familiarId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar relatórios:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json(results);
+    });
+});
+
+// Comunicação do supervisor
+app.get("/api/supervisor/:familiarId/comunicacao", (req, res) => {
+    const familiarId = req.params.familiarId;
+    
+    const query = `
+        SELECT 
+            m.*,
+            u.nome as remetente_nome,
+            u.tipo as remetente_tipo,
+            p.nome as paciente_nome
+        FROM mensagens m
+        LEFT JOIN usuarios u ON m.remetente_id = u.id
+        LEFT JOIN pacientes p ON m.paciente_id = p.id
+        WHERE (p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?)
+        ORDER BY m.data_envio DESC
+        LIMIT 50
+    `;
+    
+    db.query(query, [familiarId, familiarId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar mensagens:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json(results);
+    });
+});
+
+// Alertas do supervisor
+app.get("/api/supervisor/:familiarId/alertas", (req, res) => {
+    const familiarId = req.params.familiarId;
+    
+    const query = `
+        SELECT 
+            a.*,
+            p.nome as paciente_nome,
+            u.nome as cuidador_nome,
+            a.prioridade,
+            a.status as status_alerta
+        FROM alertas a
+        INNER JOIN pacientes p ON a.paciente_id = p.id
+        LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        LEFT JOIN usuarios u ON cp.usuario_id = u.id
+        WHERE (p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?)
+        ORDER BY a.data_criacao DESC
+    `;
+    
+    db.query(query, [familiarId, familiarId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar alertas:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json(results || []);
+    });
+});
+
+// ====================== ROTAS PARA CUIDADOR ====================== //
+
+// Medicamentos do cuidador
+app.get("/api/cuidadores/:cuidadorId/medicamentos", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    const query = `
+        SELECT 
+            m.*,
+            p.nome as paciente_nome
+        FROM medicamentos m
+        INNER JOIN pacientes p ON m.paciente_id = p.id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ? AND m.ativo = TRUE
+        ORDER BY m.horario
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar medicamentos:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json(results);
+    });
+});
+
+// Relatórios do cuidador
+app.get("/api/cuidadores/:cuidadorId/relatorios", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    const query = `
+        SELECT 
+            r.*,
+            p.nome as paciente_nome
+        FROM relatorios r
+        INNER JOIN pacientes p ON r.paciente_id = p.id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ?
+        ORDER BY r.data_criacao DESC
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar relatórios:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json(results);
+    });
+});
+
+// Comunicação do cuidador
+app.get("/api/cuidadores/:cuidadorId/comunicacao", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    const query = `
+        SELECT 
+            m.*,
+            u.nome as remetente_nome,
+            u.tipo as remetente_tipo,
+            p.nome as paciente_nome
+        FROM mensagens m
+        LEFT JOIN usuarios u ON m.remetente_id = u.id
+        LEFT JOIN pacientes p ON m.paciente_id = p.id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ?
+        ORDER BY m.data_envio DESC
+        LIMIT 50
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar mensagens:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json(results);
+    });
+});
+
+// Enviar mensagem
+app.post("/api/mensagens/enviar", (req, res) => {
+    const { remetente_id, destinatario_id, paciente_id, mensagem, tipo } = req.body;
+    
+    const query = `
+        INSERT INTO mensagens (remetente_id, destinatario_id, paciente_id, mensagem, tipo, data_envio)
+        VALUES (?, ?, ?, ?, ?, NOW())
+    `;
+    
+    db.query(query, [remetente_id, destinatario_id, paciente_id, mensagem, tipo], (err, result) => {
+        if (err) {
+            console.error("Erro ao enviar mensagem:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+// Criar relatório
+app.post("/api/relatorios/criar", (req, res) => {
+    const { paciente_id, cuidador_id, titulo, conteudo, tipo } = req.body;
+    
+    const query = `
+        INSERT INTO relatorios (paciente_id, cuidador_id, titulo, conteudo, tipo, data_criacao)
+        VALUES (?, ?, ?, ?, ?, NOW())
+    `;
+    
+    db.query(query, [paciente_id, cuidador_id, titulo, conteudo, tipo], (err, result) => {
+        if (err) {
+            console.error("Erro ao criar relatório:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+// Registrar atividade
+app.post("/api/atividades/registrar", (req, res) => {
+    const { paciente_id, cuidador_id, tipo, descricao, observacoes } = req.body;
+    
+    const query = `
+        INSERT INTO atividades (paciente_id, cuidador_id, tipo, descricao, observacoes, data_realizacao, status)
+        VALUES (?, ?, ?, ?, ?, NOW(), 'concluída')
+    `;
+    
+    db.query(query, [paciente_id, cuidador_id, tipo, descricao, observacoes], (err, result) => {
+        if (err) {
+            console.error("Erro ao registrar atividade:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json({ success: true, id: result.insertId });
+    });
+});
+
+// ====================== ROTAS DE EXEMPLO/DEMO ====================== //
+
+// Dados de exemplo para medicamentos
 app.get("/api/pacientes/:pacienteId/medicamentos/hoje", (req, res) => {
     const pacienteId = req.params.pacienteId;
     
-    // Dados de exemplo - substitua pela lógica real depois
     const medicamentos = [
         {
             id: 1,
@@ -1566,14 +1734,12 @@ app.get("/api/dependentes/:dependenteId", (req, res) => {
         
         const dependente = results[0];
         
-        // Construir URL completa para a foto
         if (dependente.foto_perfil) {
             dependente.foto_url = `/uploads/${dependente.foto_perfil}`;
         } else {
             dependente.foto_url = '/assets/default-avatar.png';
         }
         
-        // Calcular idade
         if (dependente.data_nascimento) {
             const nascimento = new Date(dependente.data_nascimento);
             const hoje = new Date();
@@ -1589,265 +1755,6 @@ app.get("/api/dependentes/:dependenteId", (req, res) => {
         console.log("Dependente encontrado:", dependente.nome);
         res.json(dependente);
     });
-});
-
-// ====================== ROTAS PARA SUPERVISOR ====================== //
-
-// Relatórios do supervisor
-app.get("/api/supervisor/:familiarId/relatorios", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT 
-            r.*,
-            p.nome as paciente_nome
-        FROM relatorios r
-        INNER JOIN pacientes p ON r.paciente_id = p.id
-        WHERE p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?
-        ORDER BY r.data_criacao DESC
-    `;
-    
-    db.query(query, [familiarId, familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar relatórios:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Comunicação do supervisor
-app.get("/api/supervisor/:familiarId/comunicacao", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT 
-            m.*,
-            u.nome as remetente_nome,
-            u.tipo as remetente_tipo,
-            p.nome as paciente_nome
-        FROM mensagens m
-        LEFT JOIN usuarios u ON m.remetente_id = u.id
-        LEFT JOIN pacientes p ON m.paciente_id = p.id
-        WHERE (p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?)
-        ORDER BY m.data_envio DESC
-        LIMIT 50
-    `;
-    
-    db.query(query, [familiarId, familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar mensagens:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Alertas do supervisor
-app.get("/api/supervisor/:familiarId/alertas", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT 
-            a.*,
-            p.nome as paciente_nome,
-            u.nome as cuidador_nome
-        FROM alertas a
-        INNER JOIN pacientes p ON a.paciente_id = p.id
-        LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        LEFT JOIN usuarios u ON cp.usuario_id = u.id
-        WHERE (p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?)
-        ORDER BY a.data_criacao DESC
-    `;
-    
-    db.query(query, [familiarId, familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar alertas:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// ====================== ROTAS PARA CUIDADOR ====================== //
-
-// Medicamentos do cuidador
-app.get("/api/cuidadores/:cuidadorId/medicamentos", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            m.*,
-            p.nome as paciente_nome
-        FROM medicamentos m
-        INNER JOIN pacientes p ON m.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ? AND m.ativo = TRUE
-        ORDER BY m.horario
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar medicamentos:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Atividades do cuidador
-app.get("/api/cuidadores/:cuidadorId/atividades", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            a.*,
-            p.nome as paciente_nome,
-            a.status as status_atividade
-        FROM atividades a
-        INNER JOIN pacientes p ON a.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ?
-        ORDER BY a.data_prevista DESC
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar atividades:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Relatórios do cuidador
-app.get("/api/cuidadores/:cuidadorId/relatorios", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            r.*,
-            p.nome as paciente_nome
-        FROM relatorios r
-        INNER JOIN pacientes p ON r.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ?
-        ORDER BY r.data_criacao DESC
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar relatórios:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Comunicação do cuidador
-app.get("/api/cuidadores/:cuidadorId/comunicacao", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            m.*,
-            u.nome as remetente_nome,
-            u.tipo as remetente_tipo,
-            p.nome as paciente_nome
-        FROM mensagens m
-        LEFT JOIN usuarios u ON m.remetente_id = u.id
-        LEFT JOIN pacientes p ON m.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ?
-        ORDER BY m.data_envio DESC
-        LIMIT 50
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar mensagens:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Enviar mensagem
-app.post("/api/mensagens/enviar", (req, res) => {
-    const { remetente_id, destinatario_id, paciente_id, mensagem, tipo } = req.body;
-    
-    const query = `
-        INSERT INTO mensagens (remetente_id, destinatario_id, paciente_id, mensagem, tipo, data_envio)
-        VALUES (?, ?, ?, ?, ?, NOW())
-    `;
-    
-    db.query(query, [remetente_id, destinatario_id, paciente_id, mensagem, tipo], (err, result) => {
-        if (err) {
-            console.error("Erro ao enviar mensagem:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json({ success: true, id: result.insertId });
-    });
-});
-
-// Criar relatório
-app.post("/api/relatorios/criar", (req, res) => {
-    const { paciente_id, cuidador_id, titulo, conteudo, tipo } = req.body;
-    
-    const query = `
-        INSERT INTO relatorios (paciente_id, cuidador_id, titulo, conteudo, tipo, data_criacao)
-        VALUES (?, ?, ?, ?, ?, NOW())
-    `;
-    
-    db.query(query, [paciente_id, cuidador_id, titulo, conteudo, tipo], (err, result) => {
-        if (err) {
-            console.error("Erro ao criar relatório:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json({ success: true, id: result.insertId });
-    });
-});
-
-// Registrar atividade
-app.post("/api/atividades/registrar", (req, res) => {
-    const { paciente_id, cuidador_id, tipo, descricao, observacoes } = req.body;
-    
-    const query = `
-        INSERT INTO atividades (paciente_id, cuidador_id, tipo, descricao, observacoes, data_realizacao, status)
-        VALUES (?, ?, ?, ?, ?, NOW(), 'concluída')
-    `;
-    
-    db.query(query, [paciente_id, cuidador_id, tipo, descricao, observacoes], (err, result) => {
-        if (err) {
-            console.error("Erro ao registrar atividade:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json({ success: true, id: result.insertId });
-    });
-});
-
-// Página de relatórios do supervisor
-app.get("/relatorios_supervisor", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/relatorios_supervisor.html"));
-});
-
-app.get("/relatorios_supervisor.html", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/relatorios_supervisor.html"));
 });
 
 // Iniciar servidor

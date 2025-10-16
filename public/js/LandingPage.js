@@ -1,4 +1,4 @@
-// LandingPage.js - Funcionalidades da página inicial
+// LandingPage.js - Funcionalidades da página inicial - VERSÃO CORRIGIDA
 
 document.addEventListener("DOMContentLoaded", function() {
     // Inicializar feather icons se disponível
@@ -102,14 +102,39 @@ function setupLoginForm() {
                 if (response.ok) {
                     showLoginMessage('Login realizado com sucesso! Redirecionando...', 'success');
                     
-                    // Salvar dados do usuário
+                    // ✅ CORREÇÃO: Salvar dados do usuário EM AMBOS OS FORMATOS
+                    console.log('✅ Dados recebidos do login:', data);
+                    
+                    // Formato 1: Objeto único (PARA O SISTEMA NOVO)
+                    localStorage.setItem('usuarioLogado', JSON.stringify(data));
+                    localStorage.setItem('currentUser', JSON.stringify(data));
+                    
+                    // Formato 2: Chaves separadas (PARA COMPATIBILIDADE)
                     localStorage.setItem('usuarioId', data.id);
                     localStorage.setItem('usuarioNome', data.nome);
                     localStorage.setItem('usuarioTipo', data.tipo);
                     
+                    // ✅ DEBUG: Verificar se salvou corretamente
+                    console.log('✅ Dados salvos no localStorage:');
+                    console.log('📦 usuarioLogado:', localStorage.getItem('usuarioLogado'));
+                    console.log('📦 usuarioId:', localStorage.getItem('usuarioId'));
+                    console.log('📦 usuarioNome:', localStorage.getItem('usuarioNome'));
+                    console.log('📦 usuarioTipo:', localStorage.getItem('usuarioTipo'));
+                    
                     // Redirecionar após um breve delay
                     setTimeout(() => {
-                        window.location.href = data.redirect;
+                        if (data.redirect) {
+                            window.location.href = data.redirect;
+                        } else {
+                            // Fallback baseado no tipo de usuário
+                            if (data.tipo === 'familiar_contratante' || data.tipo === 'familiar_cuidador') {
+                                window.location.href = '/dependentes.html';
+                            } else if (data.tipo === 'cuidador_profissional') {
+                                window.location.href = '/dashboard_cuidador.html';
+                            } else {
+                                window.location.href = '/dashboard.html';
+                            }
+                        }
                     }, 1500);
                 } else {
                     showLoginMessage(data.error || 'Erro ao fazer login', 'error');

@@ -1,0 +1,152 @@
+/* ===== ESTILOS ESPECÍFICOS PARA ATIVIDADES ===== */
+
+.atividades-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.atividade-card {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1.5rem;
+  box-shadow: var(--card-shadow);
+  transition: var(--transition);
+  border-left: 4px solid;
+  position: relative;
+  overflow: hidden;
+}
+
+.atividade-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: currentColor;
+  opacity: 0.1;
+}
+
+.atividade-card.pendente {
+  border-left-color: var(--warning);
+  color: var(--warning);
+}
+
+.atividade-card.concluida {
+  border-left-color: var(--success);
+  color: var(--success);
+}
+
+.atividade-card.atrasada {
+  border-left-color: var(--danger);
+  color: var(--danger);
+}
+
+.atividade-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+.atividade-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.atividade-info {
+  flex: 1;
+  min-width: 250px;
+}
+
+.atividade-info h3 {
+  margin: 0.5rem 0;
+  color: var(--dark);
+  font-weight: 600;
+}
+
+.atividade-acoes {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.atividade-body {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.atividade-body p {
+  margin-bottom: 0.5rem;
+}
+
+.atividade-metadata {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.atividade-metadata span {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.tipo-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.tipo-badge.alimentacao {
+  background-color: #ffeaa7;
+  color: #e17055;
+}
+
+.tipo-badge.exercicio {
+  background-color: #74b9ff;
+  color: #0984e3;
+}
+
+.tipo-badge.higiene {
+  background-color: #81ecec;
+  color: #00cec9;
+}
+
+.tipo-badge.medicacao {
+  background-color: #a29bfe;
+  color: #6c5ce7;
+}
+
+.tipo-badge.repouso {
+  background-color: #dfe6e9;
+  color: #636e72;
+}
+
+.tipo-badge.social {
+  background-color: #fab1a0;
+  color: #e84393;
+}
+
+.status-badge.pendente {
+  background-color: var(--warning-light);
+  color: var(--warning);
+}
+
+.status-badge.concluida {
+  background-color: var(--success-light);
+  color: var(--success);
+}
+
+.status-badge.atrasada {
+  background-color: var(--danger-light);
+  color: var(--danger);
+}
