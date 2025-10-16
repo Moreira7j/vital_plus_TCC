@@ -1217,7 +1217,7 @@ app.get("/api/familiares/:usuarioId/pacientes_cuidador", (req, res) => {
     }
     const familiarCuidadorId = familiarResults[0].id;
 
-    const query = `SELECT * FROM pacientes WHERE ativo = TRUE AND familiar_cuidador_id = ?`;
+    const query = "SELECT * FROM pacientes WHERE ativo = TRUE AND familiar_cuidador_id = ?";
     db.query(query, [familiarCuidadorId], (err, results) => {
       if (err) {
         console.error("Erro ao buscar pacientes para familiar cuidador:", err);
@@ -1244,7 +1244,7 @@ app.get("/api/familiares/:usuarioId/pacientes_contratante", (req, res) => {
     }
     const familiarContratanteId = familiarResults[0].id;
 
-    const query = `SELECT * FROM pacientes WHERE ativo = TRUE AND familiar_contratante_id = ?`;
+    const query = "SELECT * FROM pacientes WHERE ativo = TRUE AND familiar_contratante_id = ?";
     db.query(query, [familiarContratanteId], (err, results) => {
       if (err) {
         console.error("Erro ao buscar pacientes para familiar contratante:", err);
@@ -1356,12 +1356,6 @@ app.get("/api/pacientes/:pacienteId/alertas", (req, res) => {
     
     // Por enquanto, retornar array vazio - implementar lógica real depois
     res.json([]);
-});
-
-// Iniciar servidor
-const PORT = 3000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });
 
 // Buscar paciente vinculado ao cuidador
@@ -1854,4 +1848,10 @@ app.get("/relatorios_supervisor", (req, res) => {
 
 app.get("/relatorios_supervisor.html", (req, res) => {
   res.sendFile(path.join(__dirname, "public/paginas/relatorios_supervisor.html"));
+});
+
+// Iniciar servidor
+const PORT = 3000;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
 });

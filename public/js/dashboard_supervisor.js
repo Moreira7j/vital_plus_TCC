@@ -19,6 +19,17 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('🎯 Dashboard inicializado com sucesso!');
 });
+
+
+    // DEBUG: Verificar o que está no localStorage
+    console.log('🔍 DEBUG - localStorage completo:');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log(`📦 ${key}:`, value);
+    }
+
+    
 // Função para verificar se todos os elementos necessários existem
 function verificarElementosDOM() {
     const elementosNecessarios = [
@@ -26,7 +37,8 @@ function verificarElementosDOM() {
         'dependenteFoto', 'cuidadorNome', 'cuidadorContato',
         'familiarName', 'ultimaAtualizacao', 'statusGeral',
         'pressaoMedia', 'glicemiaMedia', 'temperaturaMedia',
-        'activityFeed', 'alertsList', 'lastMessage'
+        'activityFeed', 'alertsList', 'lastMessage',
+        'relatoriosLink' // Novo elemento adicionado
     ];
 
     const elementosFaltantes = [];
@@ -445,6 +457,64 @@ function configurarEventos() {
         exportBtn.addEventListener('click', exportarRelatorio);
     }
 
+    // Link de Relatórios - CORREÇÃO PRINCIPAL AQUI
+    const relatoriosLink = document.getElementById('relatoriosLink');
+    if (relatoriosLink) {
+        relatoriosLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('📊 Navegando para relatórios...');
+            
+            // Verificar se há um dependente selecionado
+            const dependenteSelecionado = JSON.parse(localStorage.getItem('dependenteSelecionado'));
+            if (!dependenteSelecionado || !dependenteSelecionado.id) {
+                mostrarErro('Nenhum dependente selecionado. Por favor, selecione um dependente primeiro.');
+                return;
+            }
+            
+            // ✅ CORREÇÃO: Verificação flexível do usuário logado
+            const usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado')) || 
+                                JSON.parse(localStorage.getItem('currentUser')) ||
+                                JSON.parse(sessionStorage.getItem('usuarioLogado'));
+            
+            if (!usuarioLogado) {
+                console.error('❌ Usuário não autenticado');
+                mostrarErro('Usuário não autenticado. Faça login novamente.');
+                setTimeout(() => {
+                    window.location.href = '../paginas/LandingPage.html';
+                }, 2000);
+                return;
+            }
+            
+            // ✅ CORREÇÃO: Verificação flexível do tipo de usuário
+            const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role;
+            console.log('👤 Tipo de usuário detectado:', tipoUsuario);
+            
+            const isFamiliarContratante = 
+                tipoUsuario === 'familiar_contratante' || 
+                tipoUsuario === 'familiar contratante' ||
+                tipoUsuario === 'supervisor' ||
+                tipoUsuario === 'admin';
+
+            if (!isFamiliarContratante) {
+                console.error('❌ Usuário não é familiar contratante:', tipoUsuario);
+                mostrarErro('Acesso não autorizado. Apenas familiares contratantes podem acessar esta página.');
+                setTimeout(() => {
+                    window.location.href = 'dashboard_supervisor.html';
+                }, 3000);
+                return;
+            }
+            
+            console.log('✅ Usuário autorizado, redirecionando para relatórios...');
+            
+            // ✅ CORREÇÃO: Salvar informações necessárias no localStorage
+            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
+            localStorage.setItem('currentUser', JSON.stringify(usuarioLogado));
+            
+            // Redirecionar para a página de relatórios
+            window.location.href = 'relatorios_supervisor.html';
+        });
+    }
+
     // Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
@@ -452,7 +522,10 @@ function configurarEventos() {
             e.preventDefault();
             localStorage.removeItem('dependenteSelecionado');
             localStorage.removeItem('usuarioLogado');
-            window.location.href = '../index.html';
+            localStorage.removeItem('currentUser');
+            sessionStorage.removeItem('usuarioLogado');
+            sessionStorage.removeItem('currentUser');
+            window.location.href = '../paginas/index.html';
         });
     }
 }
