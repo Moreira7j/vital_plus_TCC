@@ -1,4 +1,4 @@
-// criarContaFamiliarContratante.js
+// criarContaFamiliarContratante.js - VERSÃO CORRIGIDA
 
 document.addEventListener("DOMContentLoaded", function() {
     if (typeof feather !== 'undefined') {
@@ -156,6 +156,7 @@ function validateStep3() {
     const registro_profissional = document.getElementById("registro_profissional").value.trim();
     const experiencia = document.getElementById("experiencia").value;
     const disponibilidade = document.getElementById("disponibilidade").value;
+    // REMOVIDO: validação de senha do cuidador
 
     if (!nomeCuidador || !emailCuidador || !telefoneCuidador || !cpfCuidador || !especializacao || !registro_profissional || !experiencia || !disponibilidade) {
         alert("Por favor, preencha todos os campos obrigatórios do cuidador.");
@@ -221,48 +222,30 @@ function saveCuidadorData() {
         registro_profissional: document.getElementById("registro_profissional").value.trim(),
         experiencia: document.getElementById("experiencia").value,
         disponibilidade: document.getElementById("disponibilidade").value,
-        senha: gerarSenhaTemporaria(),
+        // REMOVIDO: senha - O cuidador vai escolher depois no convite
         tipo: 'cuidador_profissional'
     };
 
     localStorage.setItem('dadosCuidador', JSON.stringify(cuidadorData));
 }
 
-function displaySummary() {
-    const familiarData = JSON.parse(localStorage.getItem('dadosFamiliar'));
-    const dependenteData = JSON.parse(localStorage.getItem('dadosDependente'));
-    const cuidadorData = JSON.parse(localStorage.getItem('dadosCuidador'));
-
-    const familiarSummaryDiv = document.getElementById('familiarSummary');
-    familiarSummaryDiv.innerHTML = `
-        <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${familiarData.nome}</span></div>
-        <div class="summary-item"><span class="summary-label">Email:</span> <span class="summary-value">${familiarData.email}</span></div>
-        <div class="summary-item"><span class="summary-label">Telefone:</span> <span class="summary-value">${familiarData.telefone}</span></div>
-        <div class="summary-item"><span class="summary-label">Parentesco:</span> <span class="summary-value">${formatarParentesco(familiarData.parentesco)}</span></div>
-    `;
-
-    const dependenteSummaryDiv = document.getElementById('dependenteSummary');
-    dependenteSummaryDiv.innerHTML = `
-        <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${dependenteData.nome}</span></div>
-        <div class="summary-item"><span class="summary-label">Nascimento:</span> <span class="summary-value">${formatarData(dependenteData.data_nascimento)}</span></div>
-        <div class="summary-item"><span class="summary-label">Gênero:</span> <span class="summary-value">${formatarGenero(dependenteData.genero)}</span></div>
-        <div class="summary-item"><span class="summary-label">Condição Principal:</span> <span class="summary-value">${dependenteData.condicao_principal}</span></div>
-        <div class="summary-item"><span class="summary-label">Plano de Saúde:</span> <span class="summary-value">${dependenteData.plano_saude || 'Não informado'}</span></div>
-        <div class="summary-item"><span class="summary-label">Contato de Emergência:</span> <span class="summary-value">${dependenteData.contato_emergencia}</span></div>
-        ${dependenteData.foto_perfil ? `<div class="summary-item"><span class="summary-label">Foto:</span> <span class="summary-value">${dependenteData.foto_perfil}</span></div>` : ''}
-    `;
-
-    const cuidadorSummaryDiv = document.getElementById('cuidadorSummary');
-    cuidadorSummaryDiv.innerHTML = `
-        <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${cuidadorData.nome}</span></div>
-        <div class="summary-item"><span class="summary-label">Email:</span> <span class="summary-value">${cuidadorData.email}</span></div>
-        <div class="summary-item"><span class="summary-label">Telefone:</span> <span class="summary-value">${cuidadorData.telefone}</span></div>
-        <div class="summary-item"><span class="summary-label">CPF:</span> <span class="summary-value">${cuidadorData.cpf}</span></div>
-        <div class="summary-item"><span class="summary-label">Especialização:</span> <span class="summary-value">${formatarEspecializacao(cuidadorData.especializacao)}</span></div>
-        <div class="summary-item"><span class="summary-label">Registro Profissional:</span> <span class="summary-value">${cuidadorData.registro_profissional}</span></div>
-        <div class="summary-item"><span class="summary-label">Experiência:</span> <span class="summary-value">${cuidadorData.experiencia} anos</span></div>
-        <div class="summary-item"><span class="summary-label">Disponibilidade:</span> <span class="summary-value">${formatarDisponibilidade(cuidadorData.disponibilidade)}</span></div>
-    `;
+function nextStep() {
+    if (currentStep === 1) {
+        if (!validateStep1()) return;
+        saveFamiliarData();
+    } else if (currentStep === 2) {
+        if (!validateStep2()) return;
+        saveDependenteData();
+    } else if (currentStep === 3) {
+        if (!validateStep3()) return;
+        saveCuidadorData();
+        // REMOVIDO: displaySummary(); - não é essencial
+    }
+    
+    if (currentStep < totalSteps) {
+        currentStep++;
+        showStep(currentStep);
+    }
 }
 
 async function finalizarCadastro() {
@@ -277,7 +260,6 @@ async function finalizarCadastro() {
     finalizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
 
     try {
-        // Preparar FormData para envio completo
         const formData = new FormData();
         
         // Dados do familiar
@@ -299,7 +281,7 @@ async function finalizarCadastro() {
         formData.append('dependente_historico_medico', dependenteData.historico_medico || '');
         formData.append('dependente_contato_emergencia', dependenteData.contato_emergencia);
         
-        // Dados do cuidador
+        // Dados do cuidador (SEM SENHA - ele vai definir depois)
         formData.append('cuidador_nome', cuidadorData.nome);
         formData.append('cuidador_email', cuidadorData.email);
         formData.append('cuidador_telefone', cuidadorData.telefone);
@@ -308,6 +290,7 @@ async function finalizarCadastro() {
         formData.append('cuidador_registro_profissional', cuidadorData.registro_profissional);
         formData.append('cuidador_experiencia', cuidadorData.experiencia);
         formData.append('cuidador_disponibilidade', cuidadorData.disponibilidade);
+        // REMOVIDO: cuidador_senha
 
         // Adicionar arquivo de foto se existir
         if (fotoDependenteFile) {
@@ -316,7 +299,6 @@ async function finalizarCadastro() {
 
         console.log("Enviando dados para cadastro completo...");
 
-        // Usar a nova rota de cadastro completo
         const response = await fetch("/api/cadastro-completo-familiar-contratante", {
             method: "POST",
             body: formData
@@ -329,7 +311,7 @@ async function finalizarCadastro() {
             return;
         }
 
-        alert("Cadastro completo! Familiar, dependente e cuidador registrados com sucesso.\n\nO cuidador receberá um e-mail com instruções para ativar a conta.");
+        alert("✅ Cadastro realizado com sucesso!\n\n📧 Um convite foi enviado para o cuidador " + cuidadorData.email + ".\n\nO cuidador receberá um email para definir sua própria senha e ativar a conta.");
         
         // Salvar informações do usuário no localStorage antes de limpar
         localStorage.setItem("usuarioNome", familiarData.nome);
@@ -549,15 +531,6 @@ function formatarDisponibilidade(disponibilidade) {
         'plantao': 'Plantão'
     };
     return disponibilidades[disponibilidade] || disponibilidade;
-}
-
-function gerarSenhaTemporaria() {
-    const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let senha = '';
-    for (let i = 0; i < 8; i++) {
-        senha += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-    }
-    return senha;
 }
 
 // ====================== Validações ====================== //

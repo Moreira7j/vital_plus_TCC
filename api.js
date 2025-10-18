@@ -167,8 +167,22 @@ app.get("/comunicacao_cuidador", (req, res) => {
   res.sendFile(path.join(__dirname, "public/paginas/comunicacao_cuidador.html"));
 });
 
-// ====================== ROTAS PARA SUPERVISOR ====================== //
+// ====================== ROTAS CORRIGIDAS PARA SUPERVISOR ====================== //
 
+// Rotas para páginas do supervisor - CORREÇÃO
+app.get("/relatorios_supervisor.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/relatorios_supervisor.html"));
+});
+
+app.get("/alertas_supervisor.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/alertas_supervisor.html"));
+});
+
+app.get("/comunicacao_supervisor.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/comunicacao_supervisor.html"));
+});
+
+// E também as rotas sem .html para compatibilidade
 app.get("/relatorios_supervisor", (req, res) => {
   res.sendFile(path.join(__dirname, "public/paginas/relatorios_supervisor.html"));
 });
@@ -608,12 +622,11 @@ app.get("/aceitar-convite", (req, res) => {
 
 // ====================== APIS PRINCIPAIS ====================== //
 
-// Login
+// Login - CORRIGIDO: Cuidador vai para dependentes.html
 app.post("/api/login", (req, res) => {
   const { email, senha } = req.body;
   console.log("=== TENTATIVA DE LOGIN ===");
   console.log("Email:", email);
-  console.log("Senha fornecida:", senha ? "✓ (presente)" : "✗ (ausente)");
 
   if (!email || !senha) {
     console.log("❌ Campos obrigatórios ausentes");
@@ -621,7 +634,6 @@ app.post("/api/login", (req, res) => {
   }
 
   const query = "SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE";
-  console.log("Executando query de busca do usuário...");
   
   db.query(query, [email], (err, results) => {
     if (err) {
@@ -637,17 +649,8 @@ app.post("/api/login", (req, res) => {
     }
 
     const usuario = results[0];
-    console.log("Usuário encontrado:", {
-      id: usuario.id,
-      nome: usuario.nome,
-      email: usuario.email,
-      tipo: usuario.tipo,
-      ativo: usuario.ativo
-    });
     
     console.log("Verificando senha...");
-    console.log("Senha no banco:", usuario.senha);
-    console.log("Senha fornecida:", senha);
     
     if (usuario.senha !== senha) {
       console.log("❌ Senha incorreta");
@@ -663,7 +666,7 @@ app.post("/api/login", (req, res) => {
     } else if (usuario.tipo === 'familiar_contratante') {
       redirectUrl = "/dependentes";
     } else if (usuario.tipo === 'cuidador_profissional') {
-      redirectUrl = "/dashboard_cuidador";
+      redirectUrl = "/dependentes"; // CORREÇÃO: Cuidador vai para dependentes.html
     } else if (usuario.tipo === 'admin') {
       redirectUrl = "/adm";
     }
@@ -679,7 +682,7 @@ app.post("/api/login", (req, res) => {
   });
 });
 
-// Cadastro de usuário
+// Cadastro de usuário - MODIFICADO: Cuidador profissional sem senha temporária
 app.post("/api/cadastrar", (req, res) => {
     const { nome, email, senha, tipo, telefone, data_nascimento, parentesco, endereco, especializacao, registro_profissional, disponibilidade } = req.body;
   console.log("Request body:", req.body);
@@ -690,8 +693,8 @@ app.post("/api/cadastrar", (req, res) => {
   }
 
   const query = `
-    INSERT INTO usuarios (nome, email, senha, tipo, telefone, data_nascimento)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO usuarios (nome, email, senha, tipo, telefone, data_nascimento, ativo)
+    VALUES (?, ?, ?, ?, ?, ?, TRUE)
   `;
   
   db.query(query, [nome, email, senha, tipo, telefone, data_nascimento], (err, results) => {
@@ -734,12 +737,13 @@ app.post("/api/cadastrar", (req, res) => {
         }
         console.log("Cuidador profissional cadastrado com sucesso:", usuarioId);
 
+        // E-mail de confirmação (sem ativação, pois já tem senha)
         if (isEmailConfigured()) {
           const baseUrl = process.env.BASE_URL || "http://localhost:3000";
           const mailOptions = {
             from: process.env.EMAIL_USER,
             to: email,
-            subject: "Bem-vindo ao Vital+! Ative sua conta de Cuidador Profissional",
+            subject: "Bem-vindo ao Vital+! Sua conta de Cuidador Profissional foi criada",
             html: `
               <!DOCTYPE html>
               <html>
@@ -766,17 +770,13 @@ app.post("/api/cadastrar", (req, res) => {
                     <div class="credentials">
                       <p><strong>Suas credenciais de acesso:</strong></p>
                       <p>E-mail: <strong>${email}</strong></p>
-                      <p>Senha temporária: <strong>${senha}</strong></p>
+                      <p>Senha: <strong>*** (a senha que você escolheu)</strong></p>
                     </div>
                     
-                    <p>Por favor, clique no botão abaixo para ativar sua conta e definir uma nova senha:</p>
+                    <p>Para acessar sua conta, clique no botão abaixo:</p>
                     <p style="text-align: center;">
-                      <a href="${baseUrl}/ativar_conta?token=${usuarioId}" class="button">Ativar Conta</a>
+                      <a href="${baseUrl}" class="button">Acessar Vital+</a>
                     </p>
-                    
-                    <p><strong>Importante:</strong> Por motivos de segurança, recomendamos que você altere sua senha temporária assim que ativar sua conta.</p>
-                    
-                    <p>Se você não solicitou este cadastro, por favor ignore este e-mail.</p>
                     
                     <p>Obrigado por fazer parte do Vital+!</p>
                   </div>
@@ -792,26 +792,18 @@ app.post("/api/cadastrar", (req, res) => {
 
           transporter.sendMail(mailOptions, (error, info) => {
             if (error) {
-              console.error("Erro ao enviar e-mail de ativação:", error);
+              console.error("Erro ao enviar e-mail de confirmação:", error);
             } else {
-              console.log("E-mail de ativação enviado com sucesso:", info.response);
+              console.log("E-mail de confirmação enviado com sucesso:", info.response);
             }
           });
-          
-          res.json({ 
-            message: "Conta criada com sucesso! Um e-mail de ativação foi enviado para o cuidador.", 
-            id: usuarioId, 
-            tipo: tipo 
-          });
-        } else {
-          console.warn("Configuração de e-mail não encontrada. E-mail de ativação não foi enviado.");
-          res.json({ 
-            message: "Conta criada com sucesso! ATENÇÃO: Configure o e-mail para enviar instruções de ativação ao cuidador.", 
-            id: usuarioId, 
-            tipo: tipo,
-            warning: "Email não configurado"
-          });
         }
+        
+        res.json({ 
+          message: "Conta criada com sucesso!", 
+          id: usuarioId, 
+          tipo: tipo 
+        });
       });
     } else {
       console.log("Usuário cadastrado com sucesso:", usuarioId);
@@ -820,11 +812,10 @@ app.post("/api/cadastrar", (req, res) => {
   });
 });
 
-// ROTA ESPECÍFICA PARA CADASTRO COMPLETO DO FAMILIAR CONTRATANTE
+// ====================== ROTA ESPECÍFICA PARA CADASTRO COMPLETO DO FAMILIAR CONTRATANTE ====================== //
 app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perfil"), (req, res) => {
   console.log("=== CADASTRO COMPLETO FAMILIAR CONTRATANTE ===");
   console.log("Body recebido:", req.body);
-  console.log("Arquivo recebido:", req.file);
 
   const { 
     familiar_nome, 
@@ -852,6 +843,7 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
     cuidador_registro_profissional,
     cuidador_experiencia,
     cuidador_disponibilidade
+    // REMOVIDO: cuidador_senha - O cuidador vai escolher a senha depois
   } = req.body;
 
   console.log("1. Cadastrando familiar contratante...");
@@ -879,155 +871,143 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
       const familiarContratanteId = familiarContratanteResult.insertId;
       console.log("Familiar contratante ID:", familiarContratanteId);
 
-      console.log("2. Cadastrando cuidador profissional...");
-      const usuarioCuidadorQuery = `
-        INSERT INTO usuarios (nome, email, senha, tipo, telefone)
-        VALUES (?, ?, ?, 'cuidador_profissional', ?)
+      console.log("3. Cadastrando paciente/dependente...");
+      const foto_perfil = req.file ? req.file.filename : null;
+      
+      const pacienteQuery = `
+        INSERT INTO pacientes (nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, foto_perfil, familiar_contratante_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `;
       
-      const senhaTemporaria = gerarSenhaTemporaria();
-      
-      db.query(usuarioCuidadorQuery, [cuidador_nome, cuidador_email, senhaTemporaria, cuidador_telefone], (err3, usuarioCuidadorResult) => {
-        if (err3) {
-          console.error("Erro ao cadastrar cuidador:", err3);
-          return res.status(500).json({ error: "Erro ao cadastrar cuidador profissional" });
+      db.query(pacienteQuery, [
+        dependente_nome,
+        dependente_data_nascimento,
+        dependente_genero,
+        dependente_condicao_principal,
+        dependente_plano_saude,
+        dependente_alergias,
+        dependente_historico_medico,
+        dependente_contato_emergencia,
+        foto_perfil,
+        familiarContratanteId
+      ], (err5, pacienteResult) => {
+        if (err5) {
+          console.error("Erro ao cadastrar paciente:", err5);
+          return res.status(500).json({ error: "Erro ao cadastrar paciente" });
         }
         
-        const usuarioCuidadorId = usuarioCuidadorResult.insertId;
-        console.log("Cuidador usuario ID:", usuarioCuidadorId);
+        const pacienteId = pacienteResult.insertId;
+        console.log("Paciente ID:", pacienteId);
 
-        const cuidadorProfissionalQuery = `
-          INSERT INTO cuidadores_profissionais (usuario_id, especializacao, registro_profissional, disponibilidade)
-          VALUES (?, ?, ?, ?)
+        console.log("4. Enviando convite para o cuidador...");
+        const token_convite = crypto.randomBytes(32).toString('hex');
+        const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+        const insertConviteQuery = `
+          INSERT INTO convites_cuidadores 
+          (familiar_contratante_id, cuidador_email, paciente_id, token_convite, expiracao, mensagem_personalizada)
+          VALUES (?, ?, ?, ?, ?, ?)
         `;
-        
-        db.query(cuidadorProfissionalQuery, [usuarioCuidadorId, cuidador_especializacao, cuidador_registro_profissional, cuidador_disponibilidade], (err4, cuidadorProfissionalResult) => {
-          if (err4) {
-            console.error("Erro ao criar cuidador profissional:", err4);
-            return res.status(500).json({ error: "Erro ao criar dados do cuidador profissional" });
+
+        const mensagem_personalizada = `Convite para cuidar de ${dependente_nome} - Cadastro completo realizado por ${familiar_nome}`;
+
+        db.query(insertConviteQuery, [
+          familiarContratanteId,
+          cuidador_email,
+          pacienteId,
+          token_convite,
+          expiracao,
+          mensagem_personalizada
+        ], (err6, conviteResult) => {
+          if (err6) {
+            console.error("Erro ao criar convite:", err6);
+            return res.status(500).json({ error: "Erro ao criar convite para o cuidador" });
+          }
+
+          console.log("✅ Cadastro familiar e paciente realizado! Convite enviado para o cuidador.");
+          
+          // E-MAIL DE CONVITE PARA O CUIDADOR (ele vai escolher a senha depois)
+          if (isEmailConfigured()) {
+            const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+            const mailOptions = {
+              from: process.env.EMAIL_USER,
+              to: cuidador_email,
+              subject: "📋 Convite para Cuidar de um Paciente - Vital+",
+              html: `
+                <!DOCTYPE html>
+                <html>
+                <head>
+                  <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
+                    .content { padding: 20px; background-color: #f9f9f9; }
+                    .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
+                    .info-box { background-color: #fff; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
+                    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="header">
+                      <h1>🎗️ Convite Vital+</h1>
+                    </div>
+                    <div class="content">
+                      <p>Olá,</p>
+                      <p>Você recebeu um convite para cuidar de um paciente através da plataforma Vital+!</p>
+                      
+                      <div class="info-box">
+                        <p><strong>Informações do Convite:</strong></p>
+                        <p>👤 <strong>Paciente:</strong> ${dependente_nome}</p>
+                        <p>👨‍👩‍👧‍👦 <strong>Familiar Contratante:</strong> ${familiar_nome}</p>
+                        <p>📧 <strong>Contato:</strong> ${familiar_email}</p>
+                        <p>📞 <strong>Telefone:</strong> ${familiar_telefone}</p>
+                      </div>
+                      
+                      <p>Para aceitar este convite e criar sua conta, clique no botão abaixo:</p>
+                      <p style="text-align: center;">
+                        <a href="${baseUrl}/aceitar-convite?token=${token_convite}" class="button">✅ Aceitar Convite e Criar Conta</a>
+                      </p>
+                      
+                      <p><strong>O que acontece quando você aceitar:</strong></p>
+                      <ul>
+                        <li>✅ Você criará sua conta no Vital+</li>
+                        <li>✅ Escolherá sua própria senha</li>
+                        <li>✅ Será vinculado automaticamente ao paciente</li>
+                        <li>✅ Terá acesso completo ao sistema</li>
+                      </ul>
+                      
+                      <p><strong>Importante:</strong> Este convite expira em ${expiracao.toLocaleDateString('pt-BR')}</p>
+                      
+                      <p>Se você não deseja aceitar este convite, por favor ignore este e-mail.</p>
+                    </div>
+                    <div class="footer">
+                      <p>Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+                      <p>Este é um e-mail automático, por favor não responda.</p>
+                    </div>
+                  </div>
+                </body>
+                </html>
+              `
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+              if (error) {
+                console.error("Erro ao enviar e-mail de convite:", error);
+              } else {
+                console.log("E-mail de convite enviado com sucesso:", info.response);
+              }
+            });
           }
           
-          const cuidadorProfissionalId = cuidadorProfissionalResult.insertId;
-          console.log("Cuidador profissional ID:", cuidadorProfissionalId);
-
-          console.log("3. Cadastrando paciente/dependente...");
-          const foto_perfil = req.file ? req.file.filename : null;
-          
-          const pacienteQuery = `
-            INSERT INTO pacientes (nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, foto_perfil, familiar_contratante_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-          `;
-          
-          db.query(pacienteQuery, [
-            dependente_nome,
-            dependente_data_nascimento,
-            dependente_genero,
-            dependente_condicao_principal,
-            dependente_plano_saude,
-            dependente_alergias,
-            dependente_historico_medico,
-            dependente_contato_emergencia,
-            foto_perfil,
-            familiarContratanteId
-          ], (err5, pacienteResult) => {
-            if (err5) {
-              console.error("Erro ao cadastrar paciente:", err5);
-              return res.status(500).json({ error: "Erro ao cadastrar paciente" });
-            }
-            
-            const pacienteId = pacienteResult.insertId;
-            console.log("Paciente ID:", pacienteId);
-
-            console.log("4. Vinculando cuidador ao paciente...");
-            const vinculoQuery = `
-              INSERT INTO cuidadores_profissionais_pacientes (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
-              VALUES (?, ?, TRUE, CURDATE(), 'ativo')
-            `;
-            
-            db.query(vinculoQuery, [cuidadorProfissionalId, pacienteId], (err6) => {
-              if (err6) {
-                console.error("Erro ao criar vínculo:", err6);
-              }
-              
-              console.log("✅ Cadastro completo realizado com sucesso!");
-              
-              if (isEmailConfigured()) {
-                const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-                const mailOptions = {
-                  from: process.env.EMAIL_USER,
-                  to: cuidador_email,
-                  subject: "Bem-vindo ao Vital+! Ative sua conta de Cuidador Profissional",
-                  html: `
-                    <!DOCTYPE html>
-                    <html>
-                    <head>
-                      <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
-                        .content { padding: 20px; background-color: #f9f9f9; }
-                        .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-                        .credentials { background-color: #fff; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
-                        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-                      </style>
-                    </head>
-                    <body>
-                      <div class="container">
-                        <div class="header">
-                          <h1>Bem-vindo ao Vital+!</h1>
-                        </div>
-                        <div class="content">
-                          <p>Olá <strong>${cuidador_nome}</strong>,</p>
-                          <p>Sua conta de Cuidador Profissional no Vital+ foi criada com sucesso!</p>
-                          
-                          <div class="credentials">
-                            <p><strong>Suas credenciais de acesso:</strong></p>
-                            <p>E-mail: <strong>${cuidador_email}</strong></p>
-                            <p>Senha temporária: <strong>${senhaTemporaria}</strong></p>
-                          </div>
-                          
-                          <p>Por favor, clique no botão abaixo para ativar sua conta e definir uma nova senha:</p>
-                          <p style="text-align: center;">
-                            <a href="${baseUrl}/ativar_conta?token=${usuarioCuidadorId}" class="button">Ativar Conta</a>
-                          </p>
-                          
-                          <p><strong>Paciente atribuído:</strong> ${dependente_nome}</p>
-                          
-                          <p><strong>Importante:</strong> Por motivos de segurança, recomendamos que você altere sua senha temporária assim que ativar sua conta.</p>
-                          
-                          <p>Se você não solicitou este cadastro, por favor ignore este e-mail.</p>
-                          
-                          <p>Obrigado por fazer parte do Vital+!</p>
-                        </div>
-                        <div class="footer">
-                          <p>Vital+ - Sistema de Acompanhamento para Cuidadores</p>
-                          <p>Este é um e-mail automático, por favor não responda.</p>
-                        </div>
-                      </div>
-                    </body>
-                    </html>
-                  `
-                };
-
-                transporter.sendMail(mailOptions, (error, info) => {
-                  if (error) {
-                    console.error("Erro ao enviar e-mail de ativação:", error);
-                  } else {
-                    console.log("E-mail de ativação enviado com sucesso:", info.response);
-                  }
-                });
-              }
-              
-              res.json({ 
-                success: true,
-                message: "Cadastro completo realizado com sucesso! Familiar, dependente e cuidador registrados.",
-                ids: {
-                  familiar: usuarioFamiliarId,
-                  cuidador: usuarioCuidadorId,
-                  paciente: pacienteId
-                }
-              });
-            });
+          res.json({ 
+            success: true,
+            message: "Cadastro realizado com sucesso! Familiar e dependente registrados. Um convite foi enviado para o cuidador criar sua conta.",
+            ids: {
+              familiar: usuarioFamiliarId,
+              paciente: pacienteId
+            },
+            convite_enviado: true
           });
         });
       });
@@ -1035,15 +1015,34 @@ app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perf
   });
 });
 
-// Função auxiliar para gerar senha temporária
-function gerarSenhaTemporaria() {
-  const caracteres = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let senha = '';
-  for (let i = 0; i < 8; i++) {
-    senha += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
-  }
-  return senha;
-}
+// ====================== NOVA ROTA: PACIENTES DO CUIDADOR ====================== //
+app.get("/api/cuidadores/:usuarioId/pacientes", (req, res) => {
+  const usuarioId = req.params.usuarioId;
+  console.log(`Buscando pacientes para cuidador com usuario_id: ${usuarioId}`);
+
+  const query = `
+    SELECT 
+      p.*,
+      u.nome as familiar_nome,
+      u.telefone as familiar_telefone
+    FROM pacientes p
+    INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+    INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+    INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+    INNER JOIN usuarios u ON fc.usuario_id = u.id
+    WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo' AND p.ativo = TRUE
+  `;
+  
+  db.query(query, [usuarioId], (err, results) => {
+    if (err) {
+      console.error("Erro ao buscar pacientes do cuidador:", err);
+      return res.status(500).json({ error: "Erro interno do servidor" });
+    }
+    
+    console.log(`Pacientes encontrados para cuidador ${usuarioId}:`, results.length);
+    res.json(results);
+  });
+});
 
 // Cadastro de paciente individual
 app.post("/api/pacientes", upload.single("foto_perfil"), (req, res) => {
@@ -1761,4 +1760,121 @@ app.get("/api/dependentes/:dependenteId", (req, res) => {
 const PORT = 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+});
+
+// ====================== ROTAS PARA CUIDADOR ====================== //
+
+// Adicione estas rotas se não existirem:
+app.get("/atividades_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/atividades_cuidador.html"));
+});
+
+app.get("/medicamentos_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/medicamentos_cuidador.html"));
+});
+
+app.get("/relatorios_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/relatorios_cuidador.html"));
+});
+
+app.get("/comunicacao_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/comunicacao_cuidador.html"));
+});
+
+// Rota para dashboard do cuidador (se não existir)
+app.get("/dashboard_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/dashboard_cuidador.html"));
+});
+
+// ====================== ROTAS PARA ARQUIVOS ESTÁTICOS ====================== //
+
+// Rotas específicas para arquivos CSS, JS e Assets
+app.get("/styles/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/styles", filename));
+});
+
+app.get("/js/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/js", filename));
+});
+
+app.get("/assets/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/assets", filename));
+});
+
+// Rota para uploads (se necessário)
+app.get("/uploads/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/uploads", filename));
+});
+
+// Rota para páginas dentro da pasta paginas
+app.get("/paginas/:filename", (req, res) => {
+  const filename = req.params.filename;
+  res.sendFile(path.join(__dirname, "public/paginas", filename));
+});
+
+// ====================== ROTAS PARA CUIDADOR ====================== //
+
+// Adicione estas rotas se não existirem
+app.get("/atividades_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/atividades_cuidador.html"));
+});
+
+app.get("/medicamentos_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/medicamentos_cuidador.html"));
+});
+
+app.get("/relatorios_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/relatorios_cuidador.html"));
+});
+
+app.get("/comunicacao_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/comunicacao_cuidador.html"));
+});
+
+app.get("/dashboard_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/dashboard_cuidador.html"));
+});
+
+// Rotas com .html também (para garantir)
+app.get("/atividades_cuidador.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/atividades_cuidador.html"));
+});
+
+app.get("/medicamentos_cuidador.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/medicamentos_cuidador.html"));
+});
+
+// ====================== ROTA CURINGA PARA TODAS AS PÁGINAS ====================== //
+
+// Adicione isto DEPOIS das rotas específicas existentes
+app.get("/:page", (req, res, next) => {
+  const page = req.params.page;
+  
+  // Lista de páginas que devem ser servidas
+  const paginasValidas = [
+    'relatorios_supervisor', 'alertas_supervisor', 'comunicacao_supervisor',
+    'relatorios_supervisor.html', 'alertas_supervisor.html', 'comunicacao_supervisor.html',
+    'dashboard_supervisor', 'dashboard_supervisor.html',
+    'relatorios_cuidador', 'alertas_cuidador', 'comunicacao_cuidador',
+    'atividades_cuidador', 'medicamentos_cuidador'
+  ];
+  
+  if (paginasValidas.includes(page) || page.endsWith('.html')) {
+    const filename = page.endsWith('.html') ? page : page + '.html';
+    const filePath = path.join(__dirname, "public/paginas", filename);
+    
+    // Verifica se o arquivo existe
+    if (require('fs').existsSync(filePath)) {
+      console.log(`📄 Servindo página: ${filename}`);
+      res.sendFile(filePath);
+    } else {
+      next(); // Arquivo não existe, passa para próxima rota
+    }
+  } else {
+    next(); // Não é uma página, passa para próxima rota
+  }
 });

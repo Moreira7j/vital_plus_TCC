@@ -1,15 +1,17 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vital+ | Atividades</title>
     <!-- CORREÇÃO: Caminho absoluto sem espaços -->
-    <link rel="stylesheet" href="/styles/atividades_cuidador.css">
+    <link rel="stylesheet" href="../styles/atividades_cuidador.css">
     <!-- Adicione Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/feather-icons"></script>
 </head>
+
 <body>
     <div class="app-container">
         <!-- Sidebar -->
@@ -25,24 +27,24 @@
 
                 <ul class="sidebar-nav">
                     <li class="sidebar-item">
-                        <a class="sidebar-link" href="dashboard_cuidador.html">
+                        <a class="sidebar-link" href="/dashboard_cuidador">
                             <i data-feather="home"></i>
                             <span>Visão Geral</span>
                         </a>
                     </li>
                     <li class="sidebar-item">
-                        <!-- CORREÇÃO: Ícone 'package' em vez de 'pill' -->
-                        <a class="sidebar-link" href="medicamentos_cuidador.html">
-                            <i data-feather="package"></i>
+                        <a class="sidebar-link" href="/medicamentos_cuidador">
+                            <i data-feather="plus-square"></i>
                             <span>Medicamentos</span>
                         </a>
                     </li>
                     <li class="sidebar-item active">
-                        <a class="sidebar-link" href="atividades_cuidador.html">
+                        <a class="sidebar-link" href="/atividades_cuidador">
                             <i data-feather="activity"></i>
                             <span>Atividades</span>
                         </a>
                     </li>
+
                     <li class="sidebar-item">
                         <a class="sidebar-link" href="relatorios_cuidador.html">
                             <i data-feather="file-text"></i>
@@ -71,7 +73,7 @@
                     <h1>Gestão de Atividades</h1>
                     <p>Planejamento e registro das atividades do paciente</p>
                 </div>
-                
+
                 <div class="header-actions">
                     <ul class="navbar-nav">
                         <li class="nav-item">
@@ -161,7 +163,7 @@
                                 <label for="filtroData">Data</label>
                                 <input type="date" id="filtroData" class="form-control" value="">
                             </div>
-                            
+
                             <div class="filter-group">
                                 <label for="filtroStatus">Status</label>
                                 <select id="filtroStatus" class="form-control">
@@ -171,7 +173,7 @@
                                     <option value="atrasada">Atrasadas</option>
                                 </select>
                             </div>
-                            
+
                             <div class="filter-group">
                                 <label for="filtroTipo">Tipo de Atividade</label>
                                 <select id="filtroTipo" class="form-control">
@@ -184,7 +186,7 @@
                                     <option value="social">Atividade Social</option>
                                 </select>
                             </div>
-                            
+
                             <div class="filter-group filter-button">
                                 <button id="aplicarFiltros" class="btn btn-primary">
                                     <i data-feather="filter"></i>
@@ -237,14 +239,15 @@
                     <i data-feather="x"></i>
                 </button>
             </div>
-            
+
             <form id="atividadeForm">
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="atividadeTitulo">Título da Atividade *</label>
-                        <input type="text" id="atividadeTitulo" name="titulo" required class="form-control" placeholder="Digite o título da atividade">
+                        <input type="text" id="atividadeTitulo" name="titulo" required class="form-control"
+                            placeholder="Digite o título da atividade">
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="atividadeTipo">Tipo de Atividade *</label>
@@ -258,24 +261,26 @@
                                 <option value="outro">Outro</option>
                             </select>
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="atividadeHorario">Horário *</label>
                             <input type="time" id="atividadeHorario" name="horario" required class="form-control">
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="atividadeDescricao">Descrição *</label>
-                        <textarea id="atividadeDescricao" name="descricao" required class="form-control" placeholder="Descreva a atividade em detalhes..." rows="3"></textarea>
+                        <textarea id="atividadeDescricao" name="descricao" required class="form-control"
+                            placeholder="Descreva a atividade em detalhes..." rows="3"></textarea>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="atividadeObservacoes">Observações</label>
-                        <textarea id="atividadeObservacoes" name="observacoes" class="form-control" placeholder="Observações adicionais..." rows="2"></textarea>
+                        <textarea id="atividadeObservacoes" name="observacoes" class="form-control"
+                            placeholder="Observações adicionais..." rows="2"></textarea>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" id="cancelarBtn" class="btn btn-outline">Cancelar</button>
                     <button type="submit" class="btn btn-primary">
@@ -288,6 +293,29 @@
     </div>
 
     <!-- CORREÇÃO: Caminho absoluto sem espaços -->
-    <script src="/js/atividades_cuidador.js"></script>
+    <script src="../js/atividades_cuidador.js"></script>
+    <script>
+    // Teste para verificar se o CSS está carregando
+    console.log('Testando carregamento de CSS...');
+    
+    // Verificar se algum estilo está aplicado
+    const bodyStyles = window.getComputedStyle(document.body);
+    console.log('Cor de fundo do body:', bodyStyles.backgroundColor);
+    
+    // Verificar se o arquivo CSS foi carregado
+    const links = document.getElementsByTagName('link');
+    for (let link of links) {
+        if (link.href.includes('atividades_cuidador.css')) {
+            console.log('Arquivo CSS encontrado:', link.href);
+            link.onload = function() {
+                console.log('CSS carregado com sucesso!');
+            };
+            link.onerror = function() {
+                console.log('ERRO: CSS não pôde ser carregado!');
+            };
+        }
+    }
+</script>
 </body>
+
 </html>

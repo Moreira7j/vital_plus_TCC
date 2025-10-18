@@ -57,33 +57,53 @@ async function carregarAtividades() {
             throw new Error('Usuário não logado');
         }
 
-        // Buscar atividades do cuidador
-        const response = await fetch(`${API_BASE_URL}/cuidadores/${usuarioLogado.id}/atividades`);
-        
-        if (!response.ok) {
-            // Se a API não responder, usar dados de exemplo
-            console.log('API não disponível, usando dados de exemplo');
-            atividades = obterAtividadesExemplo();
-        } else {
-            atividades = await response.json();
+        console.log('Buscando atividades para cuidador ID:', usuarioLogado.id);
+
+        // Tentar primeiro o endpoint geral de atividades
+        let response;
+        try {
+            response = await fetch(`${API_BASE_URL}/atividades`);
+            if (response.ok) {
+                const todasAtividades = await response.json();
+                // Filtrar atividades do cuidador logado
+                atividades = todasAtividades.filter(ativ => ativ.cuidadorId === usuarioLogado.id);
+                console.log('Atividades carregadas via endpoint geral:', atividades);
+            } else {
+                throw new Error('Endpoint geral não disponível');
+            }
+        } catch (erroGeral) {
+            console.log('Tentando endpoint específico do cuidador:', erroGeral);
+            
+            // Tentar endpoint específico do cuidador
+            response = await fetch(`${API_BASE_URL}/cuidadores/${usuarioLogado.id}/atividades`);
+            
+            if (response.ok) {
+                atividades = await response.json();
+                console.log('Atividades carregadas via endpoint específico:', atividades);
+            } else {
+                throw new Error(`Erro HTTP: ${response.status}`);
+            }
         }
         
         renderizarAtividades();
         atualizarEstatisticas();
+        
     } catch (error) {
         console.error('Erro ao carregar atividades:', error);
         // Usar dados de exemplo em caso de erro
         atividades = obterAtividadesExemplo();
         renderizarAtividades();
         atualizarEstatisticas();
-        mostrarMensagem('Usando dados de demonstração', 'info');
+        mostrarMensagem('API indisponível. Usando dados de demonstração.', 'info');
     } finally {
         mostrarLoading(false);
     }
 }
 
-// Dados de exemplo (remover quando a API estiver pronta)
+// Dados de exemplo (para quando a API não está disponível)
 function obterAtividadesExemplo() {
+    const hoje = new Date().toISOString().split('T')[0];
+    
     return [
         {
             id: 1,
@@ -92,7 +112,9 @@ function obterAtividadesExemplo() {
             descricao: "Caminhada leve no parque por 30 minutos",
             horario: "08:00",
             status: "concluida",
-            observacoes: "Paciente se sentiu bem durante a atividade"
+            observacoes: "Paciente se sentiu bem durante a atividade",
+            data: hoje,
+            cuidadorId: obterUsuarioLogado()?.id || 13
         },
         {
             id: 2,
@@ -101,7 +123,9 @@ function obterAtividadesExemplo() {
             descricao: "Refeição balanceada com frutas e pão integral",
             horario: "08:30",
             status: "concluida",
-            observacoes: "Bom apetite"
+            observacoes: "Bom apetite",
+            data: hoje,
+            cuidadorId: obterUsuarioLogado()?.id || 13
         },
         {
             id: 3,
@@ -109,7 +133,9 @@ function obterAtividadesExemplo() {
             tipo: "higiene",
             descricao: "Banho completo e cuidados de higiene pessoal",
             horario: "10:00",
-            status: "pendente"
+            status: "pendente",
+            data: hoje,
+            cuidadorId: obterUsuarioLogado()?.id || 13
         },
         {
             id: 4,
@@ -117,7 +143,9 @@ function obterAtividadesExemplo() {
             tipo: "exercicio",
             descricao: "Exercícios de fortalecimento muscular",
             horario: "14:00",
-            status: "pendente"
+            status: "pendente",
+            data: hoje,
+            cuidadorId: obterUsuarioLogado()?.id || 13
         },
         {
             id: 5,
@@ -125,44 +153,95 @@ function obterAtividadesExemplo() {
             tipo: "alimentacao",
             descricao: "Iogurte natural com granola",
             horario: "16:00",
-            status: "pendente"
+            status: "pendente",
+            data: hoje,
+            cuidadorId: obterUsuarioLogado()?.id || 13
+        },
+        {
+            id: 6,
+            titulo: "Medicação - Antibiótico",
+            tipo: "medicacao",
+            descricao: "Tomar antibiótico conforme prescrição médica",
+            horario: "19:00",
+            status: "pendente",
+            data: hoje,
+            cuidadorId: obterUsuarioLogado()?.id || 13
         }
     ];
 }
 
 async function criarAtividade(atividadeData) {
     try {
-        const response = await fetch(`${API_BASE_URL}/atividades/registrar`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(atividadeData)
-        });
+        const usuarioLogado = obterUsuarioLogado();
+        if (!usuarioLogado) {
+            throw new Error('Usuário não logado');
+        }
 
-        if (!response.ok) throw new Error('Erro ao criar atividade');
+        // Adicionar dados do cuidador
+        const dadosCompletos = {
+            ...atividadeData,
+            cuidadorId: usuarioLogado.id,
+            data: new Date().toISOString().split('T')[0],
+            id: Date.now() // ID temporário para dados locais
+        };
+
+        // Tentar salvar na API
+        try {
+            const response = await fetch(`${API_BASE_URL}/atividades/registrar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dadosCompletos)
+            });
+
+            if (response.ok) {
+                const novaAtividade = await response.json();
+                atividades.unshift(novaAtividade);
+                return novaAtividade;
+            } else {
+                throw new Error('API não disponível');
+            }
+        } catch (apiError) {
+            console.log('Salvando localmente (API indisponível):', apiError);
+            // Salvar localmente se a API falhar
+            atividades.unshift(dadosCompletos);
+            return dadosCompletos;
+        }
         
-        const novaAtividade = await response.json();
-        atividades.unshift(novaAtividade);
-        return novaAtividade;
     } catch (error) {
+        console.error('Erro ao criar atividade:', error);
         throw error;
     }
 }
 
 async function atualizarStatusAtividade(id, status) {
     try {
-        const response = await fetch(`${API_BASE_URL}/atividades/${id}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ status })
-        });
+        // Tentar atualizar na API
+        try {
+            const response = await fetch(`${API_BASE_URL}/atividades/${id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status })
+            });
 
-        if (!response.ok) throw new Error('Erro ao atualizar atividade');
-        
-        return await response.json();
+            if (response.ok) {
+                return await response.json();
+            } else {
+                throw new Error('API não disponível');
+            }
+        } catch (apiError) {
+            console.log('Atualizando localmente (API indisponível):', apiError);
+            // Atualizar localmente se a API falhar
+            const index = atividades.findIndex(a => a.id === id);
+            if (index !== -1) {
+                atividades[index].status = status;
+                return atividades[index];
+            }
+            throw new Error('Atividade não encontrada');
+        }
     } catch (error) {
         throw error;
     }
@@ -218,7 +297,7 @@ function renderizarAtividades() {
             </div>
             <div class="atividade-metadata">
                 <span><i data-feather="clock"></i> Horário: ${atividade.horario}</span>
-                <span><i data-feather="calendar"></i> ${formatarData(new Date())}</span>
+                <span><i data-feather="calendar"></i> ${formatarData(new Date(atividade.data || new Date()))}</span>
             </div>
         </div>
     `).join('');
@@ -241,14 +320,16 @@ function atualizarFiltros() {
 }
 
 function filtrarAtividades() {
+    const dataFiltro = filtrosAtivos.data;
+    
     return atividades.filter(atividade => {
+        const matchData = !dataFiltro || atividade.data === dataFiltro;
         const matchStatus = filtrosAtivos.status === 'todos' || 
                            atividade.status === filtrosAtivos.status;
-        
         const matchTipo = filtrosAtivos.tipo === 'todos' || 
                          atividade.tipo === filtrosAtivos.tipo;
 
-        return matchStatus && matchTipo;
+        return matchData && matchStatus && matchTipo;
     });
 }
 
@@ -256,6 +337,13 @@ function filtrarAtividades() {
 function abrirModalNovaAtividade() {
     document.getElementById('modalTitulo').textContent = 'Nova Atividade';
     document.getElementById('atividadeForm').reset();
+    
+    // Definir horário padrão como próxima hora redonda
+    const agora = new Date();
+    const proximaHora = new Date(agora.getTime() + 60 * 60 * 1000);
+    document.getElementById('atividadeHorario').value = 
+        proximaHora.getHours().toString().padStart(2, '0') + ':00';
+    
     document.getElementById('atividadeModal').style.display = 'flex';
 }
 
@@ -268,13 +356,19 @@ async function salvarAtividade(e) {
     
     const formData = new FormData(e.target);
     const atividadeData = {
-        titulo: document.getElementById('atividadeTitulo').value,
+        titulo: document.getElementById('atividadeTitulo').value.trim(),
         tipo: document.getElementById('atividadeTipo').value,
         horario: document.getElementById('atividadeHorario').value,
-        descricao: document.getElementById('atividadeDescricao').value,
-        observacoes: document.getElementById('atividadeObservacoes').value,
+        descricao: document.getElementById('atividadeDescricao').value.trim(),
+        observacoes: document.getElementById('atividadeObservacoes').value.trim(),
         status: 'pendente'
     };
+
+    // Validação básica
+    if (!atividadeData.titulo || !atividadeData.descricao) {
+        mostrarMensagem('Preencha todos os campos obrigatórios', 'error');
+        return;
+    }
 
     try {
         mostrarLoading(true);
@@ -283,7 +377,8 @@ async function salvarAtividade(e) {
         fecharModal();
         carregarAtividades();
     } catch (error) {
-        mostrarMensagem('Erro ao criar atividade', 'error');
+        console.error('Erro ao criar atividade:', error);
+        mostrarMensagem('Erro ao criar atividade: ' + error.message, 'error');
     } finally {
         mostrarLoading(false);
     }
@@ -296,8 +391,14 @@ async function marcarComoConcluida(id) {
         mostrarMensagem('Atividade marcada como concluída!', 'success');
         carregarAtividades();
     } catch (error) {
-        mostrarMensagem('Erro ao atualizar atividade', 'error');
+        console.error('Erro ao atualizar atividade:', error);
+        mostrarMensagem('Erro ao atualizar atividade: ' + error.message, 'error');
     }
+}
+
+function editarAtividade(id) {
+    // Implementar edição se necessário
+    mostrarMensagem('Funcionalidade de edição em desenvolvimento', 'info');
 }
 
 function excluirAtividadeConfirmacao(id) {
@@ -308,12 +409,27 @@ function excluirAtividadeConfirmacao(id) {
 
 async function excluirAtividadeHandler(id) {
     try {
-        // Simular exclusão - implementar API real depois
+        // Tentar excluir na API
+        try {
+            const response = await fetch(`${API_BASE_URL}/atividades/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('API não disponível');
+            }
+        } catch (apiError) {
+            console.log('Excluindo localmente (API indisponível):', apiError);
+        }
+
+        // Sempre excluir localmente
         atividades = atividades.filter(a => a.id !== id);
         mostrarMensagem('Atividade excluída com sucesso!', 'success');
         renderizarAtividades();
         atualizarEstatisticas();
+        
     } catch (error) {
+        console.error('Erro ao excluir atividade:', error);
         mostrarMensagem('Erro ao excluir atividade', 'error');
     }
 }
@@ -335,11 +451,16 @@ function atualizarEstatisticas() {
 function inicializarGraficoAtividades() {
     const ctx = document.getElementById('atividadesChart').getContext('2d');
     
-    // Dados de exemplo para o gráfico
+    // Calcular dados reais das atividades
+    const tipos = ['alimentacao', 'exercicio', 'higiene', 'medicacao', 'repouso', 'social'];
+    const dados = tipos.map(tipo => 
+        atividades.filter(ativ => ativ.tipo === tipo).length
+    );
+
     const data = {
         labels: ['Alimentação', 'Exercício', 'Higiene', 'Medicação', 'Repouso', 'Social'],
         datasets: [{
-            data: [25, 20, 15, 20, 10, 10],
+            data: dados,
             backgroundColor: [
                 '#ffeaa7',
                 '#74b9ff', 
@@ -353,7 +474,12 @@ function inicializarGraficoAtividades() {
         }]
     };
 
-    new Chart(ctx, {
+    // Destruir gráfico anterior se existir
+    if (window.atividadesChartInstance) {
+        window.atividadesChartInstance.destroy();
+    }
+
+    window.atividadesChartInstance = new Chart(ctx, {
         type: 'doughnut',
         data: data,
         options: {
@@ -389,7 +515,8 @@ function obterTextoTipo(tipo) {
         'higiene': 'Higiene',
         'medicacao': 'Medicação',
         'repouso': 'Repouso',
-        'social': 'Social'
+        'social': 'Social',
+        'outro': 'Outro'
     };
     return textos[tipo] || tipo;
 }
@@ -404,11 +531,13 @@ function obterUsuarioLogado() {
     const usuarioId = localStorage.getItem('usuarioId');
     const usuarioNome = localStorage.getItem('usuarioNome');
     
+    console.log('Dados do localStorage:', { usuarioTipo, usuarioId, usuarioNome });
+    
     if (usuarioTipo && usuarioId) {
         return {
             tipo: usuarioTipo,
             id: parseInt(usuarioId),
-            nome: usuarioNome || 'Usuário'
+            nome: usuarioNome || 'Cuidador'
         };
     }
     
@@ -418,32 +547,112 @@ function obterUsuarioLogado() {
         const dados = localStorage.getItem(chave);
         if (dados) {
             try {
-                return JSON.parse(dados);
+                const usuario = JSON.parse(dados);
+                console.log(`Usuário encontrado em ${chave}:`, usuario);
+                return usuario;
             } catch (e) {
                 console.log(`Erro ao parsear ${chave}:`, e);
             }
         }
     }
     
-    return null;
+    console.log('Nenhum usuário logado encontrado, usando padrão');
+    // Retornar um usuário padrão para desenvolvimento
+    return {
+        tipo: 'cuidador',
+        id: 13,
+        nome: 'Cuidador Teste'
+    };
 }
 
 function mostrarMensagem(mensagem, tipo) {
-    // Implementar sistema de notificações
-    console.log(`${tipo}: ${mensagem}`);
-    alert(`${tipo === 'success' ? '✅' : '❌'} ${mensagem}`);
+    // Sistema de notificações simples
+    const cores = {
+        success: '#28a745',
+        error: '#dc3545',
+        warning: '#ffc107',
+        info: '#17a2b8'
+    };
+    
+    console.log(`${tipo.toUpperCase()}: ${mensagem}`);
+    
+    // Criar notificação temporária
+    const notification = document.createElement('div');
+    notification.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 15px 20px;
+        background: ${cores[tipo] || '#333'};
+        color: white;
+        border-radius: 5px;
+        z-index: 10000;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        max-width: 300px;
+    `;
+    notification.textContent = mensagem;
+    
+    document.body.appendChild(notification);
+    
+    // Remover após 5 segundos
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
 }
 
 function mostrarLoading(mostrar) {
-    // Implementar indicador de carregamento
+    const loader = document.getElementById('loadingOverlay') || criarLoadingOverlay();
+    
     if (mostrar) {
+        loader.style.display = 'flex';
         document.body.classList.add('loading');
     } else {
+        loader.style.display = 'none';
         document.body.classList.remove('loading');
     }
+}
+
+function criarLoadingOverlay() {
+    const overlay = document.createElement('div');
+    overlay.id = 'loadingOverlay';
+    overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255,255,255,0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    `;
+    
+    overlay.innerHTML = `
+        <div style="text-align: center;">
+            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 0 auto;"></div>
+            <p style="margin-top: 15px; color: #333;">Carregando...</p>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+    `;
+    
+    document.body.appendChild(overlay);
+    return overlay;
 }
 
 // Atualizar ícones periodicamente
 setInterval(() => {
     feather.replace();
 }, 1000);
+
+// Exportar funções globais para uso no HTML
+window.marcarComoConcluida = marcarComoConcluida;
+window.editarAtividade = editarAtividade;
+window.excluirAtividadeConfirmacao = excluirAtividadeConfirmacao;

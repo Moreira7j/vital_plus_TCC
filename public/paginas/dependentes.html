@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,6 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
 </head>
+
 <body>
     <div class="dependentes-container">
         <div class="dependentes-header">
@@ -16,36 +18,10 @@
             <p>Escolha o dependente que deseja acompanhar</p>
         </div>
 
-        <div class="dependentes-grid">
-            <div class="dependente-card" data-id="1">
-                <div class="dependente-avatar">
-                    <img src="../assets/velha.png" alt="Maria Oliveira">
-                </div>
-                <div class="dependente-info">
-                    <h3>Maria Oliveira</h3>
-                    <p>78 anos • Diabetes Tipo 2</p>
-                    <div class="dependente-status">
-                        <span class="status-badge status-estavel">Estável</span>
-                    </div>
-                </div>
-                <button class="btn-selecionar">Selecionar</button>
-            </div>
+        <div class="dependentes-grid" id="dependentesGrid">
+            <!-- Cards serão carregados dinamicamente via JavaScript -->
 
-            <div class="dependente-card" data-id="2">
-                <div class="dependente-avatar">
-                    <img src="../assets/idosos.png" alt="João Silva">
-                </div>
-                <div class="dependente-info">
-                    <h3>João Silva</h3>
-                    <p>72 anos • Hipertensão</p>
-                    <div class="dependente-status">
-                        <span class="status-badge status-atencao">Necessita atenção</span>
-                    </div>
-                </div>
-                <button class="btn-selecionar">Selecionar</button>
-            </div>
-
-            <div class="dependente-card" data-id="3">
+            <div class="dependente-card" data-id="add">
                 <div class="dependente-avatar">
                     <div class="avatar-placeholder">
                         <i data-feather="plus"></i>
@@ -64,121 +40,220 @@
         </div>
     </div>
 
-   <script>
-document.addEventListener("DOMContentLoaded", function() {
-    feather.replace();
+    <script>
+        // dependentes.js - VERSÃO CORRIGIDA
 
-    // Mostrar usuário logado
-    const usuarioNome = localStorage.getItem("usuarioNome");
-    const usuarioId = localStorage.getItem("usuarioId");
-    if (usuarioNome) {
-        const header = document.querySelector(".dependentes-header h1");
-        header.textContent = `Olá, ${usuarioNome} - Selecionar Dependente`;
-    }
+        document.addEventListener("DOMContentLoaded", function () {
+            feather.replace();
 
-    // Carregar dependentes do usuário
-    carregarDependentes();
+            // Mostrar usuário logado
+            const usuarioNome = localStorage.getItem("usuarioNome");
+            if (usuarioNome) {
+                const header = document.querySelector(".dependentes-header h1");
+                if (header) {
+                    header.textContent = `Olá, ${usuarioNome} - Selecionar Dependente`;
+                }
+            }
 
-    // Selecionar um dependente
-    document.addEventListener("click", function(e) {
-        if (e.target.classList.contains("btn-selecionar")) {
-            const card = e.target.closest(".dependente-card");
-            const dependenteId = card.getAttribute("data-id");
-            const dependenteNome = card.querySelector("h3").textContent;
+            // Carregar dependentes do usuário
+            carregarDependentes();
 
-            // Salvar no localStorage
-            localStorage.setItem("dependenteSelecionado", JSON.stringify({
-                id: dependenteId,
-                nome: dependenteNome
-            }));
+            // Selecionar um dependente
+            document.addEventListener("click", function (e) {
+                if (e.target.classList.contains("btn-selecionar")) {
+                    const card = e.target.closest(".dependente-card");
+                    const dependenteId = card.getAttribute("data-id");
+                    const dependenteNome = card.querySelector("h3").textContent;
 
-            // Redirecionar para a tela principal de sinais vitais ou dashboard de supervisão
-            const tipoUsuario = localStorage.getItem("usuarioTipo");
-            if (tipoUsuario === "familiar_cuidador") {
-                window.location.href = "/dashboard_familiar"; // Dashboard de cuidado pessoal
-            } else if (tipoUsuario === "familiar_contratante") {
-                window.location.href = "/dashboard_supervisor"; // Dashboard de supervisão
+                    // Buscar a foto do card
+                    const avatarImg = card.querySelector('.dependente-avatar img');
+                    const dependenteFoto = avatarImg ? avatarImg.src : '';
+
+                    // Salvar no localStorage
+                    localStorage.setItem("dependenteSelecionado", JSON.stringify({
+                        id: dependenteId,
+                        nome: dependenteNome,
+                        foto: dependenteFoto
+                    }));
+
+                    console.log("Dependente selecionado:", { id: dependenteId, nome: dependenteNome });
+
+                    // Redirecionar para a tela principal CORRIGIDA
+                    const tipoUsuario = localStorage.getItem("usuarioTipo");
+                    console.log("Tipo de usuário:", tipoUsuario);
+
+                    if (tipoUsuario === "familiar_cuidador") {
+                        window.location.href = "/dashboard_familiar";
+                    } else if (tipoUsuario === "familiar_contratante") {
+                        window.location.href = "/dashboard_supervisor";
+                    } else if (tipoUsuario === "cuidador_profissional") {
+                        window.location.href = "/dashboard_cuidador"; // ✅ CORRIGIDO: Cuidador vai para seu dashboard
+                    } else {
+                        window.location.href = "/index.html";
+                    }
+                }
+            });
+
+            // Adicionar novo dependente
+            const btnAdicionar = document.querySelector(".btn-adicionar");
+            if (btnAdicionar) {
+                btnAdicionar.addEventListener("click", function () {
+                    window.location.href = "cadastroPaciente.html";
+                });
+            }
+
+            // Logout
+            const logoutLink = document.querySelector(".logout-link");
+            if (logoutLink) {
+                logoutLink.addEventListener("click", function (e) {
+                    e.preventDefault();
+                    localStorage.removeItem("dependenteSelecionado");
+                    localStorage.removeItem("usuarioNome");
+                    localStorage.removeItem("usuarioId");
+                    localStorage.removeItem("usuarioTipo");
+                    window.location.href = "/";
+                });
+            }
+        });
+
+        // Adicionar esta função para carregar pacientes do cuidador
+        async function carregarPacientesCuidador(usuarioId) {
+            try {
+                const url = `http://localhost:3000/api/cuidadores/${usuarioId}/paciente`;
+                console.log("Carregando pacientes do cuidador da URL:", url);
+
+                const response = await fetch(url);
+                if (response.ok) {
+                    const paciente = await response.json();
+                    console.log("Paciente do cuidador carregado:", paciente);
+                    return [paciente]; // Retorna como array para compatibilidade
+                } else if (response.status === 404) {
+                    console.log("Cuidador não tem paciente vinculado");
+                    return [];
+                } else {
+                    console.error("Erro na resposta da API para cuidador:", response.status);
+                    return [];
+                }
+            } catch (error) {
+                console.error("Erro ao carregar pacientes do cuidador:", error);
+                return [];
             }
         }
-    });
 
-    // Adicionar novo dependente
-    const btnAdicionar = document.querySelector(".btn-adicionar");
-    if (btnAdicionar) {
-        btnAdicionar.addEventListener("click", function() {
-            window.location.href = "cadastroPaciente.html";
-        });
-    }
+        // Modificar a função carregarDependentes para incluir cuidador
+        async function carregarDependentes() {
+            const usuarioId = localStorage.getItem("usuarioId");
+            const tipoUsuario = localStorage.getItem("usuarioTipo");
 
-    // Logout
-    document.querySelector(".logout-link").addEventListener("click", function(e) {
-        e.preventDefault();
-        localStorage.removeItem("dependenteSelecionado");
-        localStorage.removeItem("usuarioNome");
-        localStorage.removeItem("usuarioId");
-        localStorage.removeItem("usuarioTipo"); // Remover tipo de usuário também
-        window.location.href = "/";
-    });
-});
+            console.log("Usuário ID:", usuarioId, "Tipo:", tipoUsuario);
 
-async function carregarDependentes() {
-    const usuarioId = localStorage.getItem("usuarioId");
-    const tipoUsuario = localStorage.getItem("usuarioTipo");
-    if (!usuarioId || !tipoUsuario) return;
+            if (!usuarioId || !tipoUsuario) {
+                console.log("Usuário não logado ou tipo não definido - usando dados exemplo");
+                usarDadosExemplo();
+                return;
+            }
 
-    try {
-        let url;
-        if (tipoUsuario === "familiar_cuidador") {
-            url = `/api/familiares/${usuarioId}/pacientes_cuidador`;
-        } else if (tipoUsuario === "familiar_contratante") {
-            url = `/api/familiares/${usuarioId}/pacientes_contratante`;
-        } else {
-            console.error("Tipo de usuário desconhecido:", tipoUsuario);
-            return;
+            try {
+                let pacientes = [];
+
+                if (tipoUsuario === "familiar_cuidador") {
+                    const response = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_cuidador`);
+                    if (response.ok) {
+                        pacientes = await response.json();
+                    }
+                } else if (tipoUsuario === "familiar_contratante") {
+                    const response = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_contratante`);
+                    if (response.ok) {
+                        pacientes = await response.json();
+                    }
+                } else if (tipoUsuario === "cuidador_profissional") {
+                    // NOVO: Carregar pacientes do cuidador
+                    pacientes = await carregarPacientesCuidador(usuarioId);
+                } else {
+                    console.error("Tipo de usuário desconhecido:", tipoUsuario);
+                    usarDadosExemplo();
+                    return;
+                }
+
+                console.log("Pacientes carregados:", pacientes);
+                exibirDependentes(pacientes);
+
+            } catch (error) {
+                console.error("Erro ao carregar dependentes:", error);
+                usarDadosExemplo();
+            }
         }
 
-        const response = await fetch(url);
-        if (response.ok) {
-            const pacientes = await response.json();
-            exibirDependentes(pacientes);
-        } else {
-            console.error("Erro ao carregar dependentes:", response.statusText);
+        function exibirDependentes(pacientes) {
+            const grid = document.getElementById("dependentesGrid");
+            if (!grid) {
+                console.error("Elemento dependentesGrid não encontrado");
+                return;
+            }
+
+            // Limpar cards existentes (exceto o de adicionar)
+            const cardsExistentes = grid.querySelectorAll(".dependente-card:not([data-id='add'])");
+            cardsExistentes.forEach(card => card.remove());
+
+            if (!pacientes || pacientes.length === 0) {
+                grid.insertAdjacentHTML('afterbegin', `
+            <div class="dependente-card empty-state">
+                <div class="dependente-avatar">
+                    <div class="avatar-placeholder">
+                        <i data-feather="users"></i>
+                    </div>
+                </div>
+                <div class="dependente-info">
+                    <h3>Nenhum dependente</h3>
+                    <p>Adicione seu primeiro dependente para começar</p>
+                </div>
+            </div>
+        `);
+                feather.replace();
+                return;
+            }
+
+            // Adicionar cards dos pacientes
+            pacientes.forEach(paciente => {
+                const card = criarCardDependente(paciente);
+                const addCard = grid.querySelector(".dependente-card[data-id='add']");
+                if (addCard) {
+                    grid.insertBefore(card, addCard);
+                } else {
+                    grid.appendChild(card);
+                }
+            });
+
+            feather.replace();
         }
-    } catch (error) {
-        console.error("Erro ao carregar dependentes:", error);
-    }
-}
 
-function exibirDependentes(pacientes) {
-    const grid = document.querySelector(".dependentes-grid");
-    
-    // Limpar cards existentes (exceto o de adicionar)
-    const cardsExistentes = grid.querySelectorAll(".dependente-card:not(:last-child)");
-    cardsExistentes.forEach(card => card.remove());
+        function criarCardDependente(paciente) {
+            const card = document.createElement("div");
+            card.className = "dependente-card";
+            card.setAttribute("data-id", paciente.id || paciente.paciente_id || Date.now());
 
-    // Adicionar cards dos pacientes
-    pacientes.forEach(paciente => {
-        const card = criarCardDependente(paciente);
-        grid.insertBefore(card, grid.lastElementChild);
-    });
-}
+            const idade = calcularIdade(paciente.data_nascimento);
+            const condicao = paciente.condicao_principal || paciente.doenca_principal || "Sem condição específica";
+            const fotoUrl = obterFotoDependente(paciente);
 
-function criarCardDependente(paciente) {
-    const card = document.createElement("div");
-    card.className = "dependente-card";
-    card.setAttribute("data-id", paciente.id);
-    
-    const idade = calcularIdade(paciente.data_nascimento);
-    const condicao = paciente.condicao_principal || "Sem condição específica";
-    
-    card.innerHTML = `
+            console.log(`Criando card para ${paciente.nome}:`, {
+                fotoUrl,
+                foto_perfil: paciente.foto_perfil,
+                id: paciente.id
+            });
+
+            card.innerHTML = `
         <div class="dependente-avatar">
-            <div class="avatar-placeholder">
+            ${fotoUrl ?
+                    `<img src="${fotoUrl}" alt="${paciente.nome}" onerror="handleImageError(this)" />` :
+                    ''
+                }
+            <div class="avatar-placeholder" style="${fotoUrl ? 'display: none;' : 'display: flex;'}">
                 <i data-feather="user"></i>
             </div>
         </div>
         <div class="dependente-info">
-            <h3>${paciente.nome}</h3>
+            <h3>${paciente.nome || 'Nome não informado'}</h3>
             <p>${idade} anos • ${condicao}</p>
             <div class="dependente-status">
                 <span class="status-badge status-estavel">Estável</span>
@@ -186,23 +261,130 @@ function criarCardDependente(paciente) {
         </div>
         <button class="btn-selecionar">Selecionar</button>
     `;
-    
-    return card;
-}
 
-function calcularIdade(dataNascimento) {
-    const hoje = new Date();
-    const nascimento = new Date(dataNascimento);
-    let idade = hoje.getFullYear() - nascimento.getFullYear();
-    const mes = hoje.getMonth() - nascimento.getMonth();
-    
-    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-        idade--;
-    }
-    
-    return idade;
-}
-</script>
+            return card;
+        }
+
+        function obterFotoDependente(paciente) {
+            console.log("Buscando foto para paciente:", paciente.nome, paciente);
+
+            // Se tiver foto_perfil no banco de dados
+            if (paciente.foto_perfil) {
+                console.log("Foto encontrada no campo foto_perfil:", paciente.foto_perfil);
+
+                // Construir URL completa para a foto
+                let fotoUrl = `/uploads/${paciente.foto_perfil}`;
+                console.log("URL da foto:", fotoUrl);
+                return fotoUrl;
+            }
+
+            // Tentar outros campos possíveis
+            const possiveisCampos = ['foto_url', 'foto', 'avatar', 'imagem', 'fotoUrl', 'avatar_url', 'profile_picture', 'photo_url'];
+
+            for (const campo of possiveisCampos) {
+                if (paciente[campo]) {
+                    console.log(`Foto encontrada no campo ${campo}:`, paciente[campo]);
+
+                    let fotoUrl = paciente[campo];
+
+                    // Se for um caminho relativo, garantir que tenha a barra inicial
+                    if (fotoUrl && !fotoUrl.startsWith('http') && !fotoUrl.startsWith('/')) {
+                        fotoUrl = '/' + fotoUrl;
+                    }
+
+                    return fotoUrl;
+                }
+            }
+
+            // Verificar se há foto no localStorage
+            const dependenteId = paciente.id || paciente.paciente_id;
+            if (dependenteId) {
+                const fotoStorage = localStorage.getItem(`foto_dependente_${dependenteId}`);
+                if (fotoStorage) {
+                    console.log("Foto encontrada no localStorage:", fotoStorage);
+                    return fotoStorage;
+                }
+            }
+
+            console.log("Nenhuma foto encontrada para o paciente");
+            return null;
+        }
+
+        function calcularIdade(dataNascimento) {
+            if (!dataNascimento) return "N/A";
+
+            try {
+                const hoje = new Date();
+                const nascimento = new Date(dataNascimento);
+
+                // Verificar se a data é válida
+                if (isNaN(nascimento.getTime())) {
+                    return "N/A";
+                }
+
+                let idade = hoje.getFullYear() - nascimento.getFullYear();
+                const mes = hoje.getMonth() - nascimento.getMonth();
+
+                if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                    idade--;
+                }
+
+                return idade;
+            } catch (error) {
+                console.error("Erro ao calcular idade:", error);
+                return "N/A";
+            }
+        }
+
+        // Função para usar dados de exemplo se a API não estiver disponível
+        function usarDadosExemplo() {
+            console.log("Usando dados de exemplo");
+            const pacientesExemplo = [
+                {
+                    id: 1,
+                    nome: "Maria Oliveira",
+                    data_nascimento: "1945-03-15",
+                    condicao_principal: "Diabetes Tipo 2",
+                    foto_perfil: "velha.png"
+                },
+                {
+                    id: 2,
+                    nome: "João Silva",
+                    data_nascimento: "1951-08-22",
+                    condicao_principal: "Hipertensão",
+                    foto_perfil: "idosos.png"
+                }
+            ];
+            exibirDependentes(pacientesExemplo);
+        }
+
+        // Função global para tratamento de erro de imagem
+        function handleImageError(imgElement) {
+            console.log("Erro ao carregar imagem:", imgElement.src);
+            imgElement.style.display = 'none';
+            const placeholder = imgElement.nextElementSibling;
+            if (placeholder && placeholder.classList.contains('avatar-placeholder')) {
+                placeholder.style.display = 'flex';
+            }
+        }
+
+        // Função para debug - verificar localStorage
+        function verificarLocalStorage() {
+            console.log("=== LOCAL STORAGE ===");
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                console.log(key + ":", localStorage.getItem(key));
+            }
+            console.log("======================");
+        }
+
+        // Executar verificação do localStorage
+        verificarLocalStorage();
+
+        // Tornar a função global para o onerror
+        window.handleImageError = handleImageError;
+    </script>
 
 </body>
+
 </html>

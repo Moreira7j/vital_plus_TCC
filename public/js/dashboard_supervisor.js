@@ -472,6 +472,7 @@ function atualizarStatusGeral(sinais) {
     }
 }
 
+// FUNÇÃO CONFIGURAR EVENTOS - CORRIGIDA E UNIFICADA
 function configurarEventos() {
     console.log('⚙️ Configurando eventos...');
     
@@ -517,192 +518,22 @@ function configurarEventos() {
         console.error('❌ Botão de exportar relatório não encontrado');
     }
 
-    // Link de Relatórios - CORREÇÃO COMPLETA
+    // ✅ CORREÇÃO: Links de Navegação
     const relatoriosLink = document.getElementById('relatoriosLink');
+    const alertasLink = document.getElementById('alertasLink');
+    const comunicacaoLink = document.getElementById('comunicacaoLink');
+
+    // Configurar link de Relatórios
     if (relatoriosLink) {
         relatoriosLink.addEventListener('click', function(e) {
             e.preventDefault();
             console.log('📊 Navegando para relatórios...');
-            
-            // DEBUG: Verificar localStorage novamente no momento do clique
-            console.log('🔍 DEBUG no clique - localStorage:');
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key.includes('user') || key.includes('usuario') || key.includes('login')) {
-                    const value = localStorage.getItem(key);
-                    console.log(`📦 ${key}:`, value);
-                }
-            }
-            
-            // Verificar se há um dependente selecionado
-            const dependenteSelecionado = JSON.parse(localStorage.getItem('dependenteSelecionado'));
-            if (!dependenteSelecionado || !dependenteSelecionado.id) {
-                mostrarErro('Nenhum dependente selecionado. Por favor, selecione um dependente primeiro.');
-                return;
-            }
-            
-            // ✅ CORREÇÃO: Buscar usuário no formato atual (chaves separadas)
-            let usuarioLogado = null;
-            
-            // Verificar se existe nas chaves separadas
-            const usuarioTipo = localStorage.getItem('usuarioTipo');
-            const usuarioId = localStorage.getItem('usuarioId');
-            const usuarioNome = localStorage.getItem('usuarioNome');
-            
-            if (usuarioTipo && usuarioId) {
-                // ✅ CORREÇÃO: Montar objeto do usuário a partir das chaves separadas
-                usuarioLogado = {
-                    tipo: usuarioTipo,
-                    id: parseInt(usuarioId),
-                    nome: usuarioNome || 'Usuário'
-                };
-                console.log('✅ Usuário montado a partir de chaves separadas:', usuarioLogado);
-            } else {
-                // Tentar o método antigo (objeto único)
-                const possiveisChaves = [
-                    'usuarioLogado', 'currentUser', 'userData', 'loginData',
-                    'usuario', 'user', 'loggedUser', 'userInfo'
-                ];
-                
-                for (const chave of possiveisChaves) {
-                    const dados = localStorage.getItem(chave) || sessionStorage.getItem(chave);
-                    if (dados) {
-                        try {
-                            usuarioLogado = JSON.parse(dados);
-                            console.log(`✅ Usuário encontrado na chave: ${chave}`, usuarioLogado);
-                            break;
-                        } catch (e) {
-                            console.log(`❌ Erro ao parsear chave ${chave}:`, e);
-                        }
-                    }
-                }
-            }
-            
-            if (!usuarioLogado) {
-                console.error('❌ Nenhum usuário encontrado!');
-                mostrarErro('Sessão expirada. Redirecionando para login...');
-                setTimeout(() => {
-                    localStorage.clear();
-                    sessionStorage.clear();
-                    window.location.href = '../paginas/LandingPage.html';
-                }, 2000);
-                return;
-            }
-            
-            // ✅ CORREÇÃO: Garantir que o usuário está salvo corretamente PARA O FUTURO
-            localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
-            localStorage.setItem('currentUser', JSON.stringify(usuarioLogado));
-            
-            console.log('✅ Usuário garantido no localStorage:', usuarioLogado);
-            
-            // ✅ CORREÇÃO: Verificação flexível do tipo de usuário
-            const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role || usuarioLogado.type;
-            console.log('👤 Tipo de usuário detectado:', tipoUsuario);
-            
-            const isFamiliarContratante = 
-                tipoUsuario === 'familiar_contratante' || 
-                tipoUsuario === 'familiar contratante' ||
-                tipoUsuario === 'supervisor' ||
-                tipoUsuario === 'admin' ||
-                tipoUsuario === 'familiar';
-
-            if (!isFamiliarContratante) {
-                console.error('❌ Usuário não é familiar contratante:', tipoUsuario);
-                mostrarErro('Acesso não autorizado. Apenas familiares contratantes podem acessar esta página.');
-                return;
-            }
-            
-            console.log('✅ Usuário autorizado, redirecionando para relatórios...');
-            
-            // ✅ CORREÇÃO: Redirecionar para a página de relatórios
-            window.location.href = 'relatorios_supervisor.html';
+            navegarParaPaginaSupervisor('relatorios_supervisor.html');
         });
         console.log('✅ Link de relatórios configurado');
     } else {
         console.error('❌ Link de relatórios não encontrado');
     }
-
-    // Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            console.log('🚪 Efetuando logout...');
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = '../paginas/index.html';
-        });
-        console.log('✅ Botão de logout configurado');
-    } else {
-        console.error('❌ Botão de logout não encontrado');
-    }
-}
-
-async function enviarMensagem(mensagem) {
-    try {
-        const dependente = JSON.parse(localStorage.getItem('dependenteSelecionado'));
-        
-        // Simular envio de mensagem (implementar API real depois)
-        console.log('Enviando mensagem para o cuidador:', mensagem);
-        
-        mostrarSucesso('Mensagem enviada com sucesso!');
-        
-        // Atualizar preview da última mensagem
-        const lastMessageElement = document.getElementById('lastMessage');
-        if (lastMessageElement) {
-            lastMessageElement.innerHTML = `
-                <p><strong>Você:</strong> ${mensagem}</p>
-                <small class="text-muted">Agora</small>
-            `;
-        }
-        
-    } catch (error) {
-        console.error('Erro ao enviar mensagem:', error);
-        mostrarErro('Erro ao enviar mensagem');
-    }
-}
-
-async function exportarRelatorio() {
-    try {
-        // Implementar lógica de exportação de relatório
-        console.log('📄 Exportando relatório...');
-        mostrarSucesso('Relatório exportado com sucesso!');
-    } catch (error) {
-        console.error('Erro ao exportar relatório:', error);
-        mostrarErro('Erro ao exportar relatório');
-    }
-}
-
-// Funções de notificação
-function mostrarSucesso(mensagem) {
-    console.log('✅ ' + mensagem);
-    alert('✅ ' + mensagem);
-}
-
-function mostrarErro(mensagem) {
-    console.error('❌ ' + mensagem);
-    alert('❌ ' + mensagem);
-}
-
-// Atualizar ícones periodicamente
-setInterval(() => {
-    if (typeof feather !== 'undefined') {
-        feather.replace();
-    }
-}, 1000);
-
-console.log('🎯 dashboard_supervisor.js carregado com sucesso!');
-
-// Adicione esta função no seu dashboard_supervisor.js, na seção de configurarEventos():
-
-function configurarEventos() {
-    console.log('⚙️ Configurando eventos...');
-    
-    // ... (código existente) ...
-
-    // ✅ CORREÇÃO: Links de Alertas e Comunicação
-    const alertasLink = document.getElementById('alertasLink');
-    const comunicacaoLink = document.getElementById('comunicacaoLink');
 
     // Configurar link de Alertas
     if (alertasLink) {
@@ -728,7 +559,20 @@ function configurarEventos() {
         console.error('❌ Link de comunicação não encontrado');
     }
 
-    // ... (restante do código existente) ...
+    // Logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            console.log('🚪 Efetuando logout...');
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '../paginas/index.html';
+        });
+        console.log('✅ Botão de logout configurado');
+    } else {
+        console.error('❌ Botão de logout não encontrado');
+    }
 }
 
 // ✅ CORREÇÃO: Função auxiliar para navegação do supervisor
@@ -810,6 +654,62 @@ function navegarParaPaginaSupervisor(pagina) {
     
     console.log(`✅ Usuário autorizado, redirecionando para ${pagina}...`);
     
-    // Redirecionar para a página solicitada
+    // ✅ CORREÇÃO: Redirecionar com o caminho correto
+    // Ajuste o caminho conforme sua estrutura de pastas
     window.location.href = pagina;
 }
+
+async function enviarMensagem(mensagem) {
+    try {
+        const dependente = JSON.parse(localStorage.getItem('dependenteSelecionado'));
+        
+        // Simular envio de mensagem (implementar API real depois)
+        console.log('Enviando mensagem para o cuidador:', mensagem);
+        
+        mostrarSucesso('Mensagem enviada com sucesso!');
+        
+        // Atualizar preview da última mensagem
+        const lastMessageElement = document.getElementById('lastMessage');
+        if (lastMessageElement) {
+            lastMessageElement.innerHTML = `
+                <p><strong>Você:</strong> ${mensagem}</p>
+                <small class="text-muted">Agora</small>
+            `;
+        }
+        
+    } catch (error) {
+        console.error('Erro ao enviar mensagem:', error);
+        mostrarErro('Erro ao enviar mensagem');
+    }
+}
+
+async function exportarRelatorio() {
+    try {
+        // Implementar lógica de exportação de relatório
+        console.log('📄 Exportando relatório...');
+        mostrarSucesso('Relatório exportado com sucesso!');
+    } catch (error) {
+        console.error('Erro ao exportar relatório:', error);
+        mostrarErro('Erro ao exportar relatório');
+    }
+}
+
+// Funções de notificação
+function mostrarSucesso(mensagem) {
+    console.log('✅ ' + mensagem);
+    alert('✅ ' + mensagem);
+}
+
+function mostrarErro(mensagem) {
+    console.error('❌ ' + mensagem);
+    alert('❌ ' + mensagem);
+}
+
+// Atualizar ícones periodicamente
+setInterval(() => {
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+}, 1000);
+
+console.log('🎯 dashboard_supervisor.js carregado com sucesso!');
