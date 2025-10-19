@@ -2,15 +2,29 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 let conversas = [];
 let conversaAtual = null;
-let socket = null;
+let usuarioLogado = null;
+let intervaloAtualizacao = null;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     feather.replace();
+    inicializarUsuario();
     inicializarEventListeners();
     carregarConversas();
-    inicializarWebSocket();
 });
+
+// Obter usuário logado
+function inicializarUsuario() {
+    usuarioLogado = obterUsuarioLogado();
+    if (!usuarioLogado) {
+        console.error('Usuário não logado');
+        window.location.href = '/';
+        return;
+    }
+    
+    console.log('Usuário logado:', usuarioLogado);
+    document.getElementById('userName').textContent = usuarioLogado.nome || 'Supervisor';
+}
 
 // Event Listeners
 function inicializarEventListeners() {
@@ -35,70 +49,56 @@ function inicializarEventListeners() {
     
     // Pesquisa
     document.getElementById('pesquisaConversas').addEventListener('input', filtrarConversas);
-}
 
-// WebSocket para comunicação em tempo real
-function inicializarWebSocket() {
-    socket = new WebSocket('ws://localhost:3000/comunicacao');
-    
-    socket.onopen = function() {
-        console.log('Conectado ao servidor de comunicação');
-    };
-    
-    socket.onmessage = function(event) {
-        const data = JSON.parse(event.data);
-        
-        switch (data.tipo) {
-            case 'nova_mensagem':
-                receberNovaMensagem(data.mensagem);
-                break;
-            case 'usuario_digitando':
-                mostrarIndicadorDigitacao(data.usuarioId);
-                break;
-            case 'usuario_online':
-                atualizarStatusUsuario(data.usuarioId, true);
-                break;
-            case 'usuario_offline':
-                atualizarStatusUsuario(data.usuarioId, false);
-                break;
-        }
-    };
-    
-    socket.onclose = function() {
-        console.log('Conexão WebSocket fechada');
-        // Tentar reconectar após 5 segundos
-        setTimeout(inicializarWebSocket, 5000);
-    };
+    // Logout
+    const logoutBtn = document.getElementById('logoutBtn');
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.clear();
+            sessionStorage.clear();
+            window.location.href = '/';
+        });
+    }
 }
 
 // API Functions
 async function carregarConversas() {
     try {
         mostrarLoading(true);
-        const response = await fetch(`${API_BASE_URL}/conversas`);
         
-        if (!response.ok) throw new Error('Erro ao carregar conversas');
+        const response = await fetch(`${API_BASE_URL}/supervisores/${usuarioLogado.id}/conversas`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar conversas');
+        }
         
         conversas = await response.json();
         renderizarConversas();
         
         // Selecionar primeira conversa se existir
         if (conversas.length > 0 && !conversaAtual) {
-            selecionarConversa(conversas[0].id);
+            selecionarConversa(conversas[0].usuario_id);
         }
+        
+        // Iniciar atualização automática
+        iniciarAtualizacaoAutomatica();
+        
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('Erro ao carregar conversas:', error);
         mostrarMensagem('Erro ao carregar conversas', 'error');
     } finally {
         mostrarLoading(false);
     }
 }
 
-async function carregarMensagens(conversaId) {
+async function carregarMensagens(destinatarioId) {
     try {
-        const response = await fetch(`${API_BASE_URL}/conversas/${conversaId}/mensagens`);
+        const response = await fetch(`${API_BASE_URL}/mensagens/${usuarioLogado.id}/${destinatarioId}`);
         
-        if (!response.ok) throw new Error('Erro ao carregar mensagens');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar mensagens');
+        }
         
         return await response.json();
     } catch (error) {
@@ -113,19 +113,21 @@ async function enviarMensagem() {
     if (!texto || !conversaAtual) return;
     
     const mensagemData = {
-        conversaId: conversaAtual.id,
-        texto: texto,
-        tipo: 'texto',
-        remetenteId: 'supervisor', // ID do supervisor
-        remetenteNome: 'Supervisor'
+        remetente_id: usuarioLogado.id,
+        destinatario_id: conversaAtual.usuario_id,
+        mensagem: texto
     };
     
     try {
         // Adicionar mensagem localmente imediatamente
         const mensagemLocal = {
             ...mensagemData,
-            id: Date.now(), // ID temporário
-            timestamp: new Date().toISOString(),
+            id: 'temp-' + Date.now(),
+            data_envio: new Date().toISOString(),
+            remetente_nome: usuarioLogado.nome,
+            remetente_tipo: usuarioLogado.tipo,
+            destinatario_nome: conversaAtual.nome,
+            destinatario_tipo: conversaAtual.tipo,
             status: 'enviando'
         };
         
@@ -147,22 +149,12 @@ async function enviarMensagem() {
         const mensagemServidor = await response.json();
         
         // Atualizar mensagem local com dados do servidor
-        atualizarMensagemLocal(mensagemLocal.id, {
-            ...mensagemServidor,
-            status: 'enviado'
-        });
-        
-        // Enviar via WebSocket para outros usuários
-        if (socket && socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({
-                tipo: 'nova_mensagem',
-                mensagem: mensagemServidor
-            }));
-        }
+        atualizarMensagemLocal(mensagemLocal.id, mensagemServidor);
         
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('Erro ao enviar mensagem:', error);
         atualizarMensagemLocal(mensagemLocal.id, {
+            ...mensagemLocal,
             status: 'erro'
         });
         mostrarMensagem('Erro ao enviar mensagem', 'error');
@@ -178,7 +170,7 @@ function renderizarConversas() {
             <div class="empty-state">
                 <i data-feather="message-circle"></i>
                 <h4>Nenhuma conversa</h4>
-                <p>Comece uma nova conversa com um dependente</p>
+                <p>Você ainda não tem conversas com cuidadores</p>
             </div>
         `;
         feather.replace();
@@ -186,22 +178,22 @@ function renderizarConversas() {
     }
     
     container.innerHTML = conversas.map(conversa => `
-        <div class="conversa-item ${conversaAtual?.id === conversa.id ? 'active' : ''}" 
-             onclick="selecionarConversa('${conversa.id}')">
+        <div class="conversa-item ${conversaAtual?.usuario_id === conversa.usuario_id ? 'active' : ''}" 
+             onclick="selecionarConversa('${conversa.usuario_id}')">
             <div class="conversa-avatar">
-                ${conversa.dependenteNome.charAt(0).toUpperCase()}
+                ${conversa.nome.charAt(0).toUpperCase()}
             </div>
             <div class="conversa-info">
                 <div class="conversa-nome">
-                    <span>${conversa.dependenteNome}</span>
-                    <span class="conversa-tempo">${formatarTempoRelativo(conversa.ultimaMensagemTimestamp)}</span>
+                    <span>${conversa.nome}</span>
+                    <span class="conversa-tempo">${formatarTempoRelativo(conversa.ultima_mensagem_timestamp)}</span>
                 </div>
                 <div class="conversa-ultima-msg">
-                    ${conversa.ultimaMensagem || 'Nenhuma mensagem'}
+                    ${conversa.ultima_mensagem || 'Nenhuma mensagem'}
                 </div>
             </div>
-            ${conversa.mensagensNaoLidas > 0 ? `
-                <div class="conversa-badge">${conversa.mensagensNaoLidas}</div>
+            ${conversa.mensagens_nao_lidas > 0 ? `
+                <div class="conversa-badge">${conversa.mensagens_nao_lidas}</div>
             ` : ''}
         </div>
     `).join('');
@@ -235,29 +227,25 @@ function renderizarMensagens(mensagens) {
 
 function adicionarMensagemNaTela(mensagem) {
     const container = document.getElementById('chatMessages');
-    const isEnviada = mensagem.remetenteId === 'supervisor';
+    const isEnviada = parseInt(mensagem.remetente_id) === parseInt(usuarioLogado.id);
+    
+    // Remover empty state se existir
+    const emptyState = container.querySelector('.empty-state');
+    if (emptyState) {
+        emptyState.remove();
+    }
     
     const mensagemElement = document.createElement('div');
     mensagemElement.className = `mensagem ${isEnviada ? 'enviada' : 'recebida'}`;
     mensagemElement.dataset.id = mensagem.id;
     
     let conteudo = `
-        <div class="mensagem-texto">${formatarTextoMensagem(mensagem.texto)}</div>
+        <div class="mensagem-texto">${formatarTextoMensagem(mensagem.mensagem)}</div>
         <div class="mensagem-hora">
-            ${formatarHora(mensagem.timestamp)}
+            ${formatarHora(mensagem.data_envio)}
             ${isEnviada ? `<i data-feather="${mensagem.status === 'enviando' ? 'clock' : mensagem.status === 'erro' ? 'x-circle' : 'check'}"></i>` : ''}
         </div>
     `;
-    
-    if (mensagem.anexo) {
-        conteudo = `
-            <div class="mensagem-anexo">
-                <i data-feather="paperclip" class="anexo-icon"></i>
-                <span>${mensagem.anexo.nome}</span>
-            </div>
-            ${conteudo}
-        `;
-    }
     
     mensagemElement.innerHTML = conteudo;
     container.appendChild(mensagemElement);
@@ -268,11 +256,11 @@ function adicionarMensagemNaTela(mensagem) {
 }
 
 // Gestão de Conversas
-async function selecionarConversa(conversaId) {
+async function selecionarConversa(destinatarioId) {
     try {
         mostrarLoading(true);
         
-        const conversa = conversas.find(c => c.id === conversaId);
+        const conversa = conversas.find(c => c.usuario_id == destinatarioId);
         if (!conversa) return;
         
         conversaAtual = conversa;
@@ -281,53 +269,57 @@ async function selecionarConversa(conversaId) {
         document.querySelectorAll('.conversa-item').forEach(item => {
             item.classList.remove('active');
         });
-        document.querySelector(`.conversa-item[onclick="selecionarConversa('${conversaId}')"]`).classList.add('active');
+        
+        // Encontrar e ativar o item clicado
+        const itens = document.querySelectorAll('.conversa-item');
+        for (let item of itens) {
+            if (item.getAttribute('onclick').includes(destinatarioId)) {
+                item.classList.add('active');
+                break;
+            }
+        }
         
         // Atualizar header do chat
-        document.getElementById('chatDependenteNome').textContent = conversa.dependenteNome;
-        document.getElementById('chatStatus').textContent = conversa.online ? 'Online' : 'Offline';
-        document.getElementById('statusIndicator').className = `status-indicator ${conversa.online ? '' : 'offline'}`;
+        document.getElementById('chatDependenteNome').textContent = conversa.nome;
+        document.getElementById('chatStatus').textContent = 'Online';
+        document.getElementById('statusIndicator').className = 'status-indicator';
+        
+        // Habilitar input
+        document.getElementById('mensagemInput').disabled = false;
+        document.getElementById('enviarMensagemBtn').disabled = false;
         
         // Carregar mensagens
-        const mensagens = await carregarMensagens(conversaId);
+        const mensagens = await carregarMensagens(destinatarioId);
         renderizarMensagens(mensagens);
         
-        // Marcar como lida
-        await marcarComoLida(conversaId);
+        // Marcar como lida na lista
+        const conversaIndex = conversas.findIndex(c => c.usuario_id == destinatarioId);
+        if (conversaIndex !== -1) {
+            conversas[conversaIndex].mensagens_nao_lidas = 0;
+            renderizarConversas();
+        }
         
     } catch (error) {
-        console.error('Erro:', error);
+        console.error('Erro ao carregar conversa:', error);
         mostrarMensagem('Erro ao carregar conversa', 'error');
     } finally {
         mostrarLoading(false);
     }
 }
 
-async function marcarComoLida(conversaId) {
-    try {
-        await fetch(`${API_BASE_URL}/conversas/${conversaId}/ler`, {
-            method: 'POST'
-        });
-        
-        // Atualizar localmente
-        const conversa = conversas.find(c => c.id === conversaId);
-        if (conversa) {
-            conversa.mensagensNaoLidas = 0;
-            renderizarConversas();
-        }
-    } catch (error) {
-        console.error('Erro ao marcar como lida:', error);
-    }
-}
-
 // Ações Rápidas
 function executarAcaoRapida(acao) {
+    if (!conversaAtual) {
+        mostrarMensagem('Selecione uma conversa primeiro', 'warning');
+        return;
+    }
+    
     const mensagens = {
-        'saudacao': 'Olá! Como você está se sentindo hoje?',
-        'medicamento': 'Lembre-se de tomar seu medicamento conforme prescrito.',
-        'alimentacao': 'Já se alimentou hoje? Está se hidratando bem?',
-        'atividade': 'Como está sendo sua atividade física hoje?',
-        'emergencia': 'Precisa de ajuda imediata? Estou aqui para ajudar!'
+        'saudacao': 'Olá! Como está o paciente hoje?',
+        'medicamento': 'As medicações estão sendo administradas corretamente?',
+        'alimentacao': 'Como está a alimentação do paciente?',
+        'atividade': 'O paciente está realizando as atividades?',
+        'emergencia': 'Preciso de informações urgentes sobre o paciente!'
     };
     
     if (mensagens[acao]) {
@@ -344,7 +336,6 @@ function ajustarAlturaTextarea() {
 }
 
 function formatarTextoMensagem(texto) {
-    // Substituir quebras de linha por <br>
     return texto.replace(/\n/g, '<br>');
 }
 
@@ -383,89 +374,53 @@ function filtrarConversas() {
     });
 }
 
-// WebSocket Handlers
-function receberNovaMensagem(mensagem) {
-    if (conversaAtual && mensagem.conversaId === conversaAtual.id) {
-        adicionarMensagemNaTela(mensagem);
-    }
-    
-    // Atualizar lista de conversas
-    const conversa = conversas.find(c => c.id === mensagem.conversaId);
-    if (conversa) {
-        conversa.ultimaMensagem = mensagem.texto;
-        conversa.ultimaMensagemTimestamp = mensagem.timestamp;
-        
-        if (!conversaAtual || conversaAtual.id !== mensagem.conversaId) {
-            conversa.mensagensNaoLidas = (conversa.mensagensNaoLidas || 0) + 1;
-        }
-        
-        renderizarConversas();
-    }
-}
-
-function mostrarIndicadorDigitacao(usuarioId) {
-    if (conversaAtual && conversaAtual.dependenteId === usuarioId) {
-        const container = document.getElementById('chatMessages');
-        let indicador = container.querySelector('.typing-indicator');
-        
-        if (!indicador) {
-            indicador = document.createElement('div');
-            indicador.className = 'typing-indicator';
-            indicador.innerHTML = `
-                <span>Digitando</span>
-                <div class="typing-dots">
-                    <span></span>
-                    <span></span>
-                    <span></span>
-                </div>
-            `;
-            container.appendChild(indicador);
-        }
-        
-        container.scrollTop = container.scrollHeight;
-        
-        // Remover após 3 segundos
-        clearTimeout(window.typingTimeout);
-        window.typingTimeout = setTimeout(() => {
-            indicador.remove();
-        }, 3000);
-    }
-}
-
-function atualizarStatusUsuario(usuarioId, online) {
-    conversas.forEach(conversa => {
-        if (conversa.dependenteId === usuarioId) {
-            conversa.online = online;
-        }
-    });
-    
-    if (conversaAtual && conversaAtual.dependenteId === usuarioId) {
-        document.getElementById('chatStatus').textContent = online ? 'Online' : 'Offline';
-        document.getElementById('statusIndicator').className = `status-indicator ${online ? '' : 'offline'}`;
-    }
-    
-    renderizarConversas();
-}
-
 function atualizarMensagemLocal(idAntigo, novaMensagem) {
     const elemento = document.querySelector(`.mensagem[data-id="${idAntigo}"]`);
     if (elemento) {
         elemento.dataset.id = novaMensagem.id;
         const icone = elemento.querySelector('i[data-feather]');
-        if (icone) {
+        if (icone && novaMensagem.status !== 'enviando') {
             icone.setAttribute('data-feather', novaMensagem.status === 'erro' ? 'x-circle' : 'check');
             feather.replace();
         }
     }
 }
 
+function obterUsuarioLogado() {
+    const usuarioTipo = localStorage.getItem('usuarioTipo');
+    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioNome = localStorage.getItem('usuarioNome');
+    
+    if (usuarioTipo && usuarioId) {
+        return {
+            tipo: usuarioTipo,
+            id: parseInt(usuarioId),
+            nome: usuarioNome || 'Usuário'
+        };
+    }
+    
+    // Tentar do objeto único
+    const chaves = ['usuarioLogado', 'currentUser', 'userData', 'loginData'];
+    for (const chave of chaves) {
+        const dados = localStorage.getItem(chave);
+        if (dados) {
+            try {
+                return JSON.parse(dados);
+            } catch (e) {
+                console.log(`Erro ao parsear ${chave}:`, e);
+            }
+        }
+    }
+    
+    return null;
+}
+
 function mostrarMensagem(mensagem, tipo) {
-    // Implementar sistema de notificações
     console.log(`${tipo}: ${mensagem}`);
+    // Implementar sistema de notificações mais elaborado se necessário
 }
 
 function mostrarLoading(mostrar) {
-    // Implementar indicador de carregamento
     if (mostrar) {
         document.body.classList.add('loading');
     } else {
@@ -473,21 +428,55 @@ function mostrarLoading(mostrar) {
     }
 }
 
-// Notificações do Navegador
-function solicitarPermissaoNotificacoes() {
-    if ('Notification' in window && Notification.permission === 'default') {
-        Notification.requestPermission();
+// Atualização automática
+function iniciarAtualizacaoAutomatica() {
+    // Atualizar a cada 5 segundos
+    intervaloAtualizacao = setInterval(async () => {
+        if (conversaAtual) {
+            await atualizarMensagensAtuais();
+        }
+        await atualizarListaConversas();
+    }, 5000);
+}
+
+async function atualizarMensagensAtuais() {
+    try {
+        const mensagens = await carregarMensagens(conversaAtual.usuario_id);
+        // Implementar lógica para atualizar apenas mensagens novas
+    } catch (error) {
+        console.error('Erro ao atualizar mensagens:', error);
     }
 }
 
-function mostrarNotificacao(mensagem) {
-    if ('Notification' in window && Notification.permission === 'granted') {
-        new Notification('Nova Mensagem - CareWatch', {
-            body: mensagem,
-            icon: '/icon.png'
-        });
+async function atualizarListaConversas() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/supervisores/${usuarioLogado.id}/conversas`);
+        if (response.ok) {
+            const novasConversas = await response.json();
+            
+            // Atualizar contadores de mensagens não lidas
+            conversas.forEach(conversa => {
+                const novaConversa = novasConversas.find(c => c.usuario_id === conversa.usuario_id);
+                if (novaConversa && novaConversa.mensagens_nao_lidas !== conversa.mensagens_nao_lidas) {
+                    conversa.mensagens_nao_lidas = novaConversa.mensagens_nao_lidas;
+                }
+            });
+            
+            renderizarConversas();
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar lista de conversas:', error);
     }
 }
 
-// Inicializar notificações
-solicitarPermissaoNotificacoes();
+// Limpar intervalo ao sair da página
+window.addEventListener('beforeunload', () => {
+    if (intervaloAtualizacao) {
+        clearInterval(intervaloAtualizacao);
+    }
+});
+
+// Atualizar ícones periodicamente
+setInterval(() => {
+    feather.replace();
+}, 1000);

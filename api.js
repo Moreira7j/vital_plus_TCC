@@ -1878,3 +1878,420 @@ app.get("/:page", (req, res, next) => {
     next(); // Não é uma página, passa para próxima rota
   }
 });
+
+// ====================== SISTEMA DE CHAT ENTRE CUIDADORES E SUPERVISORES ====================== //
+
+// Buscar conversas do cuidador - VERSÃO CORRIGIDA
+app.get("/api/cuidadores/:cuidadorId/conversas", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    console.log(`Buscando conversas para cuidador: ${cuidadorId}`);
+    
+    const query = `
+        SELECT DISTINCT
+            u.id as usuario_id,
+            u.nome,
+            u.tipo,
+            u.email,
+            p.id as paciente_id,
+            p.nome as paciente_nome,
+            (
+                SELECT m.mensagem 
+                FROM mensagens m 
+                WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                ORDER BY m.data_envio DESC 
+                LIMIT 1
+            ) as ultima_mensagem,
+            (
+                SELECT m.data_envio 
+                FROM mensagens m 
+                WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                ORDER BY m.data_envio DESC 
+                LIMIT 1
+            ) as ultima_mensagem_timestamp,
+            (
+                SELECT COUNT(*) 
+                FROM mensagens m 
+                WHERE m.destinatario_id = ? 
+                AND m.remetente_id = u.id 
+                AND m.lida = FALSE
+            ) as mensagens_nao_lidas
+        FROM usuarios u
+        INNER JOIN familiares_contratantes fc ON u.id = fc.usuario_id
+        INNER JOIN pacientes p ON fc.id = p.familiar_contratante_id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ?
+        AND u.tipo = 'familiar_contratante'
+        AND cpp.status_vinculo = 'ativo'
+        
+        UNION
+        
+        SELECT DISTINCT
+            u.id as usuario_id,
+            u.nome,
+            u.tipo,
+            u.email,
+            p.id as paciente_id,
+            p.nome as paciente_nome,
+            (
+                SELECT m.mensagem 
+                FROM mensagens m 
+                WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                ORDER BY m.data_envio DESC 
+                LIMIT 1
+            ) as ultima_mensagem,
+            (
+                SELECT m.data_envio 
+                FROM mensagens m 
+                WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                ORDER BY m.data_envio DESC 
+                LIMIT 1
+            ) as ultima_mensagem_timestamp,
+            (
+                SELECT COUNT(*) 
+                FROM mensagens m 
+                WHERE m.destinatario_id = ? 
+                AND m.remetente_id = u.id 
+                AND m.lida = FALSE
+            ) as mensagens_nao_lidas
+        FROM usuarios u
+        INNER JOIN familiares_cuidadores fc ON u.id = fc.usuario_id
+        INNER JOIN pacientes p ON fc.id = p.familiar_cuidador_id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ?
+        AND u.tipo = 'familiar_cuidador'
+        AND cpp.status_vinculo = 'ativo'
+    `;
+    
+    // Parâmetros para substituir os ? na query
+    const params = [
+        // Primeira parte da UNION (familiar_contratante)
+        cuidadorId, cuidadorId,                    // para ultima_mensagem
+        cuidadorId, cuidadorId,                    // para ultima_mensagem_timestamp  
+        cuidadorId,                                // para mensagens_nao_lidas
+        cuidadorId,                                // para WHERE cp.usuario_id
+        
+        // Segunda parte da UNION (familiar_cuidador)
+        cuidadorId, cuidadorId,                    // para ultima_mensagem
+        cuidadorId, cuidadorId,                    // para ultima_mensagem_timestamp
+        cuidadorId,                                // para mensagens_nao_lidas
+        cuidadorId                                 // para WHERE cp.usuario_id
+    ];
+    
+    console.log("Executando query com parâmetros:", params);
+    
+    db.query(query, params, (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar conversas do cuidador:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${results.length} conversas encontradas para cuidador ${cuidadorId}`);
+        res.json(results);
+    });
+});
+
+// Buscar conversas do supervisor - VERSÃO CORRIGIDA
+app.get("/api/supervisores/:supervisorId/conversas", (req, res) => {
+    const supervisorId = req.params.supervisorId;
+    
+    console.log(`Buscando conversas para supervisor: ${supervisorId}`);
+    
+    // Primeiro, determinar se é familiar_contratante ou familiar_cuidador
+    const getTipoQuery = "SELECT tipo FROM usuarios WHERE id = ?";
+    
+    db.query(getTipoQuery, [supervisorId], (err, tipoResults) => {
+        if (err) {
+            console.error("Erro ao buscar tipo do supervisor:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (tipoResults.length === 0) {
+            return res.status(404).json({ error: "Supervisor não encontrado" });
+        }
+        
+        const tipoSupervisor = tipoResults[0].tipo;
+        let query = "";
+        let params = [];
+        
+        if (tipoSupervisor === 'familiar_contratante') {
+            query = `
+                SELECT DISTINCT
+                    u.id as usuario_id,
+                    u.nome,
+                    u.tipo,
+                    u.email,
+                    p.id as paciente_id,
+                    p.nome as paciente_nome,
+                    (
+                        SELECT m.mensagem 
+                        FROM mensagens m 
+                        WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                        AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                        ORDER BY m.data_envio DESC 
+                        LIMIT 1
+                    ) as ultima_mensagem,
+                    (
+                        SELECT m.data_envio 
+                        FROM mensagens m 
+                        WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                        AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                        ORDER BY m.data_envio DESC 
+                        LIMIT 1
+                    ) as ultima_mensagem_timestamp,
+                    (
+                        SELECT COUNT(*) 
+                        FROM mensagens m 
+                        WHERE m.destinatario_id = ? 
+                        AND m.remetente_id = u.id 
+                        AND m.lida = FALSE
+                    ) as mensagens_nao_lidas
+                FROM usuarios u
+                INNER JOIN cuidadores_profissionais cp ON u.id = cp.usuario_id
+                INNER JOIN cuidadores_profissionais_pacientes cpp ON cp.id = cpp.cuidador_profissional_id
+                INNER JOIN pacientes p ON cpp.paciente_id = p.id
+                INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+                WHERE fc.usuario_id = ?
+                AND u.tipo = 'cuidador_profissional'
+                AND cpp.status_vinculo = 'ativo'
+            `;
+            params = [
+                supervisorId, supervisorId,  // ultima_mensagem
+                supervisorId, supervisorId,  // ultima_mensagem_timestamp
+                supervisorId,                // mensagens_nao_lidas
+                supervisorId                 // WHERE fc.usuario_id
+            ];
+        } else if (tipoSupervisor === 'familiar_cuidador') {
+            query = `
+                SELECT DISTINCT
+                    u.id as usuario_id,
+                    u.nome,
+                    u.tipo,
+                    u.email,
+                    p.id as paciente_id,
+                    p.nome as paciente_nome,
+                    (
+                        SELECT m.mensagem 
+                        FROM mensagens m 
+                        WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                        AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                        ORDER BY m.data_envio DESC 
+                        LIMIT 1
+                    ) as ultima_mensagem,
+                    (
+                        SELECT m.data_envio 
+                        FROM mensagens m 
+                        WHERE (m.remetente_id = u.id OR m.destinatario_id = u.id) 
+                        AND (m.remetente_id = ? OR m.destinatario_id = ?)
+                        ORDER BY m.data_envio DESC 
+                        LIMIT 1
+                    ) as ultima_mensagem_timestamp,
+                    (
+                        SELECT COUNT(*) 
+                        FROM mensagens m 
+                        WHERE m.destinatario_id = ? 
+                        AND m.remetente_id = u.id 
+                        AND m.lida = FALSE
+                    ) as mensagens_nao_lidas
+                FROM usuarios u
+                INNER JOIN cuidadores_profissionais cp ON u.id = cp.usuario_id
+                INNER JOIN cuidadores_profissionais_pacientes cpp ON cp.id = cpp.cuidador_profissional_id
+                INNER JOIN pacientes p ON cpp.paciente_id = p.id
+                INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+                WHERE fc.usuario_id = ?
+                AND u.tipo = 'cuidador_profissional'
+                AND cpp.status_vinculo = 'ativo'
+            `;
+            params = [
+                supervisorId, supervisorId,  // ultima_mensagem
+                supervisorId, supervisorId,  // ultima_mensagem_timestamp
+                supervisorId,                // mensagens_nao_lidas
+                supervisorId                 // WHERE fc.usuario_id
+            ];
+        } else {
+            return res.status(400).json({ error: "Tipo de usuário inválido para supervisor" });
+        }
+        
+        console.log("Executando query do supervisor com parâmetros:", params);
+        
+        db.query(query, params, (err, results) => {
+            if (err) {
+                console.error("Erro ao buscar conversas do supervisor:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} conversas encontradas para supervisor ${supervisorId}`);
+            res.json(results);
+        });
+    });
+});
+
+// Buscar mensagens entre dois usuários
+app.get("/api/mensagens/:remetenteId/:destinatarioId", (req, res) => {
+    const { remetenteId, destinatarioId } = req.params;
+    
+    console.log(`Buscando mensagens entre ${remetenteId} e ${destinatarioId}`);
+    
+    const query = `
+        SELECT 
+            m.*,
+            ur.nome as remetente_nome,
+            ur.tipo as remetente_tipo,
+            ud.nome as destinatario_nome,
+            ud.tipo as destinatario_tipo
+        FROM mensagens m
+        INNER JOIN usuarios ur ON m.remetente_id = ur.id
+        INNER JOIN usuarios ud ON m.destinatario_id = ud.id
+        WHERE (m.remetente_id = ? AND m.destinatario_id = ?)
+           OR (m.remetente_id = ? AND m.destinatario_id = ?)
+        ORDER BY m.data_envio ASC
+        LIMIT 100
+    `;
+    
+    db.query(query, [remetenteId, destinatarioId, destinatarioId, remetenteId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar mensagens:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        // Marcar mensagens como lidas
+        if (results.length > 0) {
+            const updateQuery = `
+                UPDATE mensagens 
+                SET lida = TRUE 
+                WHERE destinatario_id = ? AND remetente_id = ? AND lida = FALSE
+            `;
+            
+            db.query(updateQuery, [remetenteId, destinatarioId], (err) => {
+                if (err) {
+                    console.error("Erro ao marcar mensagens como lidas:", err);
+                }
+            });
+        }
+        
+        console.log(`✅ ${results.length} mensagens encontradas`);
+        res.json(results);
+    });
+});
+
+// Enviar mensagem
+app.post("/api/mensagens", (req, res) => {
+    const { remetente_id, destinatario_id, mensagem } = req.body;
+    
+    if (!remetente_id || !destinatario_id || !mensagem) {
+        return res.status(400).json({ error: "Remetente, destinatário e mensagem são obrigatórios" });
+    }
+    
+    const query = `
+        INSERT INTO mensagens (remetente_id, destinatario_id, mensagem, data_envio)
+        VALUES (?, ?, ?, NOW())
+    `;
+    
+    db.query(query, [remetente_id, destinatario_id, mensagem], (err, result) => {
+        if (err) {
+            console.error("Erro ao enviar mensagem:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        // Buscar dados da mensagem recém-criada
+        const selectQuery = `
+            SELECT 
+                m.*,
+                ur.nome as remetente_nome,
+                ur.tipo as remetente_tipo,
+                ud.nome as destinatario_nome,
+                ud.tipo as destinatario_tipo
+            FROM mensagens m
+            INNER JOIN usuarios ur ON m.remetente_id = ur.id
+            INNER JOIN usuarios ud ON m.destinatario_id = ud.id
+            WHERE m.id = ?
+        `;
+        
+        db.query(selectQuery, [result.insertId], (err, messageResults) => {
+            if (err) {
+                console.error("Erro ao buscar mensagem criada:", err);
+                return res.status(500).json({ error: "Erro ao buscar mensagem criada" });
+            }
+            
+            console.log(`✅ Mensagem enviada com sucesso - ID: ${result.insertId}`);
+            res.json(messageResults[0]);
+        });
+    });
+});
+
+// Marcar mensagens como lidas
+app.post("/api/mensagens/marcar-lidas", (req, res) => {
+    const { remetente_id, destinatario_id } = req.body;
+    
+    const query = `
+        UPDATE mensagens 
+        SET lida = TRUE 
+        WHERE remetente_id = ? AND destinatario_id = ? AND lida = FALSE
+    `;
+    
+    db.query(query, [remetente_id, destinatario_id], (err, result) => {
+        if (err) {
+            console.error("Erro ao marcar mensagens como lidas:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${result.affectedRows} mensagens marcadas como lidas`);
+        res.json({ success: true, mensagens_afetadas: result.affectedRows });
+    });
+});
+
+// Buscar usuário por ID
+app.get("/api/usuarios/:usuarioId", (req, res) => {
+    const usuarioId = req.params.usuarioId;
+    
+    const query = "SELECT id, nome, email, tipo, telefone FROM usuarios WHERE id = ?";
+    
+    db.query(query, [usuarioId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar usuário:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado" });
+        }
+        
+        res.json(results[0]);
+    });
+});
+
+// Buscar paciente em comum entre cuidador e supervisor
+app.get("/api/pacientes/comum/:cuidadorId/:supervisorId", (req, res) => {
+    const { cuidadorId, supervisorId } = req.params;
+    
+    const query = `
+        SELECT p.*
+        FROM pacientes p
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ?
+        AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+             OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+        AND cpp.status_vinculo = 'ativo'
+        LIMIT 1
+    `;
+    
+    db.query(query, [cuidadorId, supervisorId, supervisorId], (err, results) => {
+        if (err) {
+            console.error("Erro ao buscar paciente em comum:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Nenhum paciente em comum encontrado" });
+        }
+        
+        res.json(results[0]);
+    });
+});

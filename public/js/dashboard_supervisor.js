@@ -1,6 +1,6 @@
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 DOM carregado, inicializando dashboard...');
-    
+
     // DEBUG: Verificar o que está no localStorage
     console.log('🔍 DEBUG - localStorage completo:');
     for (let i = 0; i < localStorage.length; i++) {
@@ -8,25 +8,25 @@ document.addEventListener('DOMContentLoaded', function() {
         const value = localStorage.getItem(key);
         console.log(`📦 ${key}:`, value);
     }
-    
+
     // Verificar se todos os elementos existem
     const domPronto = verificarElementosDOM();
-    
+
     if (!domPronto) {
         console.warn('⚠️ Alguns elementos não foram encontrados, mas continuando...');
     }
-    
+
     // Inicializar ícones do Feather
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
-    
+
     // Carregar dados do dependente
     carregarDadosDependente();
-    
+
     // Configurar eventos
     configurarEventos();
-    
+
     console.log('🎯 Dashboard inicializado com sucesso!');
 });
 
@@ -42,7 +42,7 @@ function verificarElementosDOM() {
     ];
 
     const elementosFaltantes = [];
-    
+
     elementosNecessarios.forEach(id => {
         const elemento = document.getElementById(id);
         if (!elemento) {
@@ -66,14 +66,14 @@ function verificarElementosDOM() {
 async function carregarDadosDependente() {
     try {
         console.log('🔍 Iniciando carregamento de dados do dependente...');
-        
+
         // Recuperar dependente selecionado do localStorage
         const dependenteSelecionado = JSON.parse(localStorage.getItem('dependenteSelecionado'));
-        
+
         if (!dependenteSelecionado || !dependenteSelecionado.id) {
             console.error('❌ Nenhum dependente selecionado ou ID inválido:', dependenteSelecionado);
             mostrarErro('Nenhum dependente selecionado. Por favor, selecione um dependente primeiro.');
-            
+
             // Redirecionar para a página de dependentes após 3 segundos
             setTimeout(() => {
                 window.location.href = 'dependentes.html';
@@ -86,7 +86,7 @@ async function carregarDadosDependente() {
         // Buscar dados completos do dependente da API
         console.log('🌐 Buscando dados da API...');
         const response = await fetch(`/api/dependentes/${dependenteSelecionado.id}`);
-        
+
         if (!response.ok) {
             const errorText = await response.text();
             console.error('❌ Erro na resposta da API:', response.status, errorText);
@@ -118,7 +118,7 @@ async function carregarDadosDependente() {
 // Função para atualizar a interface com os dados do dependente
 function atualizarInterfaceDependente(dependente) {
     console.log('Atualizando interface para dependente:', dependente);
-    
+
     // Mapeamento de elementos para atualizar
     const elementosParaAtualizar = [
         { id: 'dependenteNome', valor: dependente.nome || 'Nome não informado' },
@@ -151,18 +151,18 @@ function atualizarInterfaceDependente(dependente) {
                 fotoUrl = '/' + fotoUrl;
             }
             fotoElement.src = fotoUrl;
-            
+
             // Adicionar tratamento de erro para a imagem
-            fotoElement.onerror = function() {
+            fotoElement.onerror = function () {
                 console.error('❌ Erro ao carregar imagem:', fotoUrl);
                 this.src = '../assets/default-avatar.png';
                 this.alt = 'Foto não disponível';
             };
-            
-            fotoElement.onload = function() {
+
+            fotoElement.onload = function () {
                 console.log('✅ Foto carregada com sucesso:', fotoUrl);
             };
-            
+
             console.log('✅ Foto definida:', fotoUrl);
         } else {
             fotoElement.src = '../assets/default-avatar.png';
@@ -179,7 +179,7 @@ async function carregarSinaisVitais(pacienteId) {
     try {
         console.log('💓 Carregando sinais vitais...');
         const response = await fetch(`/api/pacientes/${pacienteId}/sinais-vitais/recentes`);
-        
+
         if (response.ok) {
             const sinais = await response.json();
             console.log('✅ Sinais vitais recebidos:', sinais);
@@ -197,7 +197,7 @@ async function carregarSinaisVitais(pacienteId) {
 // Função para atualizar sinais vitais na tela
 function atualizarSinaisVitais(sinais) {
     console.log('📊 Atualizando sinais vitais na interface:', sinais);
-    
+
     if (!sinais || sinais.length === 0) {
         // Dados padrão quando não há sinais
         console.log('📋 Usando sinais vitais padrão');
@@ -210,10 +210,10 @@ function atualizarSinaisVitais(sinais) {
     }
 
     sinais.forEach(sinal => {
-        switch(sinal.tipo) {
+        switch (sinal.tipo) {
             case 'pressao_arterial':
                 if (document.getElementById('pressaoMedia')) {
-                    document.getElementById('pressaoMedia').textContent = 
+                    document.getElementById('pressaoMedia').textContent =
                         `${sinal.valor_principal || '--'}/${sinal.valor_secundario || '--'}`;
                 }
                 if (document.getElementById('pressaoStatus')) {
@@ -221,7 +221,7 @@ function atualizarSinaisVitais(sinais) {
                     document.getElementById('pressaoStatus').className = `badge ${obterClasseStatusPressao(sinal)}`;
                 }
                 break;
-                
+
             case 'glicemia':
                 if (document.getElementById('glicemiaMedia')) {
                     document.getElementById('glicemiaMedia').textContent = sinal.valor_principal || '--';
@@ -231,7 +231,7 @@ function atualizarSinaisVitais(sinais) {
                     document.getElementById('glicemiaStatus').className = `badge ${obterClasseStatusGlicemia(sinal)}`;
                 }
                 break;
-                
+
             case 'temperatura':
                 if (document.getElementById('temperaturaMedia')) {
                     document.getElementById('temperaturaMedia').textContent = sinal.valor_principal || '--';
@@ -254,7 +254,7 @@ async function carregarAtividades(pacienteId) {
         console.log('📅 Carregando atividades...');
         const periodo = document.getElementById('periodoFilter')?.value || 'hoje';
         const response = await fetch(`/api/pacientes/${pacienteId}/atividades?periodo=${periodo}`);
-        
+
         if (response.ok) {
             const atividades = await response.json();
             console.log('✅ Atividades recebidas:', atividades);
@@ -276,7 +276,7 @@ function exibirAtividades(atividades) {
         console.error('❌ Elemento activityFeed não encontrado');
         return;
     }
-    
+
     if (!atividades || atividades.length === 0) {
         activityFeed.innerHTML = `
             <div class="empty-state">
@@ -305,7 +305,7 @@ function exibirAtividades(atividades) {
     `).join('');
 
     activityFeed.innerHTML = atividadesHTML;
-    
+
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
@@ -316,7 +316,7 @@ async function carregarAlertas(pacienteId) {
     try {
         console.log('🚨 Carregando alertas...');
         const response = await fetch(`/api/pacientes/${pacienteId}/alertas/recentes`);
-        
+
         if (response.ok) {
             const alertas = await response.json();
             console.log('✅ Alertas recebidos:', alertas);
@@ -338,7 +338,7 @@ function exibirAlertas(alertas) {
         console.error('❌ Elemento alertsList não encontrado');
         return;
     }
-    
+
     if (!alertas || alertas.length === 0) {
         alertsList.innerHTML = `
             <div class="empty-state">
@@ -365,7 +365,7 @@ function exibirAlertas(alertas) {
     `).join('');
 
     alertsList.innerHTML = alertasHTML;
-    
+
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
@@ -475,11 +475,11 @@ function atualizarStatusGeral(sinais) {
 // FUNÇÃO CONFIGURAR EVENTOS - CORRIGIDA E UNIFICADA
 function configurarEventos() {
     console.log('⚙️ Configurando eventos...');
-    
+
     // Filtro de período
     const periodoFilter = document.getElementById('periodoFilter');
     if (periodoFilter) {
-        periodoFilter.addEventListener('change', function() {
+        periodoFilter.addEventListener('change', function () {
             console.log('🔍 Filtro de período alterado:', this.value);
             const dependente = JSON.parse(localStorage.getItem('dependenteSelecionado'));
             if (dependente && dependente.id) {
@@ -494,11 +494,11 @@ function configurarEventos() {
     // Formulário de mensagem
     const messageForm = document.getElementById('messageForm');
     if (messageForm) {
-        messageForm.addEventListener('submit', function(e) {
+        messageForm.addEventListener('submit', function (e) {
             e.preventDefault();
             const textarea = this.querySelector('textarea');
             const mensagem = textarea.value.trim();
-            
+
             if (mensagem) {
                 enviarMensagem(mensagem);
                 textarea.value = '';
@@ -525,7 +525,7 @@ function configurarEventos() {
 
     // Configurar link de Relatórios
     if (relatoriosLink) {
-        relatoriosLink.addEventListener('click', function(e) {
+        relatoriosLink.addEventListener('click', function (e) {
             e.preventDefault();
             console.log('📊 Navegando para relatórios...');
             navegarParaPaginaSupervisor('relatorios_supervisor.html');
@@ -537,7 +537,7 @@ function configurarEventos() {
 
     // Configurar link de Alertas
     if (alertasLink) {
-        alertasLink.addEventListener('click', function(e) {
+        alertasLink.addEventListener('click', function (e) {
             e.preventDefault();
             console.log('🚨 Navegando para alertas...');
             navegarParaPaginaSupervisor('alertas_supervisor.html');
@@ -549,7 +549,7 @@ function configurarEventos() {
 
     // Configurar link de Comunicação
     if (comunicacaoLink) {
-        comunicacaoLink.addEventListener('click', function(e) {
+        comunicacaoLink.addEventListener('click', function (e) {
             e.preventDefault();
             console.log('💬 Navegando para comunicação...');
             navegarParaPaginaSupervisor('comunicacao_supervisor.html');
@@ -562,12 +562,12 @@ function configurarEventos() {
     // Logout
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
+        logoutBtn.addEventListener('click', function (e) {
             e.preventDefault();
             console.log('🚪 Efetuando logout...');
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = '../paginas/index.html';
+            window.location.href = "/"; // ← CORREÇÃO: Vai para a raiz (LandingPage)
         });
         console.log('✅ Botão de logout configurado');
     } else {
@@ -583,13 +583,13 @@ function navegarParaPaginaSupervisor(pagina) {
         mostrarErro('Nenhum dependente selecionado. Por favor, selecione um dependente primeiro.');
         return;
     }
-    
+
     // Buscar usuário no formato atual (chaves separadas)
     let usuarioLogado = null;
     const usuarioTipo = localStorage.getItem('usuarioTipo');
     const usuarioId = localStorage.getItem('usuarioId');
     const usuarioNome = localStorage.getItem('usuarioNome');
-    
+
     if (usuarioTipo && usuarioId) {
         usuarioLogado = {
             tipo: usuarioTipo,
@@ -603,7 +603,7 @@ function navegarParaPaginaSupervisor(pagina) {
             'usuarioLogado', 'currentUser', 'userData', 'loginData',
             'usuario', 'user', 'loggedUser', 'userInfo'
         ];
-        
+
         for (const chave of possiveisChaves) {
             const dados = localStorage.getItem(chave) || sessionStorage.getItem(chave);
             if (dados) {
@@ -617,7 +617,7 @@ function navegarParaPaginaSupervisor(pagina) {
             }
         }
     }
-    
+
     if (!usuarioLogado) {
         console.error('❌ Nenhum usuário encontrado!');
         mostrarErro('Sessão expirada. Redirecionando para login...');
@@ -628,19 +628,19 @@ function navegarParaPaginaSupervisor(pagina) {
         }, 2000);
         return;
     }
-    
+
     // Garantir que o usuário está salvo corretamente
     localStorage.setItem('usuarioLogado', JSON.stringify(usuarioLogado));
     localStorage.setItem('currentUser', JSON.stringify(usuarioLogado));
-    
+
     console.log('✅ Usuário garantido no localStorage:', usuarioLogado);
-    
+
     // Verificação flexível do tipo de usuário
     const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role || usuarioLogado.type;
     console.log('👤 Tipo de usuário detectado:', tipoUsuario);
-    
-    const isFamiliarContratante = 
-        tipoUsuario === 'familiar_contratante' || 
+
+    const isFamiliarContratante =
+        tipoUsuario === 'familiar_contratante' ||
         tipoUsuario === 'familiar contratante' ||
         tipoUsuario === 'supervisor' ||
         tipoUsuario === 'admin' ||
@@ -651,9 +651,9 @@ function navegarParaPaginaSupervisor(pagina) {
         mostrarErro('Acesso não autorizado. Apenas familiares contratantes podem acessar esta página.');
         return;
     }
-    
+
     console.log(`✅ Usuário autorizado, redirecionando para ${pagina}...`);
-    
+
     // ✅ CORREÇÃO: Redirecionar com o caminho correto
     // Ajuste o caminho conforme sua estrutura de pastas
     window.location.href = pagina;
@@ -662,12 +662,12 @@ function navegarParaPaginaSupervisor(pagina) {
 async function enviarMensagem(mensagem) {
     try {
         const dependente = JSON.parse(localStorage.getItem('dependenteSelecionado'));
-        
+
         // Simular envio de mensagem (implementar API real depois)
         console.log('Enviando mensagem para o cuidador:', mensagem);
-        
+
         mostrarSucesso('Mensagem enviada com sucesso!');
-        
+
         // Atualizar preview da última mensagem
         const lastMessageElement = document.getElementById('lastMessage');
         if (lastMessageElement) {
@@ -676,7 +676,7 @@ async function enviarMensagem(mensagem) {
                 <small class="text-muted">Agora</small>
             `;
         }
-        
+
     } catch (error) {
         console.error('Erro ao enviar mensagem:', error);
         mostrarErro('Erro ao enviar mensagem');

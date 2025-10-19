@@ -2,15 +2,29 @@
 const API_BASE_URL = 'http://localhost:3000/api';
 let conversas = [];
 let conversaAtual = null;
-let socket = null;
+let usuarioLogado = null;
+let intervaloAtualizacao = null;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     feather.replace();
+    inicializarUsuario();
     inicializarEventListeners();
     carregarConversas();
-    inicializarWebSocket();
 });
+
+// Obter usuário logado
+function inicializarUsuario() {
+    usuarioLogado = obterUsuarioLogado();
+    if (!usuarioLogado) {
+        console.error('Usuário não logado');
+        window.location.href = '/';
+        return;
+    }
+    
+    console.log('Usuário logado:', usuarioLogado);
+    document.getElementById('userName').textContent = usuarioLogado.nome || 'Cuidador';
+}
 
 // Event Listeners
 function inicializarEventListeners() {
@@ -43,15 +57,9 @@ function inicializarEventListeners() {
             e.preventDefault();
             localStorage.clear();
             sessionStorage.clear();
-            window.location.href = '../paginas/index.html';
+            window.location.href = '/';
         });
     }
-}
-
-// WebSocket para comunicação em tempo real
-function inicializarWebSocket() {
-    // Simular WebSocket - implementar real depois
-    console.log('WebSocket simulado para comunicação');
 }
 
 // API Functions
@@ -59,77 +67,43 @@ async function carregarConversas() {
     try {
         mostrarLoading(true);
         
-        // Obter cuidador logado
-        const usuarioLogado = obterUsuarioLogado();
-        if (!usuarioLogado) {
-            throw new Error('Usuário não logado');
-        }
-
-        // Buscar comunicação do cuidador
-        const response = await fetch(`${API_BASE_URL}/cuidadores/${usuarioLogado.id}/comunicacao`);
+        const response = await fetch(`${API_BASE_URL}/cuidadores/${usuarioLogado.id}/conversas`);
         
         if (!response.ok) {
-            // Se a API não responder, usar dados de exemplo
-            console.log('API não disponível, usando dados de exemplo');
-            conversas = obterConversasExemplo();
-        } else {
-            const mensagens = await response.json();
-            conversas = agruparConversas(mensagens);
+            throw new Error('Erro ao carregar conversas');
         }
         
+        conversas = await response.json();
         renderizarConversas();
         
         // Selecionar primeira conversa se existir
         if (conversas.length > 0 && !conversaAtual) {
-            selecionarConversa(conversas[0].id);
+            selecionarConversa(conversas[0].usuario_id);
         }
+        
+        // Iniciar atualização automática
+        iniciarAtualizacaoAutomatica();
+        
     } catch (error) {
         console.error('Erro ao carregar conversas:', error);
-        // Usar dados de exemplo em caso de erro
-        conversas = obterConversasExemplo();
-        renderizarConversas();
-        mostrarMensagem('Usando dados de demonstração', 'info');
+        mostrarMensagem('Erro ao carregar conversas', 'error');
     } finally {
         mostrarLoading(false);
     }
 }
 
-// Dados de exemplo (remover quando a API estiver pronta)
-function obterConversasExemplo() {
-    return [
-        {
-            id: 1,
-            nome: 'Maria Silva (Familiar)',
-            ultimaMensagem: 'Como está a pressão arterial hoje?',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // 30 minutos atrás
-            online: true,
-            mensagensNaoLidas: 2,
-            tipo: 'familiar'
-        },
-        {
-            id: 2,
-            nome: 'Dr. Carlos Santos',
-            ultimaMensagem: 'Precisamos ajustar a dosagem da medicação',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 horas atrás
-            online: false,
-            mensagensNaoLidas: 0,
-            tipo: 'medico'
-        },
-        {
-            id: 3,
-            nome: 'Enfermeira Ana',
-            ultimaMensagem: 'Lembrar de verificar a glicemia após o almoço',
-            timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000).toISOString(), // 5 horas atrás
-            online: true,
-            mensagensNaoLidas: 1,
-            tipo: 'enfermeiro'
+async function carregarMensagens(destinatarioId) {
+    try {
+        const response = await fetch(`${API_BASE_URL}/mensagens/${usuarioLogado.id}/${destinatarioId}`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar mensagens');
         }
-    ];
-}
-
-function agruparConversas(mensagens) {
-    // Simular agrupamento de mensagens em conversas
-    return obterConversasExemplo();
+        
+        return await response.json();
+    } catch (error) {
+        throw error;
+    }
 }
 
 async function enviarMensagem() {
@@ -139,75 +113,51 @@ async function enviarMensagem() {
     if (!texto || !conversaAtual) return;
     
     const mensagemData = {
-        conversaId: conversaAtual.id,
-        texto: texto,
-        tipo: 'texto',
-        remetenteId: 'cuidador'
+        remetente_id: usuarioLogado.id,
+        destinatario_id: conversaAtual.usuario_id,
+        mensagem: texto
     };
     
     try {
         // Adicionar mensagem localmente imediatamente
         const mensagemLocal = {
             ...mensagemData,
-            id: Date.now(),
-            timestamp: new Date().toISOString(),
-            status: 'enviando',
-            remetenteNome: 'Você'
+            id: 'temp-' + Date.now(),
+            data_envio: new Date().toISOString(),
+            remetente_nome: usuarioLogado.nome,
+            remetente_tipo: usuarioLogado.tipo,
+            destinatario_nome: conversaAtual.nome,
+            destinatario_tipo: conversaAtual.tipo,
+            status: 'enviando'
         };
         
         adicionarMensagemNaTela(mensagemLocal);
         input.value = '';
         ajustarAlturaTextarea();
         
-        // Simular envio para API
-        setTimeout(() => {
-            atualizarMensagemLocal(mensagemLocal.id, {
-                ...mensagemLocal,
-                status: 'enviado'
-            });
-            
-            // Simular resposta
-            setTimeout(() => {
-                const resposta = {
-                    id: Date.now() + 1,
-                    texto: obterRespostaAutomatica(texto),
-                    timestamp: new Date().toISOString(),
-                    remetenteNome: conversaAtual.nome,
-                    status: 'recebida'
-                };
-                adicionarMensagemNaTela(resposta);
-            }, 1000 + Math.random() * 2000);
-            
-        }, 500);
+        // Enviar para o servidor
+        const response = await fetch(`${API_BASE_URL}/mensagens`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(mensagemData)
+        });
+        
+        if (!response.ok) throw new Error('Erro ao enviar mensagem');
+        
+        const mensagemServidor = await response.json();
+        
+        // Atualizar mensagem local com dados do servidor
+        atualizarMensagemLocal(mensagemLocal.id, mensagemServidor);
         
     } catch (error) {
         console.error('Erro ao enviar mensagem:', error);
         atualizarMensagemLocal(mensagemLocal.id, {
+            ...mensagemLocal,
             status: 'erro'
         });
         mostrarMensagem('Erro ao enviar mensagem', 'error');
-    }
-}
-
-function obterRespostaAutomatica(mensagem) {
-    const mensagemLower = mensagem.toLowerCase();
-    
-    if (mensagemLower.includes('pressão') || mensagemLower.includes('pressao')) {
-        return 'A pressão arterial está controlada hoje. Última medida: 125/80 mmHg';
-    } else if (mensagemLower.includes('glicemia') || mensagemLower.includes('açúcar') || mensagemLower.includes('acucar')) {
-        return 'A glicemia está estável. Última medição: 98 mg/dL';
-    } else if (mensagemLower.includes('medicamento') || mensagemLower.includes('remédio') || mensagemLower.includes('remedio')) {
-        return 'Todas as medicações foram administradas no horário correto hoje';
-    } else if (mensagemLower.includes('alimentação') || mensagemLower.includes('alimentacao') || mensagemLower.includes('comida')) {
-        return 'O paciente se alimentou bem hoje, com boa aceitação das refeições';
-    } else {
-        const respostas = [
-            'Obrigado pela mensagem. Como posso ajudar?',
-            'Entendi. Vou verificar e te retorno.',
-            'O paciente está bem hoje, obrigado por perguntar.',
-            'Preciso de mais informações para poder ajudar melhor.'
-        ];
-        return respostas[Math.floor(Math.random() * respostas.length)];
     }
 }
 
@@ -220,7 +170,7 @@ function renderizarConversas() {
             <div class="empty-state">
                 <i data-feather="message-circle"></i>
                 <h4>Nenhuma conversa</h4>
-                <p>Comece uma nova conversa com um familiar ou profissional</p>
+                <p>Você ainda não tem conversas com familiares</p>
             </div>
         `;
         feather.replace();
@@ -228,22 +178,22 @@ function renderizarConversas() {
     }
     
     container.innerHTML = conversas.map(conversa => `
-        <div class="conversa-item ${conversaAtual?.id === conversa.id ? 'active' : ''}" 
-             onclick="selecionarConversa('${conversa.id}')">
+        <div class="conversa-item ${conversaAtual?.usuario_id === conversa.usuario_id ? 'active' : ''}" 
+             onclick="selecionarConversa('${conversa.usuario_id}')">
             <div class="conversa-avatar">
                 ${conversa.nome.charAt(0).toUpperCase()}
             </div>
             <div class="conversa-info">
                 <div class="conversa-nome">
                     <span>${conversa.nome}</span>
-                    <span class="conversa-tempo">${formatarTempoRelativo(conversa.timestamp)}</span>
+                    <span class="conversa-tempo">${formatarTempoRelativo(conversa.ultima_mensagem_timestamp)}</span>
                 </div>
                 <div class="conversa-ultima-msg">
-                    ${conversa.ultimaMensagem}
+                    ${conversa.ultima_mensagem || 'Nenhuma mensagem'}
                 </div>
             </div>
-            ${conversa.mensagensNaoLidas > 0 ? `
-                <div class="conversa-badge">${conversa.mensagensNaoLidas}</div>
+            ${conversa.mensagens_nao_lidas > 0 ? `
+                <div class="conversa-badge">${conversa.mensagens_nao_lidas}</div>
             ` : ''}
         </div>
     `).join('');
@@ -255,7 +205,7 @@ function renderizarMensagens(mensagens) {
     const container = document.getElementById('chatMessages');
     container.innerHTML = '';
     
-    if (!mensagens || mensagens.length === 0) {
+    if (mensagens.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i data-feather="message-square"></i>
@@ -277,7 +227,7 @@ function renderizarMensagens(mensagens) {
 
 function adicionarMensagemNaTela(mensagem) {
     const container = document.getElementById('chatMessages');
-    const isEnviada = mensagem.remetenteId === 'cuidador' || mensagem.remetenteNome === 'Você';
+    const isEnviada = parseInt(mensagem.remetente_id) === parseInt(usuarioLogado.id);
     
     // Remover empty state se existir
     const emptyState = container.querySelector('.empty-state');
@@ -290,9 +240,9 @@ function adicionarMensagemNaTela(mensagem) {
     mensagemElement.dataset.id = mensagem.id;
     
     let conteudo = `
-        <div class="mensagem-texto">${formatarTextoMensagem(mensagem.texto)}</div>
+        <div class="mensagem-texto">${formatarTextoMensagem(mensagem.mensagem)}</div>
         <div class="mensagem-hora">
-            ${formatarHora(mensagem.timestamp)}
+            ${formatarHora(mensagem.data_envio)}
             ${isEnviada ? `<i data-feather="${mensagem.status === 'enviando' ? 'clock' : mensagem.status === 'erro' ? 'x-circle' : 'check'}"></i>` : ''}
         </div>
     `;
@@ -306,11 +256,11 @@ function adicionarMensagemNaTela(mensagem) {
 }
 
 // Gestão de Conversas
-async function selecionarConversa(conversaId) {
+async function selecionarConversa(destinatarioId) {
     try {
         mostrarLoading(true);
         
-        const conversa = conversas.find(c => c.id == conversaId);
+        const conversa = conversas.find(c => c.usuario_id == destinatarioId);
         if (!conversa) return;
         
         conversaAtual = conversa;
@@ -319,24 +269,35 @@ async function selecionarConversa(conversaId) {
         document.querySelectorAll('.conversa-item').forEach(item => {
             item.classList.remove('active');
         });
-        event.currentTarget.classList.add('active');
+        
+        // Encontrar e ativar o item clicado
+        const itens = document.querySelectorAll('.conversa-item');
+        for (let item of itens) {
+            if (item.getAttribute('onclick').includes(destinatarioId)) {
+                item.classList.add('active');
+                break;
+            }
+        }
         
         // Atualizar header do chat
         document.getElementById('chatContatoNome').textContent = conversa.nome;
-        document.getElementById('chatStatus').textContent = conversa.online ? 'Online' : 'Offline';
-        document.getElementById('statusIndicator').className = `status-indicator ${conversa.online ? '' : 'offline'}`;
+        document.getElementById('chatStatus').textContent = 'Online';
+        document.getElementById('statusIndicator').className = 'status-indicator';
         
         // Habilitar input
         document.getElementById('mensagemInput').disabled = false;
         document.getElementById('enviarMensagemBtn').disabled = false;
         
-        // Carregar mensagens da conversa (simulado)
-        const mensagens = obterMensagensExemplo(conversaId);
+        // Carregar mensagens
+        const mensagens = await carregarMensagens(destinatarioId);
         renderizarMensagens(mensagens);
         
-        // Marcar como lida
-        conversa.mensagensNaoLidas = 0;
-        renderizarConversas();
+        // Marcar como lida na lista
+        const conversaIndex = conversas.findIndex(c => c.usuario_id == destinatarioId);
+        if (conversaIndex !== -1) {
+            conversas[conversaIndex].mensagens_nao_lidas = 0;
+            renderizarConversas();
+        }
         
     } catch (error) {
         console.error('Erro ao carregar conversa:', error);
@@ -346,36 +307,13 @@ async function selecionarConversa(conversaId) {
     }
 }
 
-function obterMensagensExemplo(conversaId) {
-    const mensagensBase = [
-        {
-            id: 1,
-            texto: 'Olá! Como está o paciente hoje?',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-            remetenteNome: 'Maria Silva',
-            status: 'recebida'
-        },
-        {
-            id: 2,
-            texto: 'Está tudo bem! O paciente descansou bem durante a noite.',
-            timestamp: new Date(Date.now() - 1.5 * 60 * 60 * 1000).toISOString(),
-            remetenteNome: 'Você',
-            status: 'enviado'
-        },
-        {
-            id: 3,
-            texto: 'Que bom! E a pressão arterial está controlada?',
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-            remetenteNome: 'Maria Silva',
-            status: 'recebida'
-        }
-    ];
-    
-    return mensagensBase;
-}
-
 // Ações Rápidas
 function executarAcaoRapida(acao) {
+    if (!conversaAtual) {
+        mostrarMensagem('Selecione uma conversa primeiro', 'warning');
+        return;
+    }
+    
     const mensagens = {
         'saudacao': 'Olá! Como você está?',
         'medicamento': 'As medicações foram administradas conforme prescrito.',
@@ -398,7 +336,6 @@ function ajustarAlturaTextarea() {
 }
 
 function formatarTextoMensagem(texto) {
-    // Substituir quebras de linha por <br>
     return texto.replace(/\n/g, '<br>');
 }
 
@@ -440,8 +377,9 @@ function filtrarConversas() {
 function atualizarMensagemLocal(idAntigo, novaMensagem) {
     const elemento = document.querySelector(`.mensagem[data-id="${idAntigo}"]`);
     if (elemento) {
+        elemento.dataset.id = novaMensagem.id;
         const icone = elemento.querySelector('i[data-feather]');
-        if (icone) {
+        if (icone && novaMensagem.status !== 'enviando') {
             icone.setAttribute('data-feather', novaMensagem.status === 'erro' ? 'x-circle' : 'check');
             feather.replace();
         }
@@ -449,7 +387,6 @@ function atualizarMensagemLocal(idAntigo, novaMensagem) {
 }
 
 function obterUsuarioLogado() {
-    // Tentar das chaves separadas primeiro
     const usuarioTipo = localStorage.getItem('usuarioTipo');
     const usuarioId = localStorage.getItem('usuarioId');
     const usuarioNome = localStorage.getItem('usuarioNome');
@@ -479,18 +416,65 @@ function obterUsuarioLogado() {
 }
 
 function mostrarMensagem(mensagem, tipo) {
-    // Implementar sistema de notificações
     console.log(`${tipo}: ${mensagem}`);
+    // Implementar sistema de notificações mais elaborado se necessário
 }
 
 function mostrarLoading(mostrar) {
-    // Implementar indicador de carregamento
     if (mostrar) {
         document.body.classList.add('loading');
     } else {
         document.body.classList.remove('loading');
     }
 }
+
+// Atualização automática
+function iniciarAtualizacaoAutomatica() {
+    // Atualizar a cada 5 segundos
+    intervaloAtualizacao = setInterval(async () => {
+        if (conversaAtual) {
+            await atualizarMensagensAtuais();
+        }
+        await atualizarListaConversas();
+    }, 5000);
+}
+
+async function atualizarMensagensAtuais() {
+    try {
+        const mensagens = await carregarMensagens(conversaAtual.usuario_id);
+        // Implementar lógica para atualizar apenas mensagens novas
+    } catch (error) {
+        console.error('Erro ao atualizar mensagens:', error);
+    }
+}
+
+async function atualizarListaConversas() {
+    try {
+        const response = await fetch(`${API_BASE_URL}/cuidadores/${usuarioLogado.id}/conversas`);
+        if (response.ok) {
+            const novasConversas = await response.json();
+            
+            // Atualizar contadores de mensagens não lidas
+            conversas.forEach(conversa => {
+                const novaConversa = novasConversas.find(c => c.usuario_id === conversa.usuario_id);
+                if (novaConversa && novaConversa.mensagens_nao_lidas !== conversa.mensagens_nao_lidas) {
+                    conversa.mensagens_nao_lidas = novaConversa.mensagens_nao_lidas;
+                }
+            });
+            
+            renderizarConversas();
+        }
+    } catch (error) {
+        console.error('Erro ao atualizar lista de conversas:', error);
+    }
+}
+
+// Limpar intervalo ao sair da página
+window.addEventListener('beforeunload', () => {
+    if (intervaloAtualizacao) {
+        clearInterval(intervaloAtualizacao);
+    }
+});
 
 // Atualizar ícones periodicamente
 setInterval(() => {
