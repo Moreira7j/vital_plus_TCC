@@ -1,6 +1,6 @@
-// LandingPage.js - Funcionalidades da página inicial - VERSÃO CORRIGIDA
+// LandingPage.js - VERSÃO CORRIGIDA E FUNCIONAL
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     // Inicializar feather icons se disponível
     if (typeof feather !== 'undefined') {
         feather.replace();
@@ -8,16 +8,16 @@ document.addEventListener("DOMContentLoaded", function() {
 
     // Configurar menu mobile
     setupMobileMenu();
-    
+
     // Configurar toggle de senha
     setupPasswordToggle();
-    
+
     // Configurar formulário de login
     setupLoginForm();
-    
+
     // Configurar navegação suave
     setupSmoothScrolling();
-    
+
     // Configurar thumbnails da plataforma web
     setupWebThumbnails();
 });
@@ -46,13 +46,13 @@ function setupPasswordToggle() {
     const passwordInput = document.getElementById('password');
 
     if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function(e) {
+        togglePassword.addEventListener('click', function (e) {
             e.preventDefault();
             e.stopPropagation();
-            
+
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
-            
+
             const icon = this.querySelector('i');
             if (icon) {
                 icon.classList.toggle('fa-eye');
@@ -68,24 +68,32 @@ function setupLoginForm() {
     const loginMensagem = document.getElementById('loginMensagem');
 
     if (loginForm) {
-        loginForm.addEventListener('submit', async function(e) {
+        loginForm.addEventListener('submit', async function (e) {
             e.preventDefault();
-            
+
             const email = document.getElementById('email').value.trim();
             const password = document.getElementById('password').value;
-            
+
             if (!email || !password) {
                 showLoginMessage('Por favor, preencha todos os campos.', 'error');
                 return;
             }
-            
+
+            // Validação básica de email
+            if (!validateEmail(email)) {
+                showLoginMessage('Por favor, insira um e-mail válido.', 'error');
+                return;
+            }
+
             // Mostrar estado de carregamento
             const submitBtn = loginForm.querySelector('button[type="submit"]');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Entrando...';
             submitBtn.disabled = true;
-            
+
             try {
+                console.log('📤 Enviando requisição de login para:', email);
+
                 const response = await fetch('/api/login', {
                     method: 'POST',
                     headers: {
@@ -96,52 +104,52 @@ function setupLoginForm() {
                         senha: password
                     })
                 });
-                
+
+                console.log('📥 Resposta recebida, status:', response.status);
+
+                // Verificar se a resposta é JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const textResponse = await response.text();
+                    console.error('❌ Servidor retornou não-JSON:', textResponse.substring(0, 200));
+                    throw new Error('Resposta inválida do servidor');
+                }
+
                 const data = await response.json();
-                
+                console.log('📊 Dados da resposta:', data);
+
+                // No setupLoginForm, após o login bem-sucedido:
                 if (response.ok) {
                     showLoginMessage('Login realizado com sucesso! Redirecionando...', 'success');
-                    
-                    // ✅ CORREÇÃO: Salvar dados do usuário EM AMBOS OS FORMATOS
+
+                    // ✅ Salvar dados do usuário
                     console.log('✅ Dados recebidos do login:', data);
-                    
-                    // Formato 1: Objeto único (PARA O SISTEMA NOVO)
-                    localStorage.setItem('usuarioLogado', JSON.stringify(data));
-                    localStorage.setItem('currentUser', JSON.stringify(data));
-                    
-                    // Formato 2: Chaves separadas (PARA COMPATIBILIDADE)
+
                     localStorage.setItem('usuarioId', data.id);
                     localStorage.setItem('usuarioNome', data.nome);
                     localStorage.setItem('usuarioTipo', data.tipo);
-                    
-                    // ✅ DEBUG: Verificar se salvou corretamente
-                    console.log('✅ Dados salvos no localStorage:');
-                    console.log('📦 usuarioLogado:', localStorage.getItem('usuarioLogado'));
-                    console.log('📦 usuarioId:', localStorage.getItem('usuarioId'));
-                    console.log('📦 usuarioNome:', localStorage.getItem('usuarioNome'));
-                    console.log('📦 usuarioTipo:', localStorage.getItem('usuarioTipo'));
-                    
+                    localStorage.setItem('usuarioLogado', JSON.stringify(data));
+
+                    console.log('✅ Redirecionando para:', data.redirect);
+
                     // Redirecionar após um breve delay
                     setTimeout(() => {
-                        if (data.redirect) {
-                            window.location.href = data.redirect;
-                        } else {
-                            // Fallback baseado no tipo de usuário
-                            if (data.tipo === 'familiar_contratante' || data.tipo === 'familiar_cuidador') {
-                                window.location.href = '/dependentes.html';
-                            } else if (data.tipo === 'cuidador_profissional') {
-                                window.location.href = '/dashboard_cuidador.html';
-                            } else {
-                                window.location.href = '/dashboard.html';
-                            }
-                        }
+                        window.location.href = data.redirect;
                     }, 1500);
                 } else {
                     showLoginMessage(data.error || 'Erro ao fazer login', 'error');
                 }
             } catch (error) {
-                console.error('Erro no login:', error);
-                showLoginMessage('Erro ao conectar com o servidor', 'error');
+                console.error('❌ Erro no login:', error);
+
+                // Tratamento específico de erros
+                if (error.message.includes('Failed to fetch')) {
+                    showLoginMessage('Erro: Não foi possível conectar ao servidor. Verifique sua conexão.', 'error');
+                } else if (error.message.includes('Unexpected token') || error.message.includes('Resposta inválida')) {
+                    showLoginMessage('Erro: Servidor retornou resposta inválida. Contate o administrador.', 'error');
+                } else {
+                    showLoginMessage('Erro ao conectar com o servidor. Tente novamente.', 'error');
+                }
             } finally {
                 // Restaurar botão
                 submitBtn.innerHTML = originalText;
@@ -151,6 +159,24 @@ function setupLoginForm() {
     }
 }
 
+// Função auxiliar para validação de email
+function validateEmail(email) {
+    const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return re.test(email);
+}
+
+// Função auxiliar para redirecionamento
+function redirectByUserType(userType) {
+    const routes = {
+        'familiar_contratante': '/dependentes',
+        'familiar_cuidador': '/dependentes',
+        'cuidador_profissional': '/dashboard_cuidador',
+        'admin': '/adm'
+    };
+
+    window.location.href = routes[userType] || '/dashboard';
+}
+
 // ====================== Mensagens de Login ====================== //
 function showLoginMessage(message, type) {
     const loginMensagem = document.getElementById('loginMensagem');
@@ -158,7 +184,7 @@ function showLoginMessage(message, type) {
         loginMensagem.textContent = message;
         loginMensagem.className = `login-mensagem ${type}`;
         loginMensagem.style.display = 'block';
-        
+
         // Esconder mensagem após 5 segundos
         setTimeout(() => {
             loginMensagem.style.display = 'none';
@@ -186,16 +212,16 @@ function setupSmoothScrolling() {
 function setupWebThumbnails() {
     const thumbnails = document.querySelectorAll('.web-thumbnail');
     const mainImage = document.querySelector('.browser-mockup.large img');
-    
+
     if (thumbnails.length > 0 && mainImage) {
         thumbnails.forEach(thumbnail => {
-            thumbnail.addEventListener('click', function() {
+            thumbnail.addEventListener('click', function () {
                 // Remover classe active de todos os thumbnails
                 thumbnails.forEach(t => t.classList.remove('active'));
-                
+
                 // Adicionar classe active ao thumbnail clicado
                 this.classList.add('active');
-                
+
                 // Trocar imagem principal
                 const newSrc = this.querySelector('img').getAttribute('data-full');
                 if (newSrc) {
@@ -212,7 +238,7 @@ function setupScrollAnimations() {
         threshold: 0.1,
         rootMargin: '0px 0px -50px 0px'
     };
-    
+
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
@@ -220,7 +246,7 @@ function setupScrollAnimations() {
             }
         });
     }, observerOptions);
-    
+
     // Observar elementos que devem ser animados
     document.querySelectorAll('.feature-card, .app-feature, .web-feature').forEach(el => {
         observer.observe(el);

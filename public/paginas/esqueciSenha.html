@@ -4,21 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vital+ | Recuperar Senha</title>
-    <link rel="stylesheet" href="../styles/LandingPage.css">
     <link rel="stylesheet" href="../styles/esqueciSenha.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
 </head>
+
 <body>
     <!-- Cabeçalho -->
     <header>
         <nav class="navbar">
             <div class="nav-container">
                 <a href="LandingPage.html" class="logo">
-                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 120px; width: auto;">
+                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
                 </a>
                 <ul class="nav-menu">
                     <li class="nav-item"><a href="LandingPage.html#hero" class="nav-link">Início</a></li>
@@ -28,98 +27,138 @@
                     <li class="nav-item"><a href="LandingPage.html#login" class="nav-link">Login</a></li>
                     <li class="nav-item"><a href="LandingPage.html#contact" class="nav-link">Contato</a></li>
                 </ul>
-                <div class="hamburger">
+                <button class="hamburger">
                     <span class="bar"></span>
                     <span class="bar"></span>
                     <span class="bar"></span>
-                </div>
+                </button>
             </div>
         </nav>
     </header>
 
     <!-- Área de Recuperação de Senha -->
-    <section id="forgot-password" class="login">
+    <section id="password-recovery" class="recovery-section">
         <div class="container">
-            <div class="login-container">
-                <div class="login-info">
+            <div class="recovery-container">
+                <div class="recovery-header">
                     <h2>Recuperar Senha</h2>
-                    <p>Informe seu e-mail para receber instruções de recuperação de senha.</p>
-                    <div class="login-features">
-                        <div class="login-feature">
-                            <i class="fas fa-shield-alt"></i>
-                            <span>Processo seguro</span>
-                        </div>
-                        <div class="login-feature">
-                            <i class="fas fa-envelope"></i>
-                            <span>Instruções por e-mail</span>
-                        </div>
-                        <div class="login-feature">
-                            <i class="fas fa-clock"></i>
-                            <span>Link com validade</span>
-                        </div>
-                    </div>
+                    <p>Digite seu e-mail para receber as instruções de recuperação</p>
                 </div>
 
-                <div class="login-form">
-                    <div class="success-message" id="successMessage">
-                        <i class="fas fa-check-circle"></i> E-mail enviado com sucesso! Verifique sua caixa de entrada.
-                    </div>
-                    
-                    <form id="forgotPasswordForm" class="auth-form visible">
-                        <h3>Recuperar Senha</h3>
-                        
+                <!-- Formulário de Recuperação -->
+                <form id="recoveryForm" class="recovery-form">
+                    <div class="form-step active" id="step1">
                         <div class="form-group">
-                            <label for="recoveryEmail">E-mail</label>
-                            <input type="email" id="recoveryEmail" name="recoveryEmail" required placeholder="seu@email.com">
+                            <label for="email">E-mail Cadastrado</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="email" name="email" required placeholder="seu@email.com">
+                            </div>
                         </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-full" id="sendInstructionsBtn">
-                            <i class="fas fa-paper-plane"></i> Enviar Instruções
-                        </button>
-                        
-                        <div class="login-links">
-                            <a href="LandingPage.html#login"><i class="fas fa-arrow-left"></i> Voltar para o login</a>
-                            <a href="criar-conta.html"><i class="fas fa-user-plus"></i> Criar uma conta</a>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                Enviar Código
+                            </button>
                         </div>
-                    </form>
-                    
-                    <!-- Etapa 2: Redefinir senha (inicialmente oculta) -->
-                    <form id="resetPasswordForm" class="auth-form hidden">
-                        <h3>Redefinir Senha</h3>
-                        <p class="reset-instructions">Digite o código enviado para seu e-mail e sua nova senha.</p>
-                        
-                        <div class="verification-input">
-                            <input type="text" maxlength="1" pattern="[0-9]">
-                            <input type="text" maxlength="1" pattern="[0-9]">
-                            <input type="text" maxlength="1" pattern="[0-9]">
-                            <input type="text" maxlength="1" pattern="[0-9]">
-                            <input type="text" maxlength="1" pattern="[0-9]">
-                            <input type="text" maxlength="1" pattern="[0-9]">
+                    </div>
+
+                    <div class="form-step" id="step2">
+                        <div class="verification-info">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <h4>Verifique seu e-mail</h4>
+                            <p>Enviamos um código de 6 dígitos para: <strong id="userEmail"></strong></p>
                         </div>
-                        
+
+                        <div class="form-group">
+                            <label for="verificationCode">Código de Verificação</label>
+                            <div class="code-input-container">
+                                <input type="text" id="verificationCode" name="verificationCode" maxlength="6" placeholder="000000">
+                                <button type="button" class="btn-resend" id="resendCode">
+                                    Reenviar Código
+                                </button>
+                            </div>
+                            <small class="timer" id="resendTimer">Reenviar em: <span id="timer">60</span>s</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="backToEmail">
+                                <i class="fas fa-arrow-left"></i>
+                                Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary" id="verifyCode">
+                                <i class="fas fa-check"></i>
+                                Verificar Código
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-step" id="step3">
                         <div class="form-group">
                             <label for="newPassword">Nova Senha</label>
-                            <input type="password" id="newPassword" name="newPassword" required placeholder="Crie uma nova senha">
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="newPassword" name="newPassword" placeholder="Digite sua nova senha">
+                                <button type="button" class="password-toggle" id="toggleNewPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength" id="passwordStrength">
+                                <div class="strength-bar">
+                                    <div class="strength-fill" id="strengthFill"></div>
+                                </div>
+                                <small id="strengthText">Força da senha</small>
+                            </div>
                         </div>
-                        
+
                         <div class="form-group">
-                            <label for="confirmNewPassword">Confirmar Nova Senha</label>
-                            <input type="password" id="confirmNewPassword" name="confirmNewPassword" required placeholder="Digite novamente a nova senha">
+                            <label for="confirmPassword">Confirmar Nova Senha</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirme sua nova senha">
+                                <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="error-message" id="passwordMatchError"></small>
                         </div>
-                        
-                        <button type="submit" class="btn btn-primary btn-full" id="resetPasswordBtn">
-                            <i class="fas fa-lock"></i> Redefinir Senha
-                        </button>
-                        
-                        <div class="resend-timer">
-                            Não recebeu o código? <a href="#" class="resend-link" id="resendLink">Reenviar código</a>
-                            <span id="timerText" style="display: none;"> (aguarde <span id="countdown">60</span>s)</span>
+
+                        <div class="password-requirements">
+                            <h5>Sua senha deve conter:</h5>
+                            <ul>
+                                <li id="reqLength"><i class="fas fa-circle"></i> Pelo menos 8 caracteres</li>
+                                <li id="reqUppercase"><i class="fas fa-circle"></i> Pelo menos 1 letra maiúscula</li>
+                                <li id="reqLowercase"><i class="fas fa-circle"></i> Pelo menos 1 letra minúscula</li>
+                                <li id="reqNumber"><i class="fas fa-circle"></i> Pelo menos 1 número</li>
+                                <li id="reqSpecial"><i class="fas fa-circle"></i> Pelo menos 1 caractere especial</li>
+                            </ul>
                         </div>
-                        
-                        <div class="login-links">
-                            <a href="#" id="backToEmail"><i class="fas fa-arrow-left"></i> Voltar</a>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="backToCode">
+                                <i class="fas fa-arrow-left"></i>
+                                Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary" id="resetPassword">
+                                <i class="fas fa-key"></i>
+                                Redefinir Senha
+                            </button>
                         </div>
-                    </form>
+                    </div>
+                </form>
+
+                <!-- Mensagens de Status -->
+                <div class="status-message" id="statusMessage"></div>
+
+                <!-- Links de Ajuda -->
+                <div class="recovery-links">
+                    <a href="LandingPage.html#login" class="back-link">
+                        <i class="fas fa-arrow-left"></i> Voltar para o Login
+                    </a>
+                    <a href="#" class="help-link">
+                        <i class="fas fa-question-circle"></i> Precisa de ajuda?
+                    </a>
                 </div>
             </div>
         </div>
@@ -131,7 +170,7 @@
             <div class="footer-content">
                 <div class="footer-section">
                     <div class="logo-footer">
-                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 120px; width: auto;">
+                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
                     </div>
                     <p>Simplificando o cuidado com quem mais importa.</p>
                     <div class="social-links">

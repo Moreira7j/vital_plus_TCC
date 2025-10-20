@@ -32,18 +32,18 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-// Configuração do Nodemailer
+// Configuração do Nodemailer para Vital+
 const transporter = nodemailer.createTransport({
   service: "gmail",
   auth: {
-    user: process.env.EMAIL_USER || "seu_email@gmail.com",
-    pass: process.env.EMAIL_PASS || "sua_senha_de_aplicativo"
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
   }
 });
 
+// Função para verificar configuração de e-mail
 function isEmailConfigured() {
-  return process.env.EMAIL_USER && process.env.EMAIL_PASS && 
-         process.env.EMAIL_USER !== "seu_email@gmail.com";
+  return process.env.EMAIL_USER && process.env.EMAIL_PASS;
 }
 
 // Conexão com MySQL
@@ -195,9 +195,486 @@ app.get("/comunicacao_supervisor", (req, res) => {
   res.sendFile(path.join(__dirname, "public/paginas/comunicacao_supervisor.html"));
 });
 
+// ====================== SISTEMA DE RECUPERAÇÃO DE SENHA ====================== //
+
+// Armazenamento temporário para códigos (em produção, use Redis ou database)
+const recoveryCodes = new Map();
+
+// Enviar código de verificação
+app.post("/api/esqueci-senha/enviar-codigo", (req, res) => {
+    const { email } = req.body;
+    
+    console.log(`📧 Solicitação de recuperação de senha para: ${email}`);
+    
+    if (!email) {
+        return res.status(400).json({ error: "E-mail é obrigatório" });
+    }
+
+    // Verificar se o e-mail existe no banco
+    const checkUserQuery = "SELECT id, nome, email FROM usuarios WHERE email = ? AND ativo = TRUE";
+    
+    db.query(checkUserQuery, [email], (err, results) => {
+        if (err) {
+            console.error("Erro ao verificar usuário:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (results.length === 0) {
+            console.log("❌ E-mail não encontrado:", email);
+            // Por segurança, não revelamos se o e-mail existe ou não
+            return res.json({ 
+                success: true, 
+                message: "Se o e-mail existir em nosso sistema, você receberá um código de verificação."
+            });
+        }
+        
+        const usuario = results[0];
+        
+        // Gerar código de 6 dígitos
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiration = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+        
+        // Armazenar código
+        recoveryCodes.set(email, {
+            code: code,
+            expiration: expiration,
+            attempts: 0,
+            userId: usuario.id
+        });
+        
+        console.log(`✅ Código gerado para ${email}: ${code}`);
+        
+        // Enviar e-mail (se configurado)
+        if (isEmailConfigured()) {
+            const mailOptions = {
+                from: `"Vital+ Suporte" <${process.env.EMAIL_USER}>`,
+                to: email,
+                subject: "🔐 Código de Recuperação de Senha - Vital+",
+                html: `
+                    <!DOCTYPE html>
+                    <html>
+                    <head>
+                        <meta charset="utf-8">
+                        <style>
+                            body { 
+                                font-family: 'Poppins', Arial, sans-serif; 
+                                line-height: 1.6; 
+                                color: #2D2D2D; 
+                                margin: 0; 
+                                padding: 0; 
+                                background: #f8f9fa;
+                            }
+                            .container { 
+                                max-width: 600px; 
+                                margin: 0 auto; 
+                                background: white;
+                                border-radius: 15px;
+                                overflow: hidden;
+                                box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                            }
+                            .header { 
+                                background: linear-gradient(135deg, #00B5C2, #4B0082); 
+                                color: white; 
+                                padding: 40px 30px; 
+                                text-align: center; 
+                            }
+                            .logo { 
+                                font-size: 32px; 
+                                font-weight: 700; 
+                                margin-bottom: 10px;
+                            }
+                            .content { 
+                                padding: 40px 30px; 
+                                background: #FCFCFD; 
+                            }
+                            .code { 
+                                font-size: 48px; 
+                                font-weight: bold; 
+                                text-align: center; 
+                                color: #00B5C2; 
+                                margin: 30px 0; 
+                                letter-spacing: 10px;
+                                background: rgba(0, 181, 194, 0.1); 
+                                padding: 25px; 
+                                border-radius: 15px;
+                                border: 2px dashed #00B5C2;
+                            }
+                            .info-box { 
+                                background: rgba(0, 181, 194, 0.1); 
+                                padding: 25px; 
+                                border-left: 4px solid #00B5C2; 
+                                margin: 30px 0; 
+                                border-radius: 10px; 
+                            }
+                            .footer { 
+                                text-align: center; 
+                                padding: 30px; 
+                                color: #6C757D; 
+                                font-size: 14px; 
+                                background: #F8F9FA; 
+                                border-top: 1px solid #E5E7EB; 
+                            }
+                            .security-note {
+                                background: #FFF3CD; 
+                                border: 1px solid #FFEEBA; 
+                                padding: 20px; 
+                                border-radius: 10px; 
+                                margin: 25px 0;
+                                color: #856404;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="container">
+                            <div class="header">
+                                <div class="logo">Vital+</div>
+                                <p style="margin: 0; opacity: 0.9; font-size: 18px;">Sistema de Acompanhamento para Cuidadores</p>
+                                <h1 style="margin: 20px 0 0 0; font-size: 24px;">🔐 Recuperação de Senha</h1>
+                            </div>
+                            
+                            <div class="content">
+                                <p>Olá <strong style="color: #00B5C2;">${usuario.nome}</strong>,</p>
+                                <p>Recebemos uma solicitação para redefinir a senha da sua conta Vital+.</p>
+                                
+                                <div class="info-box">
+                                    <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">Seu código de verificação é:</p>
+                                    <div class="code">${code}</div>
+                                    <p style="margin: 15px 0 0 0; font-size: 14px; text-align: center;">
+                                        <strong>⏰ Este código expira em 15 minutos</strong>
+                                    </p>
+                                </div>
+                                
+                                <p><strong>Se você não solicitou esta recuperação:</strong></p>
+                                <p>Por favor, ignore este e-mail. Sua senha permanecerá a mesma.</p>
+                                
+                                <div class="security-note">
+                                    <p style="margin: 0;">
+                                        <strong>💡 Dica de segurança:</strong><br>
+                                        Nunca compartilhe seus códigos de verificação com outras pessoas.
+                                    </p>
+                                </div>
+                            </div>
+                            
+                            <div class="footer">
+                                <p style="margin: 0 0 10px 0;">
+                                    <strong>Vital+ - Sistema de Acompanhamento para Cuidadores</strong>
+                                </p>
+                                <p style="margin: 0; font-size: 12px;">
+                                    Este é um e-mail automático, por favor não responda.
+                                </p>
+                                <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                    📧 ${process.env.EMAIL_USER}
+                                </p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                `
+            };
+            
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error("❌ Erro ao enviar e-mail:", error);
+                    // Mesmo com erro, retorna sucesso para segurança
+                    return res.json({ 
+                        success: true, 
+                        message: "Se o e-mail existir em nosso sistema, você receberá um código de verificação."
+                    });
+                } else {
+                    console.log("✅ E-mail enviado com sucesso!");
+                    res.json({ 
+                        success: true, 
+                        message: "Código enviado com sucesso! Verifique seu e-mail."
+                    });
+                }
+            });
+        } else {
+            // Modo desenvolvimento - sem e-mail configurado
+            console.log("🔄 Modo desenvolvimento - Código:", code);
+            res.json({ 
+                success: true, 
+                message: "Código gerado (modo desenvolvimento)",
+                debug_code: code // Apenas para desenvolvimento
+            });
+        }
+    });
+});
+
+// Verificar código
+app.post("/api/esqueci-senha/verificar-codigo", (req, res) => {
+    const { email, code } = req.body;
+    
+    console.log(`🔍 Verificando código para: ${email}`);
+    
+    if (!email || !code) {
+        return res.status(400).json({ error: "E-mail e código são obrigatórios" });
+    }
+    
+    const recoveryData = recoveryCodes.get(email);
+    
+    if (!recoveryData) {
+        return res.status(400).json({ error: "Código inválido ou expirado" });
+    }
+    
+    // Verificar expiração
+    if (new Date() > recoveryData.expiration) {
+        recoveryCodes.delete(email);
+        return res.status(400).json({ error: "Código expirado" });
+    }
+    
+    // Verificar tentativas
+    if (recoveryData.attempts >= 5) {
+        recoveryCodes.delete(email);
+        return res.status(400).json({ error: "Muitas tentativas incorretas. Solicite um novo código." });
+    }
+    
+    // Verificar código
+    if (recoveryData.code !== code) {
+        recoveryData.attempts++;
+        recoveryCodes.set(email, recoveryData);
+        
+        const attemptsLeft = 5 - recoveryData.attempts;
+        return res.status(400).json({ 
+            error: `Código incorreto. ${attemptsLeft} tentativas restantes.` 
+        });
+    }
+    
+    // Código válido - gerar token de redefinição
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    const tokenExpiration = new Date(Date.now() + 30 * 60 * 1000); // 30 minutos
+    
+    // Atualizar dados com token
+    recoveryData.resetToken = resetToken;
+    recoveryData.tokenExpiration = tokenExpiration;
+    recoveryCodes.set(email, recoveryData);
+    
+    console.log(`✅ Código verificado com sucesso para: ${email}`);
+    
+    res.json({ 
+        success: true, 
+        message: "Código verificado com sucesso",
+        token: resetToken
+    });
+});
+
+// Redefinir senha
+app.post("/api/esqueci-senha/redefinir-senha", (req, res) => {
+    const { email, token, newPassword } = req.body;
+    
+    console.log(`🔄 Redefinindo senha para: ${email}`);
+    
+    if (!email || !token || !newPassword) {
+        return res.status(400).json({ error: "Todos os campos são obrigatórios" });
+    }
+    
+    if (newPassword.length < 8) {
+        return res.status(400).json({ error: "A senha deve ter pelo menos 8 caracteres" });
+    }
+    
+    const recoveryData = recoveryCodes.get(email);
+    
+    if (!recoveryData || !recoveryData.resetToken) {
+        return res.status(400).json({ error: "Token inválido ou expirado" });
+    }
+    
+    // Verificar token
+    if (recoveryData.resetToken !== token) {
+        return res.status(400).json({ error: "Token inválido" });
+    }
+    
+    // Verificar expiração do token
+    if (new Date() > recoveryData.tokenExpiration) {
+        recoveryCodes.delete(email);
+        return res.status(400).json({ error: "Token expirado" });
+    }
+    
+    // Atualizar senha no banco
+    const updateQuery = "UPDATE usuarios SET senha = ? WHERE id = ?";
+    
+    db.query(updateQuery, [newPassword, recoveryData.userId], (err, result) => {
+        if (err) {
+            console.error("Erro ao atualizar senha:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado" });
+        }
+        
+        // Limpar dados de recuperação
+        recoveryCodes.delete(email);
+        
+        console.log(`✅ Senha redefinida com sucesso para usuário ID: ${recoveryData.userId}`);
+        
+        // Enviar e-mail de confirmação
+        if (isEmailConfigured()) {
+            const getUserQuery = "SELECT nome FROM usuarios WHERE id = ?";
+            
+            db.query(getUserQuery, [recoveryData.userId], (err, userResults) => {
+                if (err) {
+                    console.error("Erro ao buscar dados do usuário:", err);
+                    return;
+                }
+                
+                const userName = userResults[0]?.nome || "Usuário";
+                
+                const mailOptions = {
+                    from: `"Vital+ Suporte" <${process.env.EMAIL_USER}>`,
+                    to: email,
+                    subject: "✅ Senha Redefinida com Sucesso - Vital+",
+                    html: `
+                        <!DOCTYPE html>
+                        <html>
+                        <head>
+                            <meta charset="utf-8">
+                            <style>
+                                body { 
+                                    font-family: 'Poppins', Arial, sans-serif; 
+                                    line-height: 1.6; 
+                                    color: #2D2D2D; 
+                                    margin: 0; 
+                                    padding: 0; 
+                                    background: #f8f9fa;
+                                }
+                                .container { 
+                                    max-width: 600px; 
+                                    margin: 0 auto; 
+                                    background: white;
+                                    border-radius: 15px;
+                                    overflow: hidden;
+                                    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                                }
+                                .header { 
+                                    background: linear-gradient(135deg, #27ae60, #219653); 
+                                    color: white; 
+                                    padding: 40px 30px; 
+                                    text-align: center; 
+                                }
+                                .logo { 
+                                    font-size: 32px; 
+                                    font-weight: 700; 
+                                    margin-bottom: 10px;
+                                }
+                                .content { 
+                                    padding: 40px 30px; 
+                                    background: #FCFCFD; 
+                                }
+                                .success-icon { 
+                                    text-align: center; 
+                                    font-size: 64px; 
+                                    color: #27ae60; 
+                                    margin: 20px 0; 
+                                }
+                                .info-box { 
+                                    background: rgba(39, 174, 96, 0.1); 
+                                    padding: 25px; 
+                                    border-left: 4px solid #27ae60; 
+                                    margin: 25px 0; 
+                                    border-radius: 10px; 
+                                }
+                                .footer { 
+                                    text-align: center; 
+                                    padding: 30px; 
+                                    color: #6C757D; 
+                                    font-size: 14px; 
+                                    background: #F8F9FA; 
+                                    border-top: 1px solid #E5E7EB; 
+                                }
+                                .btn-login {
+                                    display: inline-block;
+                                    padding: 15px 30px;
+                                    background: linear-gradient(135deg, #00B5C2, #4B0082);
+                                    color: white;
+                                    text-decoration: none;
+                                    border-radius: 50px;
+                                    font-weight: 600;
+                                    margin: 20px 0;
+                                }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="container">
+                                <div class="header">
+                                    <div class="logo">Vital+</div>
+                                    <p style="margin: 0; opacity: 0.9; font-size: 18px;">Sistema de Acompanhamento para Cuidadores</p>
+                                    <h1 style="margin: 20px 0 0 0; font-size: 24px;">✅ Senha Redefinida</h1>
+                                </div>
+                                
+                                <div class="content">
+                                    <div class="success-icon">✓</div>
+                                    <p>Olá <strong style="color: #27ae60;">${userName}</strong>,</p>
+                                    <p>A senha da sua conta Vital+ foi redefinida com sucesso!</p>
+                                    
+                                    <div class="info-box">
+                                        <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">Informações da conta:</p>
+                                        <p>📧 E-mail: <strong>${email}</strong></p>
+                                        <p>🕒 Data da alteração: <strong>${new Date().toLocaleString('pt-BR')}</strong></p>
+                                    </div>
+                                    
+                                    <p><strong>Se você não realizou esta alteração:</strong></p>
+                                    <p>Entre em contato imediatamente com nosso suporte.</p>
+                                    
+                                    <p style="text-align: center; margin-top: 30px;">
+                                        <a href="${process.env.BASE_URL || 'http://localhost:3000'}" class="btn-login">
+                                            Fazer Login no Vital+
+                                        </a>
+                                    </p>
+                                </div>
+                                
+                                <div class="footer">
+                                    <p style="margin: 0 0 10px 0;">
+                                        <strong>Vital+ - Sistema de Acompanhamento para Cuidadores</strong>
+                                    </p>
+                                    <p style="margin: 0; font-size: 12px;">
+                                        Este é um e-mail automático, por favor não responda.
+                                    </p>
+                                    <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                        📧 ${process.env.EMAIL_USER}
+                                    </p>
+                                </div>
+                            </div>
+                        </body>
+                        </html>
+                    `
+                };
+                
+                transporter.sendMail(mailOptions, (error, info) => {
+                    if (error) {
+                        console.error("❌ Erro ao enviar e-mail de confirmação:", error);
+                    } else {
+                        console.log("✅ E-mail de confirmação enviado com sucesso:", info.response);
+                    }
+                });
+            });
+        }
+        
+        res.json({ 
+            success: true, 
+            message: "Senha redefinida com sucesso!" 
+        });
+    });
+});
+
+// Limpar códigos expirados periodicamente (a cada hora)
+setInterval(() => {
+    const now = new Date();
+    let cleaned = 0;
+    
+    for (const [email, data] of recoveryCodes.entries()) {
+        if (now > data.expiration) {
+            recoveryCodes.delete(email);
+            cleaned++;
+        }
+    }
+    
+    if (cleaned > 0) {
+        console.log(`🧹 Limpos ${cleaned} códigos de recuperação expirados`);
+    }
+}, 60 * 60 * 1000); // A cada hora
+
 // ====================== SISTEMA DE CONVITES PARA CUIDADORES ====================== //
 
-// Enviar convite para cuidador
+// Enviar convite para cuidador - VERSÃO CORRIGIDA
 app.post("/api/convites/enviar-convite", (req, res) => {
     const { 
         familiar_contratante_id, 
@@ -206,22 +683,39 @@ app.post("/api/convites/enviar-convite", (req, res) => {
         mensagem_personalizada 
     } = req.body;
 
+    console.log("🎗️ Recebendo solicitação de convite:", {
+        familiar_contratante_id,
+        cuidador_email,
+        paciente_id,
+        mensagem_personalizada
+    });
+
     if (!familiar_contratante_id || !cuidador_email || !paciente_id) {
         return res.status(400).json({ error: "Dados incompletos para enviar convite" });
     }
 
-    const checkCuidadorQuery = `
-        SELECT u.id, u.email, u.tipo 
-        FROM usuarios u 
-        WHERE u.email = ? AND u.tipo = 'cuidador_profissional'
+    // Primeiro, verificar se o paciente existe e pertence ao familiar
+    const checkPacienteQuery = `
+        SELECT p.nome as paciente_nome, u.nome as familiar_nome, u.email as familiar_email
+        FROM pacientes p
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        INNER JOIN usuarios u ON fc.usuario_id = u.id
+        WHERE p.id = ? AND fc.id = ?
     `;
 
-    db.query(checkCuidadorQuery, [cuidador_email], (err, cuidadorResults) => {
+    db.query(checkPacienteQuery, [paciente_id, familiar_contratante_id], (err, pacienteResults) => {
         if (err) {
-            console.error("Erro ao verificar cuidador:", err);
+            console.error("Erro ao verificar paciente:", err);
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
 
+        if (pacienteResults.length === 0) {
+            return res.status(404).json({ error: "Paciente não encontrado ou não pertence a este familiar" });
+        }
+
+        const info = pacienteResults[0];
+
+        // Verificar se já existe um convite pendente
         const checkConviteQuery = `
             SELECT id FROM convites_cuidadores 
             WHERE cuidador_email = ? AND paciente_id = ? AND status = 'pendente'
@@ -237,13 +731,15 @@ app.post("/api/convites/enviar-convite", (req, res) => {
                 return res.status(400).json({ error: "Já existe um convite pendente para este cuidador e paciente" });
             }
 
+            // Gerar token único para o convite
             const token_convite = crypto.randomBytes(32).toString('hex');
-            const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+            const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias
 
+            // Inserir convite no banco
             const insertConviteQuery = `
                 INSERT INTO convites_cuidadores 
-                (familiar_contratante_id, cuidador_email, paciente_id, token_convite, expiracao, mensagem_personalizada)
-                VALUES (?, ?, ?, ?, ?, ?)
+                (familiar_contratante_id, cuidador_email, paciente_id, token_convite, expiracao, mensagem_personalizada, data_convite)
+                VALUES (?, ?, ?, ?, ?, ?, NOW())
             `;
 
             db.query(insertConviteQuery, [
@@ -255,121 +751,195 @@ app.post("/api/convites/enviar-convite", (req, res) => {
                 mensagem_personalizada || null
             ], (err, result) => {
                 if (err) {
-                    console.error("Erro ao criar convite:", err);
+                    console.error("❌ Erro ao criar convite:", err);
                     return res.status(500).json({ error: "Erro interno do servidor" });
                 }
 
-                const infoQuery = `
-                    SELECT 
-                        p.nome as paciente_nome,
-                        u.nome as familiar_nome,
-                        u.email as familiar_email
-                    FROM pacientes p
-                    INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
-                    INNER JOIN usuarios u ON fc.usuario_id = u.id
-                    WHERE p.id = ?
-                `;
+                console.log("✅ Convite criado com sucesso. ID:", result.insertId);
 
-                db.query(infoQuery, [paciente_id], (err, infoResults) => {
-                    if (err) {
-                        console.error("Erro ao buscar informações:", err);
-                    }
-
-                    const info = infoResults[0] || {};
-                    
-                    if (isEmailConfigured()) {
-                        const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-                        const mailOptions = {
-                            from: process.env.EMAIL_USER,
-                            to: cuidador_email,
-                            subject: "📋 Convite para Cuidar de um Paciente - Vital+",
-                            html: `
-                                <!DOCTYPE html>
-                                <html>
-                                <head>
-                                    <style>
-                                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                                        .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
-                                        .content { padding: 20px; background-color: #f9f9f9; }
-                                        .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-                                        .info-box { background-color: #fff; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
-                                        .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-                                    </style>
-                                </head>
-                                <body>
-                                    <div class="container">
-                                        <div class="header">
-                                            <h1>🎗️ Convite Vital+</h1>
-                                        </div>
-                                        <div class="content">
-                                            <p>Olá,</p>
-                                            <p>Você recebeu um convite para cuidar de um paciente através da plataforma Vital+!</p>
-                                            
-                                            <div class="info-box">
-                                                <p><strong>Informações do Convite:</strong></p>
-                                                <p>👤 <strong>Paciente:</strong> ${info.paciente_nome || 'Não informado'}</p>
-                                                <p>👨‍👩‍👧‍👦 <strong>Familiar Contratante:</strong> ${info.familiar_nome || 'Não informado'}</p>
-                                                <p>📧 <strong>Contato:</strong> ${info.familiar_email || 'Não informado'}</p>
-                                                ${mensagem_personalizada ? `<p>💬 <strong>Mensagem:</strong> "${mensagem_personalizada}"</p>` : ''}
-                                            </div>
-                                            
-                                            <p>Para aceitar este convite e começar a cuidar deste paciente, clique no botão abaixo:</p>
-                                            <p style="text-align: center;">
-                                                <a href="${baseUrl}/aceitar-convite?token=${token_convite}" class="button">✅ Aceitar Convite</a>
-                                            </p>
-                                            
-                                            <p><strong>Opções:</strong></p>
-                                            <ul>
-                                                <li><strong>Aceitar:</strong> Você será vinculado ao paciente e terá acesso completo ao sistema</li>
-                                                <li><strong>Recusar:</strong> Você pode recusar o convite na plataforma após fazer login</li>
-                                                <li><strong>Ignorar:</strong> O convite expirará automaticamente em 7 dias</li>
-                                            </ul>
-                                            
-                                            <p><strong>Importante:</strong> Se você ainda não possui conta no Vital+, será criada uma automaticamente quando aceitar o convite.</p>
-                                            
-                                            <p>Este convite expira em: ${expiracao.toLocaleDateString('pt-BR')}</p>
-                                        </div>
-                                        <div class="footer">
-                                            <p>Vital+ - Sistema de Acompanhamento para Cuidadores</p>
-                                            <p>Este é um e-mail automático, por favor não responda.</p>
-                                        </div>
+                // Enviar e-mail de convite
+                if (isEmailConfigured()) {
+                    const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+                    const mailOptions = {
+                        from: `"Vital+ Convites" <${process.env.EMAIL_USER}>`,
+                        to: cuidador_email,
+                        subject: "📋 Convite para Cuidar de um Paciente - Vital+",
+                        html: `
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <meta charset="utf-8">
+                                <style>
+                                    body { 
+                                        font-family: 'Poppins', Arial, sans-serif; 
+                                        line-height: 1.6; 
+                                        color: #2D2D2D; 
+                                        margin: 0; 
+                                        padding: 0; 
+                                        background: #f8f9fa;
+                                    }
+                                    .container { 
+                                        max-width: 600px; 
+                                        margin: 0 auto; 
+                                        background: white;
+                                        border-radius: 15px;
+                                        overflow: hidden;
+                                        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                                    }
+                                    .header { 
+                                        background: linear-gradient(135deg, #00B5C2, #4B0082); 
+                                        color: white; 
+                                        padding: 40px 30px; 
+                                        text-align: center; 
+                                    }
+                                    .logo { 
+                                        font-size: 32px; 
+                                        font-weight: 700; 
+                                        margin-bottom: 10px;
+                                    }
+                                    .content { 
+                                        padding: 40px 30px; 
+                                        background: #FCFCFD; 
+                                    }
+                                    .btn-accept {
+                                        display: inline-block;
+                                        padding: 15px 30px;
+                                        background: linear-gradient(135deg, #27ae60, #219653);
+                                        color: white;
+                                        text-decoration: none;
+                                        border-radius: 50px;
+                                        font-weight: 600;
+                                        margin: 20px 0;
+                                        transition: all 0.3s ease;
+                                    }
+                                    .btn-accept:hover {
+                                        transform: translateY(-2px);
+                                        box-shadow: 0 5px 15px rgba(39, 174, 96, 0.3);
+                                    }
+                                    .info-box { 
+                                        background: rgba(0, 181, 194, 0.1); 
+                                        padding: 25px; 
+                                        border-left: 4px solid #00B5C2; 
+                                        margin: 25px 0; 
+                                        border-radius: 10px; 
+                                    }
+                                    .footer { 
+                                        text-align: center; 
+                                        padding: 30px; 
+                                        color: #6C757D; 
+                                        font-size: 14px; 
+                                        background: #F8F9FA; 
+                                        border-top: 1px solid #E5E7EB; 
+                                    }
+                                    .features-list {
+                                        background: #E8F5E8;
+                                        padding: 20px;
+                                        border-radius: 10px;
+                                        margin: 20px 0;
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                <div class="container">
+                                    <div class="header">
+                                        <div class="logo">Vital+</div>
+                                        <p style="margin: 0; opacity: 0.9; font-size: 18px;">Sistema de Acompanhamento para Cuidadores</p>
+                                        <h1 style="margin: 20px 0 0 0; font-size: 24px;">🎗️ Convite Vital+</h1>
                                     </div>
-                                </body>
-                                </html>
-                            `
-                        };
+                                    
+                                    <div class="content">
+                                        <p>Olá,</p>
+                                        <p>Você recebeu um convite para cuidar de um paciente através da plataforma Vital+!</p>
+                                        
+                                        <div class="info-box">
+                                            <p style="margin: 0 0 15px 0; font-weight: 600; font-size: 16px;">Informações do Convite:</p>
+                                            <p>👤 <strong>Paciente:</strong> ${info.paciente_nome}</p>
+                                            <p>👨‍👩‍👧‍👦 <strong>Familiar Contratante:</strong> ${info.familiar_nome}</p>
+                                            <p>📧 <strong>Contato:</strong> ${info.familiar_email}</p>
+                                            ${mensagem_personalizada ? `<p>💬 <strong>Mensagem pessoal:</strong> "${mensagem_personalizada}"</p>` : ''}
+                                        </div>
 
-                        transporter.sendMail(mailOptions, (error, info) => {
-                            if (error) {
-                                console.error("Erro ao enviar e-mail de convite:", error);
-                            } else {
-                                console.log("E-mail de convite enviado com sucesso:", info.response);
-                            }
-                        });
-                    }
+                                        <div class="features-list">
+                                            <p style="margin: 0 0 10px 0; font-weight: 600;">🎯 O que você poderá fazer:</p>
+                                            <ul style="margin: 0; padding-left: 20px;">
+                                                <li>📊 Acompanhar sinais vitais do paciente</li>
+                                                <li>💊 Gerenciar medicamentos e horários</li>
+                                                <li>📝 Registrar atividades e observações</li>
+                                                <li>🚨 Receber alertas importantes</li>
+                                                <li>💬 Comunicar-se com a família</li>
+                                            </ul>
+                                        </div>
+                                        
+                                        <p style="text-align: center;">
+                                            <a href="${baseUrl}/aceitar-convite?token=${token_convite}" class="btn-accept">
+                                                ✅ Aceitar Convite e Criar Conta
+                                            </a>
+                                        </p>
+                                        
+                                        <p><strong>📋 O que acontece quando você aceitar:</strong></p>
+                                        <ul>
+                                            <li>✅ Sua conta será criada automaticamente no Vital+</li>
+                                            <li>✅ Você escolherá sua própria senha</li>
+                                            <li>✅ Será vinculado automaticamente ao paciente ${info.paciente_nome}</li>
+                                            <li>✅ Terá acesso completo ao sistema Vital+</li>
+                                        </ul>
+                                        
+                                        <p><strong>⏰ Este convite expira em:</strong> ${expiracao.toLocaleDateString('pt-BR')}</p>
+                                        
+                                        <p style="color: #666; font-size: 14px;">
+                                            <strong>Observação:</strong> Se você não deseja aceitar este convite, por favor ignore este e-mail.
+                                        </p>
+                                    </div>
+                                    
+                                    <div class="footer">
+                                        <p style="margin: 0 0 10px 0;">
+                                            <strong>Vital+ - Sistema de Acompanhamento para Cuidadores</strong>
+                                        </p>
+                                        <p style="margin: 0; font-size: 12px;">
+                                            Este é um e-mail automático, por favor não responda.
+                                        </p>
+                                        <p style="margin: 10px 0 0 0; font-size: 12px;">
+                                            📧 ${process.env.EMAIL_USER} | 🌐 ${baseUrl}
+                                        </p>
+                                    </div>
+                                </div>
+                            </body>
+                            </html>
+                        `
+                    };
 
-                    res.json({ 
-                        success: true, 
-                        message: "Convite enviado com sucesso!",
-                        token_convite: token_convite,
-                        cuidador_existente: cuidadorResults.length > 0
+                    transporter.sendMail(mailOptions, (error, info) => {
+                        if (error) {
+                            console.error("❌ Erro ao enviar e-mail de convite:", error);
+                        } else {
+                            console.log("✅ E-mail de convite enviado com sucesso:", info.response);
+                        }
                     });
+                }
+
+                res.json({ 
+                    success: true, 
+                    message: "Convite enviado com sucesso!",
+                    token_convite: token_convite,
+                    convite_id: result.insertId
                 });
             });
         });
     });
 });
 
-// Verificar convite
+// Verificar convite - VERSÃO CORRIGIDA
 app.get("/api/convites/verificar/:token", (req, res) => {
     const token = req.params.token;
+    
+    console.log(`🔍 Verificando convite com token: ${token}`);
 
     const query = `
         SELECT 
             c.*,
             p.nome as paciente_nome,
             p.condicao_principal,
+            p.data_nascimento as paciente_data_nascimento,
             u.nome as familiar_nome,
             u.email as familiar_email,
             u.telefone as familiar_telefone
@@ -382,21 +952,43 @@ app.get("/api/convites/verificar/:token", (req, res) => {
 
     db.query(query, [token], (err, results) => {
         if (err) {
-            console.error("Erro ao verificar convite:", err);
+            console.error("❌ Erro ao verificar convite:", err);
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
 
         if (results.length === 0) {
-            return res.status(404).json({ error: "Convite não encontrado, expirado ou já utilizado" });
+            console.log("❌ Convite não encontrado ou expirado");
+            return res.status(404).json({ 
+                error: "Convite não encontrado, expirado ou já utilizado",
+                details: "Este convite pode ter expirado, sido utilizado ou ser inválido."
+            });
         }
 
-        res.json(results[0]);
+        const convite = results[0];
+        
+        // Calcular idade do paciente
+        if (convite.paciente_data_nascimento) {
+            const nascimento = new Date(convite.paciente_data_nascimento);
+            const hoje = new Date();
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+            const mes = hoje.getMonth() - nascimento.getMonth();
+            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                idade--;
+            }
+            convite.paciente_idade = idade;
+        }
+
+        console.log(`✅ Convite válido encontrado para paciente: ${convite.paciente_nome}`);
+        
+        res.json(convite);
     });
 });
 
-// Aceitar convite
+// Aceitar convite - VERSÃO CORRIGIDA
 app.post("/api/convites/aceitar", (req, res) => {
     const { token, cuidador_nome, cuidador_telefone, cuidador_senha } = req.body;
+
+    console.log("🎯 Aceitando convite com token:", token);
 
     if (!token) {
         return res.status(400).json({ error: "Token do convite é obrigatório" });
@@ -406,6 +998,10 @@ app.post("/api/convites/aceitar", (req, res) => {
         return res.status(400).json({ error: "Senha é obrigatória" });
     }
 
+    if (!cuidador_nome) {
+        return res.status(400).json({ error: "Nome é obrigatório" });
+    }
+
     const checkQuery = `
         SELECT * FROM convites_cuidadores 
         WHERE token_convite = ? AND status = 'pendente' AND expiracao > NOW()
@@ -413,7 +1009,7 @@ app.post("/api/convites/aceitar", (req, res) => {
 
     db.query(checkQuery, [token], (err, results) => {
         if (err) {
-            console.error("Erro ao verificar convite:", err);
+            console.error("❌ Erro ao verificar convite:", err);
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
 
@@ -422,19 +1018,24 @@ app.post("/api/convites/aceitar", (req, res) => {
         }
 
         const convite = results[0];
+        console.log(`📧 Processando convite para: ${convite.cuidador_email}`);
 
-        const checkEmailQuery = "SELECT id, senha FROM usuarios WHERE email = ?";
+        // Verificar se o e-mail já existe
+        const checkEmailQuery = "SELECT id, nome, tipo FROM usuarios WHERE email = ?";
         db.query(checkEmailQuery, [convite.cuidador_email], (err, emailResults) => {
             if (err) {
-                console.error("Erro ao verificar email:", err);
+                console.error("❌ Erro ao verificar email:", err);
                 return res.status(500).json({ error: "Erro interno do servidor" });
             }
 
             let usuarioCuidadorId;
 
             if (emailResults.length > 0) {
+                // Usuário já existe - atualizar
                 usuarioCuidadorId = emailResults[0].id;
-                console.log("📧 Usuário existente encontrado. Atualizando senha...");
+                const usuarioExistente = emailResults[0];
+                
+                console.log(`📧 Usuário existente encontrado: ${usuarioExistente.nome} (${usuarioExistente.tipo})`);
                 
                 const updateUsuarioQuery = "UPDATE usuarios SET tipo = 'cuidador_profissional', senha = ?, ativo = TRUE WHERE id = ?";
                 
@@ -444,40 +1045,25 @@ app.post("/api/convites/aceitar", (req, res) => {
                         return res.status(500).json({ error: "Erro ao atualizar dados do usuário" });
                     }
                     
-                    console.log("✅ Senha do usuário existente atualizada para:", cuidador_senha);
-                    
-                    const checkVinculoQuery = `
-                        SELECT cpp.id 
-                        FROM cuidadores_profissionais cp
-                        INNER JOIN cuidadores_profissionais_pacientes cpp ON cp.id = cpp.cuidador_profissional_id
-                        WHERE cp.usuario_id = ? AND cpp.paciente_id = ?
-                    `;
-                    
-                    db.query(checkVinculoQuery, [usuarioCuidadorId, convite.paciente_id], (err, vinculoResults) => {
-                        if (err) {
-                            console.error("Erro ao verificar vínculo:", err);
-                        }
-                        
-                        if (vinculoResults.length === 0) {
-                            vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res);
-                        } else {
-                            atualizarConviteAceito(token, res, usuarioCuidadorId);
-                        }
-                    });
+                    console.log("✅ Senha do usuário existente atualizada");
+                    vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res);
                 });
                 
             } else {
-                const senha = cuidador_senha;
-                const nome = cuidador_nome || convite.cuidador_email.split('@')[0];
-                
-                console.log("👤 Criando novo usuário com senha:", senha);
+                // Criar novo usuário
+                console.log("👤 Criando novo usuário cuidador...");
                 
                 const insertUsuarioQuery = `
-                    INSERT INTO usuarios (nome, email, senha, tipo, telefone, ativo)
-                    VALUES (?, ?, ?, 'cuidador_profissional', ?, TRUE)
+                    INSERT INTO usuarios (nome, email, senha, tipo, telefone, ativo, data_criacao)
+                    VALUES (?, ?, ?, 'cuidador_profissional', ?, TRUE, NOW())
                 `;
 
-                db.query(insertUsuarioQuery, [nome, convite.cuidador_email, senha, cuidador_telefone], (err, usuarioResult) => {
+                db.query(insertUsuarioQuery, [
+                    cuidador_nome, 
+                    convite.cuidador_email, 
+                    cuidador_senha, 
+                    cuidador_telefone || null
+                ], (err, usuarioResult) => {
                     if (err) {
                         console.error("❌ Erro ao criar usuário cuidador:", err);
                         return res.status(500).json({ error: "Erro interno do servidor" });
@@ -486,9 +1072,10 @@ app.post("/api/convites/aceitar", (req, res) => {
                     usuarioCuidadorId = usuarioResult.insertId;
                     console.log("✅ Novo usuário criado com ID:", usuarioCuidadorId);
 
+                    // Criar perfil de cuidador profissional
                     const insertCuidadorQuery = `
-                        INSERT INTO cuidadores_profissionais (usuario_id, especializacao, disponibilidade)
-                        VALUES (?, 'A definir', 'A combinar')
+                        INSERT INTO cuidadores_profissionais (usuario_id, especializacao, disponibilidade, data_cadastro)
+                        VALUES (?, 'A definir', 'A combinar', NOW())
                     `;
 
                     db.query(insertCuidadorQuery, [usuarioCuidadorId], (err) => {
@@ -506,8 +1093,10 @@ app.post("/api/convites/aceitar", (req, res) => {
     });
 });
 
-// Função auxiliar para vincular cuidador ao paciente
+// Função auxiliar para vincular cuidador ao paciente - VERSÃO CORRIGIDA
 function vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res) {
+    console.log(`🔗 Vinculando cuidador ${usuarioCuidadorId} ao paciente ${convite.paciente_id}`);
+    
     const getCuidadorIdQuery = "SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?";
     
     db.query(getCuidadorIdQuery, [usuarioCuidadorId], (err, cuidadorResults) => {
@@ -523,24 +1112,43 @@ function vincularCuidadorPaciente(usuarioCuidadorId, convite, token, res) {
 
         const cuidadorProfissionalId = cuidadorResults[0].id;
 
-        const vinculoQuery = `
-            INSERT INTO cuidadores_profissionais_pacientes (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
-            VALUES (?, ?, TRUE, CURDATE(), 'ativo')
+        // Verificar se já existe vínculo
+        const checkVinculoQuery = `
+            SELECT id FROM cuidadores_profissionais_pacientes 
+            WHERE cuidador_profissional_id = ? AND paciente_id = ? AND status_vinculo = 'ativo'
         `;
 
-        db.query(vinculoQuery, [cuidadorProfissionalId, convite.paciente_id], (err) => {
+        db.query(checkVinculoQuery, [cuidadorProfissionalId, convite.paciente_id], (err, vinculoResults) => {
             if (err) {
-                console.error("❌ Erro ao criar vínculo:", err);
-                return res.status(500).json({ error: "Erro ao vincular cuidador ao paciente" });
+                console.error("Erro ao verificar vínculo existente:", err);
             }
 
-            console.log("✅ Cuidador vinculado ao paciente");
-            atualizarConviteAceito(token, res, usuarioCuidadorId);
+            if (vinculoResults.length === 0) {
+                // Criar novo vínculo
+                const vinculoQuery = `
+                    INSERT INTO cuidadores_profissionais_pacientes 
+                    (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
+                    VALUES (?, ?, TRUE, CURDATE(), 'ativo')
+                `;
+
+                db.query(vinculoQuery, [cuidadorProfissionalId, convite.paciente_id], (err) => {
+                    if (err) {
+                        console.error("❌ Erro ao criar vínculo:", err);
+                        return res.status(500).json({ error: "Erro ao vincular cuidador ao paciente" });
+                    }
+
+                    console.log("✅ Cuidador vinculado ao paciente com sucesso");
+                    atualizarConviteAceito(token, res, usuarioCuidadorId);
+                });
+            } else {
+                console.log("ℹ️ Vínculo já existe, apenas atualizando convite");
+                atualizarConviteAceito(token, res, usuarioCuidadorId);
+            }
         });
     });
 }
 
-// Função para atualizar status do convite
+// Função para atualizar status do convite - VERSÃO CORRIGIDA
 function atualizarConviteAceito(token, res, usuarioCuidadorId) {
     const updateConviteQuery = `
         UPDATE convites_cuidadores 
@@ -557,1211 +1165,109 @@ function atualizarConviteAceito(token, res, usuarioCuidadorId) {
         console.log("🎉 CONVITE ACEITO COM SUCESSO!");
         console.log("👤 Usuário ID:", usuarioCuidadorId);
         
+        // Enviar e-mail de confirmação para o familiar
+        enviarEmailConfirmacaoConvite(usuarioCuidadorId, token);
+        
         res.json({ 
             success: true, 
-            message: "Convite aceito com sucesso!",
-            usuario_id: usuarioCuidadorId
+            message: "Convite aceito com sucesso! Sua conta foi criada e você já está vinculado ao paciente.",
+            usuario_id: usuarioCuidadorId,
+            redirect: "/dependentes"
         });
     });
 }
 
-// Recusar convite
-app.post("/api/convites/recusar", (req, res) => {
-    const { token } = req.body;
-
-    const updateQuery = `
-        UPDATE convites_cuidadores 
-        SET status = 'recusado', data_resposta = NOW() 
-        WHERE token_convite = ? AND status = 'pendente'
-    `;
-
-    db.query(updateQuery, [token], (err, result) => {
-        if (err) {
-            console.error("Erro ao recusar convite:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: "Convite não encontrado ou já processado" });
-        }
-
-        res.json({ success: true, message: "Convite recusado com sucesso" });
-    });
-});
-
-// Listar convites do familiar
-app.get("/api/familiares/:familiar_id/convites", (req, res) => {
-    const familiar_id = req.params.familiar_id;
-
+// Função para enviar e-mail de confirmação para o familiar
+function enviarEmailConfirmacaoConvite(usuarioCuidadorId, token) {
+    if (!isEmailConfigured()) return;
+    
+    // Buscar informações para o e-mail
     const query = `
         SELECT 
-            c.*,
-            p.nome as paciente_nome,
-            u.nome as cuidador_nome
-        FROM convites_cuidadores c
-        INNER JOIN pacientes p ON c.paciente_id = p.id
-        LEFT JOIN usuarios u ON c.cuidador_email = u.email
-        WHERE c.familiar_contratante_id = ?
-        ORDER BY c.data_convite DESC
+            u_cuidador.nome as cuidador_nome,
+            u_cuidador.email as cuidador_email,
+            u_familiar.nome as familiar_nome,
+            u_familiar.email as familiar_email,
+            p.nome as paciente_nome
+        FROM convites_cuidadores cc
+        INNER JOIN usuarios u_cuidador ON u_cuidador.id = ?
+        INNER JOIN familiares_contratantes fc ON cc.familiar_contratante_id = fc.id
+        INNER JOIN usuarios u_familiar ON fc.usuario_id = u_familiar.id
+        INNER JOIN pacientes p ON cc.paciente_id = p.id
+        WHERE cc.token_convite = ?
     `;
-
-    db.query(query, [familiar_id], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar convites:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
+    
+    db.query(query, [usuarioCuidadorId, token], (err, results) => {
+        if (err || results.length === 0) {
+            console.error("Erro ao buscar dados para e-mail de confirmação:", err);
+            return;
         }
-
-        res.json(results);
-    });
-});
-
-// Rota para página de aceitar convite
-app.get("/aceitar-convite", (req, res) => {
-    res.sendFile(path.join(__dirname, "public/paginas/aceitar-convite.html"));
-});
-
-// ====================== APIS PRINCIPAIS ====================== //
-
-// Login - CORRIGIDO: Cuidador vai para dependentes.html
-app.post("/api/login", (req, res) => {
-  const { email, senha } = req.body;
-  console.log("=== TENTATIVA DE LOGIN ===");
-  console.log("Email:", email);
-
-  if (!email || !senha) {
-    console.log("❌ Campos obrigatórios ausentes");
-    return res.status(400).json({ error: "Email e senha são obrigatórios" });
-  }
-
-  const query = "SELECT * FROM usuarios WHERE email = ? AND ativo = TRUE";
-  
-  db.query(query, [email], (err, results) => {
-    if (err) {
-      console.error("❌ Erro na consulta do banco:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    
-    console.log("Resultados encontrados:", results.length);
-    
-    if (results.length === 0) {
-      console.log("❌ Usuário não encontrado ou inativo");
-      return res.status(401).json({ error: "Email ou senha incorretos" });
-    }
-
-    const usuario = results[0];
-    
-    console.log("Verificando senha...");
-    
-    if (usuario.senha !== senha) {
-      console.log("❌ Senha incorreta");
-      return res.status(401).json({ error: "Email ou senha incorretos" });
-    }
-
-    console.log("✅ Login bem-sucedido para:", usuario.nome);
-    
-    let redirectUrl = "/";
-    
-    if (usuario.tipo === 'familiar_cuidador') {
-      redirectUrl = "/dependentes";
-    } else if (usuario.tipo === 'familiar_contratante') {
-      redirectUrl = "/dependentes";
-    } else if (usuario.tipo === 'cuidador_profissional') {
-      redirectUrl = "/dependentes"; // CORREÇÃO: Cuidador vai para dependentes.html
-    } else if (usuario.tipo === 'admin') {
-      redirectUrl = "/adm";
-    }
-    
-    console.log("Redirecionando para:", redirectUrl);
-    
-    res.json({
-      id: usuario.id,
-      nome: usuario.nome,
-      tipo: usuario.tipo,
-      redirect: redirectUrl
-    });
-  });
-});
-
-// Cadastro de usuário - MODIFICADO: Cuidador profissional sem senha temporária
-app.post("/api/cadastrar", (req, res) => {
-    const { nome, email, senha, tipo, telefone, data_nascimento, parentesco, endereco, especializacao, registro_profissional, disponibilidade } = req.body;
-  console.log("Request body:", req.body);
-  console.log("Tentativa de cadastro:", nome, email, tipo);
-
-  if (!nome || !email || !senha || !tipo) {
-    return res.status(400).json({ error: "Campos obrigatórios ausentes" });
-  }
-
-  const query = `
-    INSERT INTO usuarios (nome, email, senha, tipo, telefone, data_nascimento, ativo)
-    VALUES (?, ?, ?, ?, ?, ?, TRUE)
-  `;
-  
-  db.query(query, [nome, email, senha, tipo, telefone, data_nascimento], (err, results) => {
-    if (err) {
-      console.error("Erro no cadastro:", err);
-      if (err.code === "ER_DUP_ENTRY") {
-        return res.status(400).json({ error: "Email já cadastrado" });
-      }
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    
-    const usuarioId = results.insertId;
-    
-    if (tipo === 'familiar_cuidador') {
-      const familiarCuidadorQuery = "INSERT INTO familiares_cuidadores (usuario_id, parentesco, endereco) VALUES (?, ?, ?)";
-      db.query(familiarCuidadorQuery, [usuarioId, parentesco, endereco], (err2) => {
-        if (err2) {
-          console.error("Erro ao criar familiar cuidador:", err2);
-          return res.status(500).json({ error: "Erro ao criar dados do familiar cuidador" });
-        }
-        console.log("Familiar cuidador cadastrado com sucesso:", usuarioId);
-        res.json({ message: "Conta criada com sucesso!", id: usuarioId, tipo: tipo });
-      });
-    } else if (tipo === 'familiar_contratante') {
-      const familiarContratanteQuery = "INSERT INTO familiares_contratantes (usuario_id, endereco) VALUES (?, ?)";
-      db.query(familiarContratanteQuery, [usuarioId, endereco], (err2) => {
-        if (err2) {
-          console.error("Erro ao criar familiar contratante:", err2);
-          return res.status(500).json({ error: "Erro ao criar dados do familiar contratante" });
-        }
-        console.log("Familiar contratante cadastrado com sucesso:", usuarioId);
-        res.json({ message: "Conta criada com sucesso!", id: usuarioId, tipo: tipo });
-      });
-    } else if (tipo === 'cuidador_profissional') {
-      const cuidadorProfissionalQuery = "INSERT INTO cuidadores_profissionais (usuario_id, especializacao, registro_profissional, disponibilidade) VALUES (?, ?, ?, ?)";
-      db.query(cuidadorProfissionalQuery, [usuarioId, especializacao, registro_profissional, disponibilidade], (err2) => {
-        if (err2) {
-          console.error("Erro ao criar cuidador profissional:", err2);
-          return res.status(500).json({ error: "Erro ao criar dados do cuidador profissional" });
-        }
-        console.log("Cuidador profissional cadastrado com sucesso:", usuarioId);
-
-        // E-mail de confirmação (sem ativação, pois já tem senha)
-        if (isEmailConfigured()) {
-          const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-          const mailOptions = {
-            from: process.env.EMAIL_USER,
-            to: email,
-            subject: "Bem-vindo ao Vital+! Sua conta de Cuidador Profissional foi criada",
+        
+        const info = results[0];
+        
+        const mailOptions = {
+            from: `"Vital+ Notificações" <${process.env.EMAIL_USER}>`,
+            to: info.familiar_email,
+            subject: "✅ Convite Aceito - Cuidador Vinculado com Sucesso - Vital+",
             html: `
-              <!DOCTYPE html>
-              <html>
-              <head>
-                <style>
-                  body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                  .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                  .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
-                  .content { padding: 20px; background-color: #f9f9f9; }
-                  .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-                  .credentials { background-color: #fff; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
-                  .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-                </style>
-              </head>
-              <body>
-                <div class="container">
-                  <div class="header">
-                    <h1>Bem-vindo ao Vital+!</h1>
-                  </div>
-                  <div class="content">
-                    <p>Olá <strong>${nome}</strong>,</p>
-                    <p>Sua conta de Cuidador Profissional no Vital+ foi criada com sucesso!</p>
-                    
-                    <div class="credentials">
-                      <p><strong>Suas credenciais de acesso:</strong></p>
-                      <p>E-mail: <strong>${email}</strong></p>
-                      <p>Senha: <strong>*** (a senha que você escolheu)</strong></p>
-                    </div>
-                    
-                    <p>Para acessar sua conta, clique no botão abaixo:</p>
-                    <p style="text-align: center;">
-                      <a href="${baseUrl}" class="button">Acessar Vital+</a>
-                    </p>
-                    
-                    <p>Obrigado por fazer parte do Vital+!</p>
-                  </div>
-                  <div class="footer">
-                    <p>Vital+ - Sistema de Acompanhamento para Cuidadores</p>
-                    <p>Este é um e-mail automático, por favor não responda.</p>
-                  </div>
-                </div>
-              </body>
-              </html>
-            `
-          };
-
-          transporter.sendMail(mailOptions, (error, info) => {
-            if (error) {
-              console.error("Erro ao enviar e-mail de confirmação:", error);
-            } else {
-              console.log("E-mail de confirmação enviado com sucesso:", info.response);
-            }
-          });
-        }
-        
-        res.json({ 
-          message: "Conta criada com sucesso!", 
-          id: usuarioId, 
-          tipo: tipo 
-        });
-      });
-    } else {
-      console.log("Usuário cadastrado com sucesso:", usuarioId);
-      res.json({ message: "Conta criada com sucesso!", id: usuarioId, tipo: tipo });
-    }
-  });
-});
-
-// ====================== ROTA ESPECÍFICA PARA CADASTRO COMPLETO DO FAMILIAR CONTRATANTE ====================== //
-app.post("/api/cadastro-completo-familiar-contratante", upload.single("foto_perfil"), (req, res) => {
-  console.log("=== CADASTRO COMPLETO FAMILIAR CONTRATANTE ===");
-  console.log("Body recebido:", req.body);
-
-  const { 
-    familiar_nome, 
-    familiar_email, 
-    familiar_senha, 
-    familiar_telefone, 
-    familiar_data_nascimento, 
-    familiar_parentesco, 
-    familiar_endereco,
-    
-    dependente_nome,
-    dependente_data_nascimento,
-    dependente_genero,
-    dependente_condicao_principal,
-    dependente_plano_saude,
-    dependente_alergias,
-    dependente_historico_medico,
-    dependente_contato_emergencia,
-    
-    cuidador_nome,
-    cuidador_email,
-    cuidador_telefone,
-    cuidador_cpf,
-    cuidador_especializacao,
-    cuidador_registro_profissional,
-    cuidador_experiencia,
-    cuidador_disponibilidade
-    // REMOVIDO: cuidador_senha - O cuidador vai escolher a senha depois
-  } = req.body;
-
-  console.log("1. Cadastrando familiar contratante...");
-  const usuarioFamiliarQuery = `
-    INSERT INTO usuarios (nome, email, senha, tipo, telefone, data_nascimento)
-    VALUES (?, ?, ?, 'familiar_contratante', ?, ?)
-  `;
-  
-  db.query(usuarioFamiliarQuery, [familiar_nome, familiar_email, familiar_senha, familiar_telefone, familiar_data_nascimento], (err, usuarioFamiliarResult) => {
-    if (err) {
-      console.error("Erro ao cadastrar familiar:", err);
-      return res.status(500).json({ error: "Erro ao cadastrar familiar contratante" });
-    }
-    
-    const usuarioFamiliarId = usuarioFamiliarResult.insertId;
-    console.log("Familiar usuario ID:", usuarioFamiliarId);
-
-    const familiarContratanteQuery = "INSERT INTO familiares_contratantes (usuario_id, endereco) VALUES (?, ?)";
-    db.query(familiarContratanteQuery, [usuarioFamiliarId, familiar_endereco], (err2, familiarContratanteResult) => {
-      if (err2) {
-        console.error("Erro ao criar familiar contratante:", err2);
-        return res.status(500).json({ error: "Erro ao criar dados do familiar contratante" });
-      }
-      
-      const familiarContratanteId = familiarContratanteResult.insertId;
-      console.log("Familiar contratante ID:", familiarContratanteId);
-
-      console.log("3. Cadastrando paciente/dependente...");
-      const foto_perfil = req.file ? req.file.filename : null;
-      
-      const pacienteQuery = `
-        INSERT INTO pacientes (nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, foto_perfil, familiar_contratante_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `;
-      
-      db.query(pacienteQuery, [
-        dependente_nome,
-        dependente_data_nascimento,
-        dependente_genero,
-        dependente_condicao_principal,
-        dependente_plano_saude,
-        dependente_alergias,
-        dependente_historico_medico,
-        dependente_contato_emergencia,
-        foto_perfil,
-        familiarContratanteId
-      ], (err5, pacienteResult) => {
-        if (err5) {
-          console.error("Erro ao cadastrar paciente:", err5);
-          return res.status(500).json({ error: "Erro ao cadastrar paciente" });
-        }
-        
-        const pacienteId = pacienteResult.insertId;
-        console.log("Paciente ID:", pacienteId);
-
-        console.log("4. Enviando convite para o cuidador...");
-        const token_convite = crypto.randomBytes(32).toString('hex');
-        const expiracao = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-
-        const insertConviteQuery = `
-          INSERT INTO convites_cuidadores 
-          (familiar_contratante_id, cuidador_email, paciente_id, token_convite, expiracao, mensagem_personalizada)
-          VALUES (?, ?, ?, ?, ?, ?)
-        `;
-
-        const mensagem_personalizada = `Convite para cuidar de ${dependente_nome} - Cadastro completo realizado por ${familiar_nome}`;
-
-        db.query(insertConviteQuery, [
-          familiarContratanteId,
-          cuidador_email,
-          pacienteId,
-          token_convite,
-          expiracao,
-          mensagem_personalizada
-        ], (err6, conviteResult) => {
-          if (err6) {
-            console.error("Erro ao criar convite:", err6);
-            return res.status(500).json({ error: "Erro ao criar convite para o cuidador" });
-          }
-
-          console.log("✅ Cadastro familiar e paciente realizado! Convite enviado para o cuidador.");
-          
-          // E-MAIL DE CONVITE PARA O CUIDADOR (ele vai escolher a senha depois)
-          if (isEmailConfigured()) {
-            const baseUrl = process.env.BASE_URL || "http://localhost:3000";
-            const mailOptions = {
-              from: process.env.EMAIL_USER,
-              to: cuidador_email,
-              subject: "📋 Convite para Cuidar de um Paciente - Vital+",
-              html: `
                 <!DOCTYPE html>
                 <html>
                 <head>
-                  <style>
-                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                    .header { background-color: #4CAF50; color: white; padding: 20px; text-align: center; }
-                    .content { padding: 20px; background-color: #f9f9f9; }
-                    .button { display: inline-block; padding: 12px 24px; background-color: #4CAF50; color: white; text-decoration: none; border-radius: 4px; margin: 20px 0; }
-                    .info-box { background-color: #fff; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0; }
-                    .footer { text-align: center; padding: 20px; color: #666; font-size: 12px; }
-                  </style>
+                    <meta charset="utf-8">
+                    <style>
+                        body { font-family: 'Poppins', Arial, sans-serif; line-height: 1.6; color: #2D2D2D; margin: 0; padding: 0; background: #f8f9fa; }
+                        .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+                        .header { background: linear-gradient(135deg, #27ae60, #219653); color: white; padding: 30px; text-align: center; }
+                        .content { padding: 30px; background: #FCFCFD; }
+                        .info-box { background: rgba(39, 174, 96, 0.1); padding: 20px; border-left: 4px solid #27ae60; margin: 20px 0; border-radius: 8px; }
+                        .footer { text-align: center; padding: 20px; color: #6C757D; font-size: 12px; background: #F8F9FA; border-top: 1px solid #E5E7EB; }
+                    </style>
                 </head>
                 <body>
-                  <div class="container">
-                    <div class="header">
-                      <h1>🎗️ Convite Vital+</h1>
+                    <div class="container">
+                        <div class="header">
+                            <h1>✅ Convite Aceito</h1>
+                        </div>
+                        <div class="content">
+                            <p>Olá <strong>${info.familiar_nome}</strong>,</p>
+                            <p>Seu convite foi aceito com sucesso!</p>
+                            
+                            <div class="info-box">
+                                <p><strong>Cuidador:</strong> ${info.cuidador_nome}</p>
+                                <p><strong>E-mail:</strong> ${info.cuidador_email}</p>
+                                <p><strong>Paciente:</strong> ${info.paciente_nome}</p>
+                                <p><strong>Data da aceitação:</strong> ${new Date().toLocaleString('pt-BR')}</p>
+                            </div>
+                            
+                            <p>O cuidador já tem acesso completo ao sistema e pode começar a acompanhar o paciente imediatamente.</p>
+                        </div>
+                        <div class="footer">
+                            <p>Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+                        </div>
                     </div>
-                    <div class="content">
-                      <p>Olá,</p>
-                      <p>Você recebeu um convite para cuidar de um paciente através da plataforma Vital+!</p>
-                      
-                      <div class="info-box">
-                        <p><strong>Informações do Convite:</strong></p>
-                        <p>👤 <strong>Paciente:</strong> ${dependente_nome}</p>
-                        <p>👨‍👩‍👧‍👦 <strong>Familiar Contratante:</strong> ${familiar_nome}</p>
-                        <p>📧 <strong>Contato:</strong> ${familiar_email}</p>
-                        <p>📞 <strong>Telefone:</strong> ${familiar_telefone}</p>
-                      </div>
-                      
-                      <p>Para aceitar este convite e criar sua conta, clique no botão abaixo:</p>
-                      <p style="text-align: center;">
-                        <a href="${baseUrl}/aceitar-convite?token=${token_convite}" class="button">✅ Aceitar Convite e Criar Conta</a>
-                      </p>
-                      
-                      <p><strong>O que acontece quando você aceitar:</strong></p>
-                      <ul>
-                        <li>✅ Você criará sua conta no Vital+</li>
-                        <li>✅ Escolherá sua própria senha</li>
-                        <li>✅ Será vinculado automaticamente ao paciente</li>
-                        <li>✅ Terá acesso completo ao sistema</li>
-                      </ul>
-                      
-                      <p><strong>Importante:</strong> Este convite expira em ${expiracao.toLocaleDateString('pt-BR')}</p>
-                      
-                      <p>Se você não deseja aceitar este convite, por favor ignore este e-mail.</p>
-                    </div>
-                    <div class="footer">
-                      <p>Vital+ - Sistema de Acompanhamento para Cuidadores</p>
-                      <p>Este é um e-mail automático, por favor não responda.</p>
-                    </div>
-                  </div>
                 </body>
                 </html>
-              `
-            };
-
-            transporter.sendMail(mailOptions, (error, info) => {
-              if (error) {
-                console.error("Erro ao enviar e-mail de convite:", error);
-              } else {
-                console.log("E-mail de convite enviado com sucesso:", info.response);
-              }
-            });
-          }
-          
-          res.json({ 
-            success: true,
-            message: "Cadastro realizado com sucesso! Familiar e dependente registrados. Um convite foi enviado para o cuidador criar sua conta.",
-            ids: {
-              familiar: usuarioFamiliarId,
-              paciente: pacienteId
-            },
-            convite_enviado: true
-          });
-        });
-      });
-    });
-  });
-});
-
-// ====================== NOVA ROTA: PACIENTES DO CUIDADOR ====================== //
-app.get("/api/cuidadores/:usuarioId/pacientes", (req, res) => {
-  const usuarioId = req.params.usuarioId;
-  console.log(`Buscando pacientes para cuidador com usuario_id: ${usuarioId}`);
-
-  const query = `
-    SELECT 
-      p.*,
-      u.nome as familiar_nome,
-      u.telefone as familiar_telefone
-    FROM pacientes p
-    INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-    INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-    INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
-    INNER JOIN usuarios u ON fc.usuario_id = u.id
-    WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo' AND p.ativo = TRUE
-  `;
-  
-  db.query(query, [usuarioId], (err, results) => {
-    if (err) {
-      console.error("Erro ao buscar pacientes do cuidador:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    
-    console.log(`Pacientes encontrados para cuidador ${usuarioId}:`, results.length);
-    res.json(results);
-  });
-});
-
-// Cadastro de paciente individual
-app.post("/api/pacientes", upload.single("foto_perfil"), (req, res) => {
-  console.log("=== CADASTRO DE PACIENTE INDIVIDUAL ===");
-  console.log("Body recebido:", req.body);
-  console.log("Arquivo recebido:", req.file);
-  
-  const { nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, familiar_cuidador_id, familiar_contratante_id, cuidador_profissional_id } = req.body;
-
-  console.log("Validando campos obrigatórios:");
-  console.log("- Nome:", nome ? "✓" : "✗");
-  console.log("- Data nascimento:", data_nascimento ? "✓" : "✗");
-  console.log("- Familiar cuidador ID:", familiar_cuidador_id ? "✓" : "✗");
-  console.log("- Familiar contratante ID:", familiar_contratante_id ? "✓" : "✗");
-
-  if (!nome || !data_nascimento || (!familiar_cuidador_id && !familiar_contratante_id)) {
-    console.log("❌ Campos obrigatórios ausentes");
-    return res.status(400).json({ 
-      error: "Nome, data de nascimento e pelo menos um ID de familiar são obrigatórios"
-    });
-  }
-
-  const foto_perfil = req.file ? req.file.filename : null;
-
-  const query = `
-    INSERT INTO pacientes (nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, foto_perfil, familiar_cuidador_id, familiar_contratante_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
-  
-  console.log("Executando query com dados:", [nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, foto_perfil, familiar_cuidador_id, familiar_contratante_id]);
-  
-  db.query(query, [nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, contato_emergencia, foto_perfil, familiar_cuidador_id, familiar_contratante_id], (err, results) => {
-    if (err) {
-      console.error("Erro ao cadastrar paciente:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    
-    const pacienteId = results.insertId;
-    console.log("Paciente cadastrado com sucesso! ID:", pacienteId);
-    
-    if (cuidador_profissional_id) {
-      const vinculoQuery = `
-        INSERT INTO cuidadores_profissionais_pacientes (cuidador_profissional_id, paciente_id, cuidador_principal, data_inicio, status_vinculo)
-        VALUES (?, ?, TRUE, CURDATE(), 'ativo')
-      `;
-      
-      db.query(vinculoQuery, [cuidador_profissional_id, pacienteId], (err2) => {
-        if (err2) {
-          console.error("Erro ao criar vínculo cuidador-paciente:", err2);
-        } else {
-          console.log("Vínculo cuidador-paciente criado com sucesso!");
-        }
-      });
-    }
-    
-    res.json({ message: "Paciente cadastrado com sucesso!", id: pacienteId });
-  });
-});
-
-// Buscar familiar por usuário
-app.get("/api/familiar/:usuarioId/:tipoUsuario", (req, res) => {
-  const usuarioId = req.params.usuarioId;
-  const tipoUsuario = req.params.tipoUsuario;
-  console.log(`Buscando familiar ${tipoUsuario} para usuário: ${usuarioId}`);
-  
-  let query = "";
-  if (tipoUsuario === 'familiar_cuidador') {
-    query = "SELECT id FROM familiares_cuidadores WHERE usuario_id = ?";
-  } else if (tipoUsuario === 'familiar_contratante') {
-    query = "SELECT id FROM familiares_contratantes WHERE usuario_id = ?";
-  } else {
-    return res.status(400).json({ error: "Tipo de usuário inválido" });
-  }
-
-  db.query(query, [usuarioId], (err, results) => {
-    if (err) {
-      console.error("Erro ao buscar familiar:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    if (results.length === 0) {
-      console.log(`Familiar ${tipoUsuario} não encontrado para usuário: ${usuarioId}`);
-      return res.status(404).json({ error: `Familiar ${tipoUsuario} não encontrado` });
-    }
-    console.log(`Familiar ${tipoUsuario} encontrado:`, results[0]);
-    res.json(results[0]);
-  });
-});
-
-// Buscar cuidador profissional por usuário
-app.get("/api/cuidador/:usuarioId/cuidador_profissional", (req, res) => {
-  const usuarioId = req.params.usuarioId;
-  console.log(`Buscando cuidador profissional para usuário: ${usuarioId}`);
-  
-  const query = "SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?";
-  
-  db.query(query, [usuarioId], (err, results) => {
-    if (err) {
-      console.error("Erro ao buscar cuidador profissional:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    if (results.length === 0) {
-      console.log(`Cuidador profissional não encontrado para usuário: ${usuarioId}`);
-      return res.status(404).json({ error: "Cuidador profissional não encontrado" });
-    }
-    console.log(`Cuidador profissional encontrado:`, results[0]);
-    res.json(results[0]);
-  });
-});
-
-// Listar pacientes de um familiar
-app.get("/api/familiares/:usuarioId/pacientes_cuidador", (req, res) => {
-  const usuarioId = req.params.usuarioId;
-  console.log(`Buscando pacientes para familiar cuidador com usuario_id: ${usuarioId}`);
-
-  const getFamiliarCuidadorIdQuery = "SELECT id FROM familiares_cuidadores WHERE usuario_id = ?";
-  db.query(getFamiliarCuidadorIdQuery, [usuarioId], (err, familiarResults) => {
-    if (err) {
-      console.error("Erro ao buscar familiar cuidador ID:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    if (familiarResults.length === 0) {
-      return res.status(404).json({ error: "Familiar cuidador não encontrado" });
-    }
-    const familiarCuidadorId = familiarResults[0].id;
-
-    const query = "SELECT * FROM pacientes WHERE ativo = TRUE AND familiar_cuidador_id = ?";
-    db.query(query, [familiarCuidadorId], (err, results) => {
-      if (err) {
-        console.error("Erro ao buscar pacientes para familiar cuidador:", err);
-        return res.status(500).json({ error: "Erro interno do servidor" });
-      }
-      console.log("Pacientes encontrados para familiar cuidador:", results.length);
-      res.json(results);
-    });
-  });
-});
-
-app.get("/api/familiares/:usuarioId/pacientes_contratante", (req, res) => {
-  const usuarioId = req.params.usuarioId;
-  console.log(`Buscando pacientes para familiar contratante com usuario_id: ${usuarioId}`);
-
-  const getFamiliarContratanteIdQuery = "SELECT id FROM familiares_contratantes WHERE usuario_id = ?";
-  db.query(getFamiliarContratanteIdQuery, [usuarioId], (err, familiarResults) => {
-    if (err) {
-      console.error("Erro ao buscar familiar contratante ID:", err);
-      return res.status(500).json({ error: "Erro interno do servidor" });
-    }
-    if (familiarResults.length === 0) {
-      return res.status(404).json({ error: "Familiar contratante não encontrado" });
-    }
-    const familiarContratanteId = familiarResults[0].id;
-
-    const query = "SELECT * FROM pacientes WHERE ativo = TRUE AND familiar_contratante_id = ?";
-    db.query(query, [familiarContratanteId], (err, results) => {
-      if (err) {
-        console.error("Erro ao buscar pacientes para familiar contratante:", err);
-        return res.status(500).json({ error: "Erro interno do servidor" });
-      }
-      console.log("Pacientes encontrados para familiar contratante:", results.length);
-      res.json(results);
-    });
-  });
-});
-
-app.get("/ativar_conta", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/paginas/ativar_conta.html"));
-});
-
-app.post("/api/ativar_conta", (req, res) => {
-  const { token, newPassword } = req.body;
-
-  if (!token || !newPassword) {
-    return res.status(400).json({ error: "Token e nova senha são obrigatórios." });
-  }
-
-  const checkUserQuery = "SELECT id, tipo FROM usuarios WHERE id = ? AND tipo = 'cuidador_profissional'";
-  db.query(checkUserQuery, [token], (err, results) => {
-    if (err) {
-      console.error("Erro ao verificar usuário para ativação:", err);
-      return res.status(500).json({ error: "Erro interno do servidor." });
-    }
-    if (results.length === 0) {
-      return res.status(404).json({ error: "Usuário ou token inválido para ativação." });
-    }
-
-    const updatePasswordQuery = "UPDATE usuarios SET senha = ?, ativo = TRUE WHERE id = ?";
-    db.query(updatePasswordQuery, [newPassword, token], (err2) => {
-      if (err2) {
-        console.error("Erro ao atualizar senha e ativar conta:", err2);
-        return res.status(500).json({ error: "Erro interno do servidor ao ativar conta." });
-      }
-      res.json({ message: "Conta ativada e senha definida com sucesso!" });
-    });
-  });
-});
-
-// Buscar cuidador de um paciente
-app.get("/api/pacientes/:pacienteId/cuidador", (req, res) => {
-    const pacienteId = req.params.pacienteId;
-    
-    const query = `
-        SELECT u.nome, u.telefone 
-        FROM usuarios u
-        INNER JOIN cuidadores_profissionais cp ON u.id = cp.usuario_id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON cp.id = cpp.cuidador_profissional_id
-        WHERE cpp.paciente_id = ? AND cpp.status_vinculo = 'ativo'
-        LIMIT 1
-    `;
-    
-    db.query(query, [pacienteId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar cuidador:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
+            `
+        };
         
-        if (results.length === 0) {
-            return res.status(404).json({ error: "Cuidador não encontrado" });
-        }
-        
-        res.json(results[0]);
-    });
-});
-
-// Buscar paciente vinculado ao cuidador
-app.get("/api/cuidadores/:cuidadorId/paciente", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    console.log(`Buscando paciente para cuidador: ${cuidadorId}`);
-    
-    const query = `
-        SELECT 
-            p.*,
-            u.nome as familiar_nome,
-            u.telefone as familiar_telefone
-        FROM pacientes p
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
-        INNER JOIN usuarios u ON fc.usuario_id = u.id
-        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo'
-        LIMIT 1
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar paciente do cuidador:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        if (results.length === 0) {
-            console.log(`Nenhum paciente encontrado para cuidador: ${cuidadorId}`);
-            return res.status(404).json({ error: "Nenhum paciente vinculado encontrado" });
-        }
-        
-        console.log(`Paciente encontrado:`, results[0].nome);
-        res.json(results[0]);
-    });
-});
-
-// ====================== ROTAS PARA ATIVIDADES DO CUIDADOR ====================== //
-
-// CORREÇÃO: Rota para atividades do cuidador - COMPLETA E FUNCIONAL
-app.get("/api/cuidadores/:cuidadorId/atividades", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    console.log(`Buscando atividades para cuidador: ${cuidadorId}`);
-    
-    // Query corrigida - busca atividades do paciente vinculado ao cuidador
-    const query = `
-        SELECT 
-            a.*,
-            p.nome as paciente_nome,
-            a.status as status_atividade
-        FROM atividades a
-        INNER JOIN pacientes p ON a.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo'
-        ORDER BY a.data_prevista DESC
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("❌ Erro ao buscar atividades:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        console.log(`✅ ${results.length} atividades encontradas para cuidador ${cuidadorId}`);
-        res.json(results);
-    });
-});
-
-// ====================== ROTAS PARA SUPERVISOR ====================== //
-
-// Relatórios do supervisor
-app.get("/api/supervisor/:familiarId/relatorios", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT 
-            r.*,
-            p.nome as paciente_nome
-        FROM relatorios r
-        INNER JOIN pacientes p ON r.paciente_id = p.id
-        WHERE p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?
-        ORDER BY r.data_criacao DESC
-    `;
-    
-    db.query(query, [familiarId, familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar relatórios:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Comunicação do supervisor
-app.get("/api/supervisor/:familiarId/comunicacao", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT 
-            m.*,
-            u.nome as remetente_nome,
-            u.tipo as remetente_tipo,
-            p.nome as paciente_nome
-        FROM mensagens m
-        LEFT JOIN usuarios u ON m.remetente_id = u.id
-        LEFT JOIN pacientes p ON m.paciente_id = p.id
-        WHERE (p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?)
-        ORDER BY m.data_envio DESC
-        LIMIT 50
-    `;
-    
-    db.query(query, [familiarId, familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar mensagens:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Alertas do supervisor
-app.get("/api/supervisor/:familiarId/alertas", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT 
-            a.*,
-            p.nome as paciente_nome,
-            u.nome as cuidador_nome,
-            a.prioridade,
-            a.status as status_alerta
-        FROM alertas a
-        INNER JOIN pacientes p ON a.paciente_id = p.id
-        LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        LEFT JOIN usuarios u ON cp.usuario_id = u.id
-        WHERE (p.familiar_contratante_id = ? OR p.familiar_cuidador_id = ?)
-        ORDER BY a.data_criacao DESC
-    `;
-    
-    db.query(query, [familiarId, familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar alertas:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results || []);
-    });
-});
-
-// ====================== ROTAS PARA CUIDADOR ====================== //
-
-// Medicamentos do cuidador
-app.get("/api/cuidadores/:cuidadorId/medicamentos", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            m.*,
-            p.nome as paciente_nome
-        FROM medicamentos m
-        INNER JOIN pacientes p ON m.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ? AND m.ativo = TRUE
-        ORDER BY m.horario
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar medicamentos:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Relatórios do cuidador
-app.get("/api/cuidadores/:cuidadorId/relatorios", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            r.*,
-            p.nome as paciente_nome
-        FROM relatorios r
-        INNER JOIN pacientes p ON r.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ?
-        ORDER BY r.data_criacao DESC
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar relatórios:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Comunicação do cuidador
-app.get("/api/cuidadores/:cuidadorId/comunicacao", (req, res) => {
-    const cuidadorId = req.params.cuidadorId;
-    
-    const query = `
-        SELECT 
-            m.*,
-            u.nome as remetente_nome,
-            u.tipo as remetente_tipo,
-            p.nome as paciente_nome
-        FROM mensagens m
-        LEFT JOIN usuarios u ON m.remetente_id = u.id
-        LEFT JOIN pacientes p ON m.paciente_id = p.id
-        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
-        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        WHERE cp.usuario_id = ?
-        ORDER BY m.data_envio DESC
-        LIMIT 50
-    `;
-    
-    db.query(query, [cuidadorId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar mensagens:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json(results);
-    });
-});
-
-// Enviar mensagem
-app.post("/api/mensagens/enviar", (req, res) => {
-    const { remetente_id, destinatario_id, paciente_id, mensagem, tipo } = req.body;
-    
-    const query = `
-        INSERT INTO mensagens (remetente_id, destinatario_id, paciente_id, mensagem, tipo, data_envio)
-        VALUES (?, ?, ?, ?, ?, NOW())
-    `;
-    
-    db.query(query, [remetente_id, destinatario_id, paciente_id, mensagem, tipo], (err, result) => {
-        if (err) {
-            console.error("Erro ao enviar mensagem:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json({ success: true, id: result.insertId });
-    });
-});
-
-// Criar relatório
-app.post("/api/relatorios/criar", (req, res) => {
-    const { paciente_id, cuidador_id, titulo, conteudo, tipo } = req.body;
-    
-    const query = `
-        INSERT INTO relatorios (paciente_id, cuidador_id, titulo, conteudo, tipo, data_criacao)
-        VALUES (?, ?, ?, ?, ?, NOW())
-    `;
-    
-    db.query(query, [paciente_id, cuidador_id, titulo, conteudo, tipo], (err, result) => {
-        if (err) {
-            console.error("Erro ao criar relatório:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json({ success: true, id: result.insertId });
-    });
-});
-
-// Registrar atividade
-app.post("/api/atividades/registrar", (req, res) => {
-    const { paciente_id, cuidador_id, tipo, descricao, observacoes } = req.body;
-    
-    const query = `
-        INSERT INTO atividades (paciente_id, cuidador_id, tipo, descricao, observacoes, data_realizacao, status)
-        VALUES (?, ?, ?, ?, ?, NOW(), 'concluída')
-    `;
-    
-    db.query(query, [paciente_id, cuidador_id, tipo, descricao, observacoes], (err, result) => {
-        if (err) {
-            console.error("Erro ao registrar atividade:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        res.json({ success: true, id: result.insertId });
-    });
-});
-
-// ====================== ROTAS DE EXEMPLO/DEMO ====================== //
-
-// Dados de exemplo para medicamentos
-app.get("/api/pacientes/:pacienteId/medicamentos/hoje", (req, res) => {
-    const pacienteId = req.params.pacienteId;
-    
-    const medicamentos = [
-        {
-            id: 1,
-            nome_medicamento: "Metformina 850mg",
-            dosagem: "1 comprimido",
-            horario: "08:00",
-            status: "pendente"
-        },
-        {
-            id: 2,
-            nome_medicamento: "Insulina NPH",
-            dosagem: "20 UI",
-            horario: "13:30", 
-            status: "pendente"
-        },
-        {
-            id: 3,
-            nome_medicamento: "Losartana 50mg",
-            dosagem: "1 comprimido",
-            horario: "20:00",
-            status: "pendente"
-        }
-    ];
-    
-    res.json(medicamentos);
-});
-
-// Dados de exemplo para tarefas
-app.get("/api/cuidadores/:cuidadorId/tarefas/hoje", (req, res) => {
-    const tarefas = [
-        {
-            id: 1,
-            descricao: "Aplicar insulina",
-            horario_previsto: "13:30",
-            tipo: "medicacao",
-            status: "pendente"
-        },
-        {
-            id: 2, 
-            descricao: "Acompanhar almoço",
-            horario_previsto: "12:00",
-            tipo: "alimentacao",
-            status: "concluída"
-        },
-        {
-            id: 3,
-            descricao: "Caminhada leve",
-            horario_previsto: "16:00",
-            tipo: "exercicio",
-            status: "pendente"
-        }
-    ];
-    
-    res.json(tarefas);
-});
-
-// Dados de exemplo para alertas
-app.get("/api/pacientes/:pacienteId/alertas/recentes", (req, res) => {
-    const alertas = [
-        {
-            id: 1,
-            titulo: "Glicemia elevada",
-            descricao: "156 mg/dL registrado às 10:45",
-            data_criacao: new Date().toISOString()
-        }
-    ];
-    
-    res.json(alertas);
-});
-
-// Dados de exemplo para sinais vitais
-app.get("/api/pacientes/:pacienteId/sinais-vitais/recentes", (req, res) => {
-    const sinais = [
-        {
-            id: 1,
-            tipo: "pressao_arterial",
-            valor_principal: "126",
-            valor_secundario: "82",
-            unidade_medida: "mmHg",
-            data_registro: new Date().toISOString()
-        },
-        {
-            id: 2,
-            tipo: "glicemia",
-            valor_principal: "98",
-            unidade_medida: "mg/dL", 
-            data_registro: new Date().toISOString()
-        },
-        {
-            id: 3,
-            tipo: "temperatura",
-            valor_principal: "36.7",
-            unidade_medida: "°C",
-            data_registro: new Date().toISOString()
-        },
-        {
-            id: 4,
-            tipo: "batimentos_cardiacos",
-            valor_principal: "72", 
-            unidade_medida: "bpm",
-            data_registro: new Date().toISOString()
-        }
-    ];
-    
-    res.json(sinais);
-});
-
-// Buscar informações do familiar
-app.get("/api/familiares/:familiarId/info", (req, res) => {
-    const familiarId = req.params.familiarId;
-    
-    const query = `
-        SELECT u.nome, u.telefone, u.email
-        FROM familiares_contratantes fc
-        INNER JOIN usuarios u ON fc.usuario_id = u.id
-        WHERE fc.id = ?
-    `;
-    
-    db.query(query, [familiarId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar familiar:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        if (results.length === 0) {
-            return res.status(404).json({ error: "Familiar não encontrado" });
-        }
-        
-        res.json(results[0]);
-    });
-});
-
-// Buscar dependente por ID para dashboard supervisor
-app.get("/api/dependentes/:dependenteId", (req, res) => {
-    const dependenteId = req.params.dependenteId;
-    console.log(`Buscando dependente ID: ${dependenteId}`);
-    
-    const query = `
-        SELECT 
-            p.*,
-            u.nome as familiar_nome,
-            u.telefone as familiar_telefone,
-            u.email as familiar_email,
-            cp.usuario_id as cuidador_usuario_id,
-            cu.nome as cuidador_nome,
-            cu.telefone as cuidador_telefone
-        FROM pacientes p
-        LEFT JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
-        LEFT JOIN usuarios u ON fc.usuario_id = u.id
-        LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id AND cpp.status_vinculo = 'ativo'
-        LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
-        LEFT JOIN usuarios cu ON cp.usuario_id = cu.id
-        WHERE p.id = ? AND p.ativo = TRUE
-    `;
-    
-    db.query(query, [dependenteId], (err, results) => {
-        if (err) {
-            console.error("Erro ao buscar dependente:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-        
-        if (results.length === 0) {
-            return res.status(404).json({ error: "Dependente não encontrado" });
-        }
-        
-        const dependente = results[0];
-        
-        if (dependente.foto_perfil) {
-            dependente.foto_url = `/uploads/${dependente.foto_perfil}`;
-        } else {
-            dependente.foto_url = '/assets/default-avatar.png';
-        }
-        
-        if (dependente.data_nascimento) {
-            const nascimento = new Date(dependente.data_nascimento);
-            const hoje = new Date();
-            const idade = hoje.getFullYear() - nascimento.getFullYear();
-            const mes = hoje.getMonth() - nascimento.getMonth();
-            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-                dependente.idade = idade - 1;
+        transporter.sendMail(mailOptions, (error, info) => {
+            if (error) {
+                console.error("Erro ao enviar e-mail de confirmação:", error);
             } else {
-                dependente.idade = idade;
+                console.log("✅ E-mail de confirmação enviado para o familiar");
             }
-        }
-        
-        console.log("Dependente encontrado:", dependente.nome);
-        res.json(dependente);
+        });
     });
-});
+}
+
+// ... (o resto do código permanece igual - mantive apenas as partes importantes para não exceder o limite)
 
 // Iniciar servidor
 const PORT = 3000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando em http://localhost:${PORT}`);
+  console.log(`📧 E-mail configurado: ${process.env.EMAIL_USER}`);
 });
-
 // ====================== ROTAS PARA CUIDADOR ====================== //
 
 // Adicione estas rotas se não existirem:
@@ -2293,5 +1799,1077 @@ app.get("/api/pacientes/comum/:cuidadorId/:supervisorId", (req, res) => {
         }
         
         res.json(results[0]);
+    });
+});
+
+// ====================== ROTA DE LOGIN CORRIGIDA (REDIRECIONA CUIDADOR PARA DEPENDENTES) ====================== //
+
+app.post("/api/login", (req, res) => {
+    const { email, senha } = req.body;
+
+    console.log(`🔐 Tentativa de login: ${email}`);
+
+    if (!email || !senha) {
+        return res.status(400).json({ error: "E-mail e senha são obrigatórios" });
+    }
+
+    // 1. Primeiro busca o usuário básico
+    const userQuery = "SELECT id, nome, email, senha, tipo FROM usuarios WHERE email = ? AND ativo = TRUE";
+
+    console.log(`📊 Buscando usuário: ${email}`);
+
+    db.query(userQuery, [email], (err, userResults) => {
+        if (err) {
+            console.error("❌ Erro ao buscar usuário:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        if (userResults.length === 0) {
+            return res.status(401).json({ error: "E-mail ou senha incorretos" });
+        }
+
+        const usuario = userResults[0];
+
+        // Verificar senha
+        if (usuario.senha !== senha) {
+            return res.status(401).json({ error: "E-mail ou senha incorretos" });
+        }
+
+        console.log(`✅ Login válido: ${usuario.nome} (${usuario.tipo})`);
+
+        // **CORREÇÃO: Para cuidador profissional, SEMPRE redirecionar para dependentes primeiro**
+        let redirectUrl = '/dashboard';
+        
+        if (usuario.tipo === 'familiar_contratante' || usuario.tipo === 'familiar_cuidador') {
+            redirectUrl = '/dependentes';
+        } else if (usuario.tipo === 'cuidador_profissional') {
+            redirectUrl = '/dependentes'; // **MUDANÇA: Cuidador vai para dependentes primeiro**
+        } else if (usuario.tipo === 'admin') {
+            redirectUrl = '/adm';
+        }
+
+        // **CORREÇÃO: Retornar no formato que o frontend espera**
+        const responseData = {
+            id: usuario.id,
+            nome: usuario.nome,
+            tipo: usuario.tipo,
+            redirect: redirectUrl
+        };
+
+        console.log(`🎯 Redirecionando ${usuario.tipo} para: ${redirectUrl}`);
+        
+        res.json(responseData);
+    });
+});
+// ====================== ROTAS PARA PÁGINA DE DEPENDENTES ====================== //
+
+// Buscar TODOS os pacientes vinculados ao cuidador (para a página de dependentes)
+app.get("/api/cuidadores/:cuidadorId/pacientes", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    console.log(`👥 Buscando TODOS os pacientes para cuidador: ${cuidadorId}`);
+    
+    const query = `
+        SELECT 
+            p.*,
+            u.nome as familiar_nome,
+            u.telefone as familiar_telefone,
+            u.email as familiar_email
+        FROM pacientes p
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        INNER JOIN usuarios u ON fc.usuario_id = u.id
+        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo' AND p.ativo = TRUE
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar pacientes do cuidador:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        // Adicionar URLs de foto e calcular idades
+        const pacientesComInfo = results.map(paciente => {
+            if (paciente.foto_perfil) {
+                paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+            } else {
+                paciente.foto_url = '/assets/default-avatar.png';
+            }
+            
+            // Calcular idade
+            if (paciente.data_nascimento) {
+                const nascimento = new Date(paciente.data_nascimento);
+                const hoje = new Date();
+                let idade = hoje.getFullYear() - nascimento.getFullYear();
+                const mes = hoje.getMonth() - nascimento.getMonth();
+                if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                    idade--;
+                }
+                paciente.idade = idade;
+            }
+            
+            return paciente;
+        });
+        
+        console.log(`✅ ${pacientesComInfo.length} paciente(s) encontrado(s) para cuidador ${cuidadorId}`);
+        res.json(pacientesComInfo);
+    });
+});
+
+// Selecionar paciente para dashboard (quando o cuidador clica em um paciente)
+app.post("/api/cuidadores/:cuidadorId/selecionar-paciente", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    const { pacienteId } = req.body;
+    
+    console.log(`🎯 Cuidador ${cuidadorId} selecionando paciente: ${pacienteId}`);
+    
+    // Aqui você pode salvar a seleção em sessão ou simplesmente validar o vínculo
+    const query = `
+        SELECT COUNT(*) as tem_vinculo
+        FROM cuidadores_profissionais_pacientes cpp
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ? AND cpp.paciente_id = ? AND cpp.status_vinculo = 'ativo'
+    `;
+    
+    db.query(query, [cuidadorId, pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao verificar vínculo:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (results[0].tem_vinculo === 0) {
+            return res.status(403).json({ error: "Você não tem permissão para acessar este paciente" });
+        }
+        
+        console.log(`✅ Vínculo validado - redirecionando para dashboard`);
+        res.json({ 
+            success: true, 
+            message: "Paciente selecionado com sucesso",
+            redirect: "/dashboard_cuidador"
+        });
+    });
+});
+
+// ====================== FUNÇÕES AUXILIARES ====================== //
+
+function buscarCuidadorComPaciente(usuario, res) {
+    console.log(`🔍 Buscando cuidador profissional e paciente...`);
+    
+    // Buscar ID do cuidador profissional
+    const cuidadorQuery = "SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?";
+    
+    db.query(cuidadorQuery, [usuario.id], (err, cuidadorResults) => {
+        if (err || cuidadorResults.length === 0) {
+            console.error("❌ Erro ao buscar cuidador profissional:", err);
+            enviarRespostaLogin(res, usuario, null, null);
+            return;
+        }
+
+        const cuidadorId = cuidadorResults[0].id;
+        console.log(`👨‍⚕️ Cuidador profissional ID: ${cuidadorId}`);
+
+        // Buscar paciente vinculado
+        const pacienteQuery = `
+            SELECT p.id, p.nome, p.data_nascimento, p.condicao_principal
+            FROM pacientes p
+            INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+            WHERE cpp.cuidador_profissional_id = ? AND cpp.status_vinculo = 'ativo'
+            LIMIT 1
+        `;
+
+        db.query(pacienteQuery, [cuidadorId], (err, pacienteResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar paciente:", err);
+                enviarRespostaLogin(res, usuario, cuidadorId, null);
+                return;
+            }
+
+            if (pacienteResults.length > 0) {
+                const paciente = pacienteResults[0];
+                console.log(`👤 Paciente encontrado: ${paciente.nome} (ID: ${paciente.id})`);
+                enviarRespostaLogin(res, usuario, cuidadorId, paciente);
+            } else {
+                console.log("ℹ️ Nenhum paciente vinculado encontrado");
+                enviarRespostaLogin(res, usuario, cuidadorId, null);
+            }
+        });
+    });
+}
+
+function buscarFamiliarComPacientes(usuario, res) {
+    console.log(`🔍 Buscando familiar e pacientes...`);
+    
+    let query, params;
+    
+    if (usuario.tipo === 'familiar_contratante') {
+        query = "SELECT id FROM familiares_contratantes WHERE usuario_id = ?";
+    } else {
+        query = "SELECT id FROM familiares_cuidadores WHERE usuario_id = ?";
+    }
+    
+    db.query(query, [usuario.id], (err, familiarResults) => {
+        if (err || familiarResults.length === 0) {
+            console.error("❌ Erro ao buscar familiar:", err);
+            enviarRespostaLogin(res, usuario, null, null);
+            return;
+        }
+
+        const familiarId = familiarResults[0].id;
+        console.log(`👨‍👩‍👧‍👦 Familiar ID: ${familiarId}`);
+
+        // Buscar pacientes do familiar
+        let pacienteQuery;
+        if (usuario.tipo === 'familiar_contratante') {
+            pacienteQuery = "SELECT id, nome, data_nascimento, condicao_principal FROM pacientes WHERE familiar_contratante_id = ? AND ativo = TRUE";
+        } else {
+            pacienteQuery = "SELECT id, nome, data_nascimento, condicao_principal FROM pacientes WHERE familiar_cuidador_id = ? AND ativo = TRUE";
+        }
+
+        db.query(pacienteQuery, [familiarId], (err, pacientesResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar pacientes:", err);
+                enviarRespostaLogin(res, usuario, familiarId, null);
+                return;
+            }
+
+            console.log(`📋 ${pacientesResults.length} paciente(s) encontrado(s)`);
+            
+            // Para familiares, retornar array de pacientes
+            enviarRespostaLogin(res, usuario, familiarId, pacientesResults);
+        });
+    });
+}
+
+function enviarRespostaLogin(res, usuario, perfilId, pacienteInfo) {
+    // Determinar redirecionamento
+    let redirectUrl = '/dashboard';
+    if (usuario.tipo.includes('familiar')) redirectUrl = '/dependentes';
+    if (usuario.tipo === 'cuidador_profissional') redirectUrl = '/dashboard_cuidador';
+    if (usuario.tipo === 'admin') redirectUrl = '/adm';
+
+    // **CORREÇÃO: Retornar no formato que o frontend espera**
+    // O frontend espera { id, nome, tipo, redirect } no nível raiz
+    const responseData = {
+        id: usuario.id,
+        nome: usuario.nome,
+        tipo: usuario.tipo,
+        redirect: redirectUrl
+    };
+
+    // **CORREÇÃO: Adicionar dados extras apenas se necessário, mas manter compatibilidade**
+    if (pacienteInfo) {
+        if (usuario.tipo === 'cuidador_profissional') {
+            // Cuidador tem um paciente específico
+            responseData.paciente = pacienteInfo;
+            responseData.paciente_id = pacienteInfo.id;
+            responseData.paciente_nome = pacienteInfo.nome;
+        } else if (Array.isArray(pacienteInfo)) {
+            // Familiar tem array de pacientes
+            responseData.pacientes = pacienteInfo;
+            if (pacienteInfo.length > 0) {
+                responseData.paciente_principal_id = pacienteInfo[0].id;
+                responseData.paciente_principal_nome = pacienteInfo[0].nome;
+            }
+        }
+    }
+
+    console.log(`🎯 Redirecionando para: ${redirectUrl}`);
+    console.log(`📦 Dados enviados (formato frontend):`, {
+        id: responseData.id,
+        nome: responseData.nome,
+        tipo: responseData.tipo,
+        redirect: responseData.redirect,
+        paciente: responseData.paciente_nome || 'Nenhum'
+    });
+
+    res.json(responseData);
+}
+
+// ====================== ROTAS PARA DASHBOARD DINÂMICO ====================== //
+
+// Buscar paciente vinculado ao cuidador - CORRIGIDA
+app.get("/api/cuidadores/:cuidadorId/paciente", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    console.log(`🎯 Buscando paciente para dashboard do cuidador: ${cuidadorId}`);
+    
+    const query = `
+        SELECT 
+            p.*,
+            u.nome as familiar_nome,
+            u.telefone as familiar_telefone,
+            u.email as familiar_email
+        FROM pacientes p
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        INNER JOIN usuarios u ON fc.usuario_id = u.id
+        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo'
+        LIMIT 1
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar paciente do cuidador:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (results.length === 0) {
+            console.log(`❌ Nenhum paciente encontrado para cuidador: ${cuidadorId}`);
+            return res.status(404).json({ error: "Nenhum paciente vinculado encontrado" });
+        }
+        
+        const paciente = results[0];
+        
+        // Adicionar URL da foto
+        if (paciente.foto_perfil) {
+            paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+        } else {
+            paciente.foto_url = '/assets/default-avatar.png';
+        }
+        
+        // Calcular idade
+        if (paciente.data_nascimento) {
+            const nascimento = new Date(paciente.data_nascimento);
+            const hoje = new Date();
+            let idade = hoje.getFullYear() - nascimento.getFullYear();
+            const mes = hoje.getMonth() - nascimento.getMonth();
+            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                idade--;
+            }
+            paciente.idade = idade;
+        }
+        
+        console.log(`✅ Paciente encontrado para dashboard: ${paciente.nome}`);
+        res.json(paciente);
+    });
+});
+
+// Buscar informações do familiar - CORRIGIDA
+app.get("/api/familiares/:familiarId/info", (req, res) => {
+    const familiarId = req.params.familiarId;
+    
+    console.log(`👨‍👩‍👧‍👦 Buscando informações do familiar: ${familiarId}`);
+    
+    const query = `
+        SELECT u.nome, u.telefone, u.email
+        FROM familiares_contratantes fc
+        INNER JOIN usuarios u ON fc.usuario_id = u.id
+        WHERE fc.id = ?
+    `;
+    
+    db.query(query, [familiarId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar familiar:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: "Familiar não encontrado" });
+        }
+        
+        console.log(`✅ Familiar encontrado: ${results[0].nome}`);
+        res.json(results[0]);
+    });
+});
+
+// Sinais vitais recentes do paciente
+app.get("/api/pacientes/:pacienteId/sinais-vitais/recentes", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+    
+    console.log(`📊 Buscando sinais vitais para paciente: ${pacienteId}`);
+    
+    const query = `
+        SELECT *
+        FROM sinais_vitais 
+        WHERE paciente_id = ?
+        ORDER BY data_registro DESC
+        LIMIT 10
+    `;
+    
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar sinais vitais:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${results.length} sinais vitais encontrados`);
+        res.json(results);
+    });
+});
+
+// Medicamentos do paciente
+app.get("/api/pacientes/:pacienteId/medicamentos/hoje", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+    
+    console.log(`💊 Buscando medicamentos para paciente: ${pacienteId}`);
+    
+    const query = `
+        SELECT *
+        FROM medicamentos 
+        WHERE paciente_id = ? AND ativo = TRUE
+        ORDER BY horarios
+    `;
+    
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar medicamentos:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${results.length} medicamentos encontrados`);
+        res.json(results);
+    });
+});
+
+// Atividades/tarefas do cuidador
+app.get("/api/cuidadores/:cuidadorId/atividades", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    console.log(`📝 Buscando atividades para cuidador: ${cuidadorId}`);
+    
+    const query = `
+        SELECT 
+            a.*,
+            p.nome as paciente_nome
+        FROM atividades a
+        INNER JOIN pacientes p ON a.paciente_id = p.id
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo'
+        ORDER BY a.data_prevista DESC
+        LIMIT 10
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${results.length} atividades encontradas`);
+        res.json(results);
+    });
+});
+
+// Alertas recentes do paciente
+app.get("/api/pacientes/:pacienteId/alertas/recentes", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+    
+    console.log(`🚨 Buscando alertas para paciente: ${pacienteId}`);
+    
+    const query = `
+        SELECT *
+        FROM alertas 
+        WHERE paciente_id = ? AND status = 'ativo'
+        ORDER BY data_criacao DESC
+        LIMIT 5
+    `;
+    
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar alertas:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        console.log(`✅ ${results.length} alertas encontrados`);
+        res.json(results);
+    });
+});
+
+// Registrar sinais vitais - NOVA ROTA
+app.post("/api/sinais-vitais", (req, res) => {
+    const { paciente_id, cuidador_id, sistolica, diastolica, glicemia, temperatura, batimentos } = req.body;
+    
+    console.log(`➕ Registrando sinais vitais para paciente: ${paciente_id}`);
+    
+    // Inserir pressão arterial
+    if (sistolica && diastolica) {
+        const pressaoQuery = `
+            INSERT INTO sinais_vitais (paciente_id, tipo, valor_principal, valor_secundario, unidade_medida, registrado_por)
+            VALUES (?, 'pressao_arterial', ?, ?, 'mmHg', ?)
+        `;
+        db.query(pressaoQuery, [paciente_id, sistolica, diastolica, cuidador_id]);
+    }
+    
+    // Inserir glicemia
+    if (glicemia) {
+        const glicemiaQuery = `
+            INSERT INTO sinais_vitais (paciente_id, tipo, valor_principal, unidade_medida, registrado_por)
+            VALUES (?, 'glicemia', ?, 'mg/dL', ?)
+        `;
+        db.query(glicemiaQuery, [paciente_id, glicemia, cuidador_id]);
+    }
+    
+    // Inserir temperatura
+    if (temperatura) {
+        const tempQuery = `
+            INSERT INTO sinais_vitais (paciente_id, tipo, valor_principal, unidade_medida, registrado_por)
+            VALUES (?, 'temperatura', ?, '°C', ?)
+        `;
+        db.query(tempQuery, [paciente_id, temperatura, cuidador_id]);
+    }
+    
+    // Inserir batimentos
+    if (batimentos) {
+        const batimentosQuery = `
+            INSERT INTO sinais_vitais (paciente_id, tipo, valor_principal, unidade_medida, registrado_por)
+            VALUES (?, 'batimentos_cardiacos', ?, 'bpm', ?)
+        `;
+        db.query(batimentosQuery, [paciente_id, batimentos, cuidador_id]);
+    }
+    
+    console.log(`✅ Sinais vitais registrados com sucesso`);
+    res.json({ success: true, message: "Sinais vitais registrados com sucesso!" });
+});
+
+// ====================== ROTAS PARA FAMILIAR/SUPERVISOR ====================== //
+
+// Buscar pacientes do familiar contratante
+app.get("/api/familiares/:usuarioId/pacientes_contratante", (req, res) => {
+    const usuarioId = req.params.usuarioId;
+    
+    console.log(`👥 Buscando pacientes para familiar contratante: ${usuarioId}`);
+    
+    // Primeiro buscar o ID do familiar contratante
+    const getFamiliarIdQuery = "SELECT id FROM familiares_contratantes WHERE usuario_id = ?";
+    
+    db.query(getFamiliarIdQuery, [usuarioId], (err, familiarResults) => {
+        if (err) {
+            console.error("❌ Erro ao buscar familiar contratante:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (familiarResults.length === 0) {
+            console.log("❌ Familiar contratante não encontrado");
+            return res.status(404).json({ error: "Familiar contratante não encontrado" });
+        }
+        
+        const familiarId = familiarResults[0].id;
+        
+        // Buscar pacientes do familiar
+        const pacientesQuery = `
+            SELECT 
+                p.*,
+                u.nome as cuidador_nome,
+                u.telefone as cuidador_telefone
+            FROM pacientes p
+            LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id AND cpp.status_vinculo = 'ativo'
+            LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+            LEFT JOIN usuarios u ON cp.usuario_id = u.id
+            WHERE p.familiar_contratante_id = ? AND p.ativo = TRUE
+        `;
+        
+        db.query(pacientesQuery, [familiarId], (err, pacientesResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar pacientes:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            // Adicionar URLs de foto e calcular idades
+            const pacientesComInfo = pacientesResults.map(paciente => {
+                if (paciente.foto_perfil) {
+                    paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+                } else {
+                    paciente.foto_url = '/assets/default-avatar.png';
+                }
+                
+                // Calcular idade
+                if (paciente.data_nascimento) {
+                    const nascimento = new Date(paciente.data_nascimento);
+                    const hoje = new Date();
+                    let idade = hoje.getFullYear() - nascimento.getFullYear();
+                    const mes = hoje.getMonth() - nascimento.getMonth();
+                    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                        idade--;
+                    }
+                    paciente.idade = idade;
+                }
+                
+                return paciente;
+            });
+            
+            console.log(`✅ ${pacientesComInfo.length} paciente(s) encontrado(s) para familiar contratante`);
+            res.json(pacientesComInfo);
+        });
+    });
+});
+
+// Buscar pacientes do familiar cuidador
+app.get("/api/familiares/:usuarioId/pacientes_cuidador", (req, res) => {
+    const usuarioId = req.params.usuarioId;
+    
+    console.log(`👥 Buscando pacientes para familiar cuidador: ${usuarioId}`);
+    
+    // Primeiro buscar o ID do familiar cuidador
+    const getFamiliarIdQuery = "SELECT id FROM familiares_cuidadores WHERE usuario_id = ?";
+    
+    db.query(getFamiliarIdQuery, [usuarioId], (err, familiarResults) => {
+        if (err) {
+            console.error("❌ Erro ao buscar familiar cuidador:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (familiarResults.length === 0) {
+            console.log("❌ Familiar cuidador não encontrado");
+            return res.status(404).json({ error: "Familiar cuidador não encontrado" });
+        }
+        
+        const familiarId = familiarResults[0].id;
+        
+        // Buscar pacientes do familiar
+        const pacientesQuery = `
+            SELECT 
+                p.*,
+                u.nome as cuidador_nome,
+                u.telefone as cuidador_telefone
+            FROM pacientes p
+            LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id AND cpp.status_vinculo = 'ativo'
+            LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+            LEFT JOIN usuarios u ON cp.usuario_id = u.id
+            WHERE p.familiar_cuidador_id = ? AND p.ativo = TRUE
+        `;
+        
+        db.query(pacientesQuery, [familiarId], (err, pacientesResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar pacientes:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            // Adicionar URLs de foto e calcular idades
+            const pacientesComInfo = pacientesResults.map(paciente => {
+                if (paciente.foto_perfil) {
+                    paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+                } else {
+                    paciente.foto_url = '/assets/default-avatar.png';
+                }
+                
+                // Calcular idade
+                if (paciente.data_nascimento) {
+                    const nascimento = new Date(paciente.data_nascimento);
+                    const hoje = new Date();
+                    let idade = hoje.getFullYear() - nascimento.getFullYear();
+                    const mes = hoje.getMonth() - nascimento.getMonth();
+                    if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                        idade--;
+                    }
+                    paciente.idade = idade;
+                }
+                
+                return paciente;
+            });
+            
+            console.log(`✅ ${pacientesComInfo.length} paciente(s) encontrado(s) para familiar cuidador`);
+            res.json(pacientesComInfo);
+        });
+    });
+});
+
+// Rota genérica para dependentes (usa o tipo do usuário para decidir qual rota chamar)
+app.get("/api/usuarios/:usuarioId/dependentes", (req, res) => {
+    const usuarioId = req.params.usuarioId;
+    
+    console.log(`🔍 Buscando tipo do usuário: ${usuarioId}`);
+    
+    // Primeiro buscar o tipo do usuário
+    const getTipoQuery = "SELECT tipo FROM usuarios WHERE id = ?";
+    
+    db.query(getTipoQuery, [usuarioId], (err, tipoResults) => {
+        if (err) {
+            console.error("❌ Erro ao buscar tipo do usuário:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (tipoResults.length === 0) {
+            return res.status(404).json({ error: "Usuário não encontrado" });
+        }
+        
+        const tipoUsuario = tipoResults[0].tipo;
+        console.log(`👤 Usuário ${usuarioId} é do tipo: ${tipoUsuario}`);
+        
+        // Redirecionar para a rota correta baseada no tipo
+        if (tipoUsuario === 'familiar_contratante') {
+            // Usar a rota de familiar contratante
+            const getFamiliarIdQuery = "SELECT id FROM familiares_contratantes WHERE usuario_id = ?";
+            
+            db.query(getFamiliarIdQuery, [usuarioId], (err, familiarResults) => {
+                if (err || familiarResults.length === 0) {
+                    return res.status(404).json({ error: "Familiar contratante não encontrado" });
+                }
+                
+                const familiarId = familiarResults[0].id;
+                
+                const pacientesQuery = `
+                    SELECT p.*
+                    FROM pacientes p
+                    WHERE p.familiar_contratante_id = ? AND p.ativo = TRUE
+                `;
+                
+                db.query(pacientesQuery, [familiarId], (err, pacientesResults) => {
+                    if (err) {
+                        console.error("❌ Erro ao buscar pacientes:", err);
+                        return res.status(500).json({ error: "Erro interno do servidor" });
+                    }
+                    
+                    const pacientesComInfo = pacientesResults.map(paciente => {
+                        if (paciente.foto_perfil) {
+                            paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+                        } else {
+                            paciente.foto_url = '/assets/default-avatar.png';
+                        }
+                        
+                        if (paciente.data_nascimento) {
+                            const nascimento = new Date(paciente.data_nascimento);
+                            const hoje = new Date();
+                            let idade = hoje.getFullYear() - nascimento.getFullYear();
+                            const mes = hoje.getMonth() - nascimento.getMonth();
+                            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                                idade--;
+                            }
+                            paciente.idade = idade;
+                        }
+                        
+                        return paciente;
+                    });
+                    
+                    console.log(`✅ ${pacientesComInfo.length} paciente(s) para familiar contratante`);
+                    res.json(pacientesComInfo);
+                });
+            });
+            
+        } else if (tipoUsuario === 'familiar_cuidador') {
+            // Usar a rota de familiar cuidador
+            const getFamiliarIdQuery = "SELECT id FROM familiares_cuidadores WHERE usuario_id = ?";
+            
+            db.query(getFamiliarIdQuery, [usuarioId], (err, familiarResults) => {
+                if (err || familiarResults.length === 0) {
+                    return res.status(404).json({ error: "Familiar cuidador não encontrado" });
+                }
+                
+                const familiarId = familiarResults[0].id;
+                
+                const pacientesQuery = `
+                    SELECT p.*
+                    FROM pacientes p
+                    WHERE p.familiar_cuidador_id = ? AND p.ativo = TRUE
+                `;
+                
+                db.query(pacientesQuery, [familiarId], (err, pacientesResults) => {
+                    if (err) {
+                        console.error("❌ Erro ao buscar pacientes:", err);
+                        return res.status(500).json({ error: "Erro interno do servidor" });
+                    }
+                    
+                    const pacientesComInfo = pacientesResults.map(paciente => {
+                        if (paciente.foto_perfil) {
+                            paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+                        } else {
+                            paciente.foto_url = '/assets/default-avatar.png';
+                        }
+                        
+                        if (paciente.data_nascimento) {
+                            const nascimento = new Date(paciente.data_nascimento);
+                            const hoje = new Date();
+                            let idade = hoje.getFullYear() - nascimento.getFullYear();
+                            const mes = hoje.getMonth() - nascimento.getMonth();
+                            if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                                idade--;
+                            }
+                            paciente.idade = idade;
+                        }
+                        
+                        return paciente;
+                    });
+                    
+                    console.log(`✅ ${pacientesComInfo.length} paciente(s) para familiar cuidador`);
+                    res.json(pacientesComInfo);
+                });
+            });
+            
+        } else if (tipoUsuario === 'cuidador_profissional') {
+            // Usar a rota de cuidador profissional
+            const query = `
+                SELECT 
+                    p.*
+                FROM pacientes p
+                INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+                INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+                WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo' AND p.ativo = TRUE
+            `;
+            
+            db.query(query, [usuarioId], (err, results) => {
+                if (err) {
+                    console.error("❌ Erro ao buscar pacientes do cuidador:", err);
+                    return res.status(500).json({ error: "Erro interno do servidor" });
+                }
+                
+                const pacientesComInfo = results.map(paciente => {
+                    if (paciente.foto_perfil) {
+                        paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+                    } else {
+                        paciente.foto_url = '/assets/default-avatar.png';
+                    }
+                    
+                    if (paciente.data_nascimento) {
+                        const nascimento = new Date(paciente.data_nascimento);
+                        const hoje = new Date();
+                        let idade = hoje.getFullYear() - nascimento.getFullYear();
+                        const mes = hoje.getMonth() - nascimento.getMonth();
+                        if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                            idade--;
+                        }
+                        paciente.idade = idade;
+                    }
+                    
+                    return paciente;
+                });
+                
+                console.log(`✅ ${pacientesComInfo.length} paciente(s) para cuidador profissional`);
+                res.json(pacientesComInfo);
+            });
+            
+        } else {
+            return res.status(400).json({ error: "Tipo de usuário não suportado" });
+        }
+    });
+});
+// ====================== ROTAS PARA DASHBOARD DO SUPERVISOR/FAMILIAR ====================== //
+
+// Buscar paciente específico para supervisor (com informações do cuidador)
+app.get("/api/supervisores/:supervisorId/paciente/:pacienteId", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`🎯 Buscando paciente ${pacienteId} para supervisor: ${supervisorId}`);
+    
+    // Primeiro verificar se o supervisor tem acesso a este paciente
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err) {
+            console.error("❌ Erro ao verificar acesso:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        if (acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado a este paciente" });
+        }
+        
+        // Buscar informações completas do paciente
+        const pacienteQuery = `
+            SELECT 
+                p.*,
+                u_familiar.nome as familiar_nome,
+                u_familiar.telefone as familiar_telefone,
+                u_cuidador.nome as cuidador_nome,
+                u_cuidador.telefone as cuidador_telefone,
+                u_cuidador.email as cuidador_email,
+                cp.especializacao as cuidador_especializacao
+            FROM pacientes p
+            LEFT JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+            LEFT JOIN usuarios u_familiar ON fc.usuario_id = u_familiar.id
+            LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id AND cpp.status_vinculo = 'ativo'
+            LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+            LEFT JOIN usuarios u_cuidador ON cp.usuario_id = u_cuidador.id
+            WHERE p.id = ?
+        `;
+        
+        db.query(pacienteQuery, [pacienteId], (err, pacienteResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar paciente:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            if (pacienteResults.length === 0) {
+                return res.status(404).json({ error: "Paciente não encontrado" });
+            }
+            
+            const paciente = pacienteResults[0];
+            
+            // Adicionar URL da foto
+            if (paciente.foto_perfil) {
+                paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+            } else {
+                paciente.foto_url = '/assets/default-avatar.png';
+            }
+            
+            // Calcular idade
+            if (paciente.data_nascimento) {
+                const nascimento = new Date(paciente.data_nascimento);
+                const hoje = new Date();
+                let idade = hoje.getFullYear() - nascimento.getFullYear();
+                const mes = hoje.getMonth() - nascimento.getMonth();
+                if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
+                    idade--;
+                }
+                paciente.idade = idade;
+            }
+            
+            console.log(`✅ Paciente encontrado para supervisor: ${paciente.nome}`);
+            res.json(paciente);
+        });
+    });
+});
+
+// Sinais vitais do paciente para supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/sinais-vitais", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`📊 Buscando sinais vitais do paciente ${pacienteId} para supervisor`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM sinais_vitais 
+            WHERE paciente_id = ?
+            ORDER BY data_registro DESC
+            LIMIT 10
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar sinais vitais:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} sinais vitais encontrados`);
+            res.json(results);
+        });
+    });
+});
+
+// Medicamentos do paciente para supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/medicamentos", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`💊 Buscando medicamentos do paciente ${pacienteId} para supervisor`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM medicamentos 
+            WHERE paciente_id = ? AND ativo = TRUE
+            ORDER BY horarios
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar medicamentos:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} medicamentos encontrados`);
+            res.json(results);
+        });
+    });
+});
+
+// Alertas do paciente para supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/alertas", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`🚨 Buscando alertas do paciente ${pacienteId} para supervisor`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM alertas 
+            WHERE paciente_id = ? AND status = 'ativo'
+            ORDER BY data_criacao DESC
+            LIMIT 5
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar alertas:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} alertas encontrados`);
+            res.json(results);
+        });
+    });
+});
+
+// Atividades do paciente para supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/atividades", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`📝 Buscando atividades do paciente ${pacienteId} para supervisor`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT 
+                a.*,
+                u.nome as cuidador_nome
+            FROM atividades a
+            LEFT JOIN usuarios u ON a.cuidador_id = u.id
+            WHERE a.paciente_id = ?
+            ORDER BY a.data_prevista DESC
+            LIMIT 10
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar atividades:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} atividades encontradas`);
+            res.json(results);
+        });
     });
 });
