@@ -2042,11 +2042,17 @@ function buscarFamiliarComPacientes(usuario, res) {
 }
 
 function enviarRespostaLogin(res, usuario, perfilId, pacienteInfo) {
-    // Determinar redirecionamento
+    // **CORREÇÃO: Determinar redirecionamento CORRETO**
     let redirectUrl = '/dashboard';
-    if (usuario.tipo.includes('familiar')) redirectUrl = '/dependentes';
-    if (usuario.tipo === 'cuidador_profissional') redirectUrl = '/dashboard_cuidador';
-    if (usuario.tipo === 'admin') redirectUrl = '/adm';
+    
+    // TODOS os tipos de usuário vão para dependentes primeiro
+    if (usuario.tipo === 'familiar_contratante' || 
+        usuario.tipo === 'familiar_cuidador' || 
+        usuario.tipo === 'cuidador_profissional') {
+        redirectUrl = '/dependentes';
+    } else if (usuario.tipo === 'admin') {
+        redirectUrl = '/adm';
+    }
 
     // **CORREÇÃO: Retornar no formato que o frontend espera**
     // O frontend espera { id, nome, tipo, redirect } no nível raiz
@@ -2074,7 +2080,7 @@ function enviarRespostaLogin(res, usuario, perfilId, pacienteInfo) {
         }
     }
 
-    console.log(`🎯 Redirecionando para: ${redirectUrl}`);
+    console.log(`🎯 Redirecionando ${usuario.tipo} para: ${redirectUrl}`);
     console.log(`📦 Dados enviados (formato frontend):`, {
         id: responseData.id,
         nome: responseData.nome,
@@ -2629,34 +2635,35 @@ app.get("/api/usuarios/:usuarioId/dependentes", (req, res) => {
                 res.json(pacientesComInfo);
             });
             
-        } else {
+        } else {    
             return res.status(400).json({ error: "Tipo de usuário não suportado" });
         }
     });
 });
 // ====================== ROTAS PARA DASHBOARD DO SUPERVISOR/FAMILIAR ====================== //
 
-// Buscar paciente específico para supervisor (com informações do cuidador)
+// Rota CORRIGIDA para buscar paciente do supervisor (familiar contratante)
 app.get("/api/supervisores/:supervisorId/paciente/:pacienteId", (req, res) => {
     const { supervisorId, pacienteId } = req.params;
     
-    console.log(`🎯 Buscando paciente ${pacienteId} para supervisor: ${supervisorId}`);
+    console.log(`🎯 Buscando paciente ${pacienteId} para supervisor (familiar contratante): ${supervisorId}`);
     
-    // Primeiro verificar se o supervisor tem acesso a este paciente
+    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
     const verificarAcessoQuery = `
         SELECT p.id 
         FROM pacientes p
-        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
-                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
     `;
     
-    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
         if (err) {
             console.error("❌ Erro ao verificar acesso:", err);
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
         
         if (acessoResults.length === 0) {
+            console.log("❌ Acesso negado: paciente não pertence ao familiar contratante");
             return res.status(403).json({ error: "Acesso negado a este paciente" });
         }
         
@@ -2669,7 +2676,8 @@ app.get("/api/supervisores/:supervisorId/paciente/:pacienteId", (req, res) => {
                 u_cuidador.nome as cuidador_nome,
                 u_cuidador.telefone as cuidador_telefone,
                 u_cuidador.email as cuidador_email,
-                cp.especializacao as cuidador_especializacao
+                cp.especializacao as cuidador_especializacao,
+                TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) as idade
             FROM pacientes p
             LEFT JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
             LEFT JOIN usuarios u_familiar ON fc.usuario_id = u_familiar.id
@@ -2698,39 +2706,27 @@ app.get("/api/supervisores/:supervisorId/paciente/:pacienteId", (req, res) => {
                 paciente.foto_url = '/assets/default-avatar.png';
             }
             
-            // Calcular idade
-            if (paciente.data_nascimento) {
-                const nascimento = new Date(paciente.data_nascimento);
-                const hoje = new Date();
-                let idade = hoje.getFullYear() - nascimento.getFullYear();
-                const mes = hoje.getMonth() - nascimento.getMonth();
-                if (mes < 0 || (mes === 0 && hoje.getDate() < nascimento.getDate())) {
-                    idade--;
-                }
-                paciente.idade = idade;
-            }
-            
-            console.log(`✅ Paciente encontrado para supervisor: ${paciente.nome}`);
+            console.log(`✅ Paciente encontrado para familiar contratante: ${paciente.nome}`);
             res.json(paciente);
         });
     });
 });
 
-// Sinais vitais do paciente para supervisor
+// Rota CORRIGIDA para sinais vitais do supervisor
 app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/sinais-vitais", (req, res) => {
     const { supervisorId, pacienteId } = req.params;
     
-    console.log(`📊 Buscando sinais vitais do paciente ${pacienteId} para supervisor`);
+    console.log(`📊 Buscando sinais vitais do paciente ${pacienteId} para supervisor: ${supervisorId}`);
     
-    // Verificar acesso primeiro
+    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
     const verificarAcessoQuery = `
         SELECT p.id 
         FROM pacientes p
-        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
-                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
     `;
     
-    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
         if (err || acessoResults.length === 0) {
             return res.status(403).json({ error: "Acesso negado" });
         }
@@ -2749,7 +2745,126 @@ app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/sinais-vitais", (
                 return res.status(500).json({ error: "Erro interno do servidor" });
             }
             
-            console.log(`✅ ${results.length} sinais vitais encontrados`);
+            console.log(`✅ ${results.length} sinais vitais encontrados para supervisor`);
+            res.json(results);
+        });
+    });
+});
+
+// Rota CORRIGIDA para medicamentos do supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/medicamentos", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`💊 Buscando medicamentos do paciente ${pacienteId} para supervisor: ${supervisorId}`);
+    
+    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM medicamentos 
+            WHERE paciente_id = ? AND ativo = TRUE
+            ORDER BY horarios
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar medicamentos:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} medicamentos encontrados para supervisor`);
+            res.json(results);
+        });
+    });
+});
+
+// Rota CORRIGIDA para alertas do supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/alertas", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`🚨 Buscando alertas do paciente ${pacienteId} para supervisor: ${supervisorId}`);
+    
+    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM alertas 
+            WHERE paciente_id = ? AND status = 'ativo'
+            ORDER BY data_criacao DESC
+            LIMIT 5
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar alertas:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} alertas encontrados para supervisor`);
+            res.json(results);
+        });
+    });
+});
+
+// Rota CORRIGIDA para atividades do supervisor
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/atividades", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`📝 Buscando atividades do paciente ${pacienteId} para supervisor: ${supervisorId}`);
+    
+    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT 
+                a.*,
+                u.nome as cuidador_nome
+            FROM atividades a
+            LEFT JOIN usuarios u ON a.cuidador_id = u.id
+            WHERE a.paciente_id = ?
+            ORDER BY a.data_prevista DESC
+            LIMIT 10
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar atividades:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} atividades encontradas para supervisor`);
             res.json(results);
         });
     });
@@ -2871,5 +2986,527 @@ app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/atividades", (req
             console.log(`✅ ${results.length} atividades encontradas`);
             res.json(results);
         });
+    });
+});
+
+// ====================== ROTA PARA CADASTRAR FAMILIAR CUIDADOR ====================== //
+
+app.post("/api/cadastrar-familiar-cuidador", upload.single('foto_perfil'), (req, res) => {
+    console.log("📝 Iniciando cadastro de familiar cuidador...");
+    
+    const {
+        nome,
+        email,
+        senha,
+        telefone,
+        data_nascimento,
+        parentesco,
+        endereco
+    } = req.body;
+
+    // Validações básicas (sem CPF e sem genero)
+    if (!nome || !email || !senha || !telefone) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Nome, email, senha e telefone são obrigatórios' 
+        });
+    }
+
+    if (senha.length < 6) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'A senha deve ter pelo menos 6 caracteres' 
+        });
+    }
+
+    console.log("📊 Dados recebidos:", {
+        nome, email, telefone, data_nascimento, parentesco, endereco
+    });
+
+    // 1. Verificar se o email já existe
+    const checkEmailQuery = "SELECT id FROM usuarios WHERE email = ?";
+    
+    db.query(checkEmailQuery, [email], (err, emailResults) => {
+        if (err) {
+            console.error("❌ Erro ao verificar email:", err);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Erro interno do servidor' 
+            });
+        }
+
+        if (emailResults.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Email já cadastrado' 
+            });
+        }
+
+        // 2. Inserir usuário (sem CPF e sem genero)
+        const insertUsuarioQuery = `
+            INSERT INTO usuarios 
+            (nome, email, senha, telefone, data_nascimento, tipo, ativo, data_criacao)
+            VALUES (?, ?, ?, ?, ?, 'familiar_cuidador', TRUE, NOW())
+        `;
+
+        db.query(insertUsuarioQuery, [
+            nome,
+            email,
+            senha,
+            telefone,
+            data_nascimento || null
+        ], (err, usuarioResult) => {
+            if (err) {
+                console.error("❌ Erro ao inserir usuário:", err);
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'Erro ao cadastrar usuário' 
+                });
+            }
+
+            const usuarioId = usuarioResult.insertId;
+            console.log(`✅ Usuário criado com ID: ${usuarioId}`);
+
+            // 3. Inserir familiar cuidador
+            const insertFamiliarQuery = `
+                INSERT INTO familiares_cuidadores 
+                (usuario_id, parentesco, endereco, data_criacao)
+                VALUES (?, ?, ?, NOW())
+            `;
+
+            db.query(insertFamiliarQuery, [
+                usuarioId, 
+                parentesco || 'Familiar',
+                endereco || null
+            ], (err, familiarResult) => {
+                if (err) {
+                    console.error("❌ Erro ao inserir familiar cuidador:", err);
+                    
+                    // Rollback: deletar usuário se falhar ao criar familiar
+                    db.query("DELETE FROM usuarios WHERE id = ?", [usuarioId]);
+                    
+                    return res.status(500).json({ 
+                        success: false, 
+                        message: 'Erro ao criar perfil de familiar cuidador' 
+                    });
+                }
+
+                const familiarId = familiarResult.insertId;
+                console.log(`🎉 Familiar cuidador cadastrado com sucesso!`);
+                console.log(`👤 Usuário ID: ${usuarioId}`);
+                console.log(`👨‍👩‍👧‍👦 Familiar ID: ${familiarId}`);
+                console.log(`📋 Parentesco: ${parentesco || 'Familiar'}`);
+
+                // Retornar sucesso
+                res.json({ 
+                    success: true, 
+                    message: 'Familiar cuidador cadastrado com sucesso!',
+                    usuario_id: usuarioId,
+                    familiar_id: familiarId,
+                    redirect: '/'
+                });
+            });
+        });
+    });
+});
+// ====================== ROTA PARA CADASTRAR PACIENTE ====================== //
+
+app.post("/api/pacientes", upload.single('foto_perfil'), (req, res) => {
+    console.log("👤 Iniciando cadastro de paciente...");
+    
+    const {
+        nome,
+        data_nascimento,
+        genero,
+        condicao_principal,
+        plano_saude,
+        alergias,
+        historico_medico,
+        familiar_cuidador_id
+    } = req.body;
+
+    // Validações básicas
+    if (!nome || !data_nascimento || !familiar_cuidador_id) {
+        return res.status(400).json({ 
+            success: false, 
+            message: 'Nome, data de nascimento e familiar cuidador são obrigatórios' 
+        });
+    }
+
+    // Processar foto se existir
+    let foto_perfil = null;
+    if (req.file) {
+        foto_perfil = req.file.filename;
+    }
+
+    console.log("📊 Dados do paciente recebidos:", {
+        nome, data_nascimento, genero, familiar_cuidador_id
+    });
+
+    // Inserir paciente
+    const insertPacienteQuery = `
+        INSERT INTO pacientes 
+        (nome, data_nascimento, genero, condicao_principal, plano_saude, alergias, historico_medico, foto_perfil, familiar_cuidador_id, ativo, data_criacao)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, TRUE, NOW())
+    `;
+
+    db.query(insertPacienteQuery, [
+        nome,
+        data_nascimento,
+        genero || null,
+        condicao_principal || null,
+        plano_saude || null,
+        alergias || null,
+        historico_medico || null,
+        foto_perfil,
+        familiar_cuidador_id
+    ], (err, pacienteResult) => {
+        if (err) {
+            console.error("❌ Erro ao inserir paciente:", err);
+            return res.status(500).json({ 
+                success: false, 
+                message: 'Erro ao cadastrar paciente' 
+            });
+        }
+
+        const pacienteId = pacienteResult.insertId;
+        console.log(`✅ Paciente cadastrado com sucesso! ID: ${pacienteId}`);
+
+        res.json({ 
+            success: true, 
+            message: 'Paciente cadastrado com sucesso!',
+            paciente_id: pacienteId
+        });
+    });
+});
+// ====================== ROTAS PARA FAMILIAR CUIDADOR ====================== //
+
+// Rota para buscar pacientes do familiar cuidador
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes", (req, res) => {
+    const usuarioId = req.params.usuarioId;
+    
+    console.log(`👥 Buscando pacientes para familiar cuidador: ${usuarioId}`);
+    
+    const query = `
+        SELECT 
+            p.*,
+            TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) as idade
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(query, [usuarioId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar pacientes do familiar cuidador:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        // Adicionar URLs de foto
+        const pacientesComInfo = results.map(paciente => {
+            if (paciente.foto_perfil) {
+                paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+            } else {
+                paciente.foto_url = '/assets/default-avatar.png';
+            }
+            return paciente;
+        });
+        
+        console.log(`✅ ${pacientesComInfo.length} paciente(s) encontrado(s) para familiar cuidador ${usuarioId}`);
+        res.json(pacientesComInfo);
+    });
+});
+
+// Rota para familiar cuidador selecionar paciente e ir para dashboard_supervisor
+app.post("/api/familiares-cuidadores/:usuarioId/selecionar-paciente", (req, res) => {
+    const usuarioId = req.params.usuarioId;
+    const { pacienteId } = req.body;
+
+    console.log(`🎯 Familiar cuidador ${usuarioId} selecionando paciente: ${pacienteId}`);
+
+    // Verificar se o familiar cuidador tem acesso a este paciente
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err) {
+            console.error("❌ Erro ao verificar acesso:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        if (acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado a este paciente" });
+        }
+
+        console.log(`✅ Acesso validado - redirecionando para dashboard_supervisor`);
+        
+        res.json({ 
+            success: true, 
+            message: "Paciente selecionado com sucesso",
+            redirect: "/dashboard_supervisor",
+            paciente_id: pacienteId
+        });
+    });
+});
+
+// Rota para buscar informações do paciente para o dashboard_supervisor
+app.get("/api/familiares-cuidadores/:usuarioId/paciente/:pacienteId", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📊 Buscando paciente ${pacienteId} para familiar cuidador: ${usuarioId}`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        // Buscar informações completas do paciente
+        const pacienteQuery = `
+            SELECT 
+                p.*,
+                TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) as idade
+            FROM pacientes p
+            WHERE p.id = ?
+        `;
+        
+        db.query(pacienteQuery, [pacienteId], (err, pacienteResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar paciente:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            if (pacienteResults.length === 0) {
+                return res.status(404).json({ error: "Paciente não encontrado" });
+            }
+            
+            const paciente = pacienteResults[0];
+            
+            // Adicionar URL da foto
+            if (paciente.foto_perfil) {
+                paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+            } else {
+                paciente.foto_url = '/assets/default-avatar.png';
+            }
+            
+            console.log(`✅ Paciente encontrado para familiar cuidador: ${paciente.nome}`);
+            res.json(paciente);
+        });
+    });
+});
+
+// ====================== ROTAS ADICIONAIS QUE ESTÃO FALTANDO ====================== //
+
+// Rota para dashboard familiar cuidador (NOVA)
+app.get("/dashboard_familiar_cuidador", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/dashboard_familiar_cuidador.html"));
+});
+
+// Rota para dashboard familiar cuidador com .html também
+app.get("/dashboard_familiar_cuidador.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "public/paginas/dashboard_familiar_cuidador.html"));
+});
+
+// Remova ou comente a rota que não existe
+// app.get("/dashboard_familiar", (req, res) => {
+//   res.sendFile(path.join(__dirname, "public/paginas/dashboard_familiar.html"));
+// });
+
+// ====================== ROTAS PARA DASHBOARD FAMILIAR CUIDADOR ====================== //
+
+// Buscar paciente do familiar cuidador
+app.get("/api/familiares-cuidadores/:usuarioId/paciente/:pacienteId", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📊 Buscando paciente ${pacienteId} para familiar cuidador: ${usuarioId}`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        // Buscar informações completas do paciente
+        const pacienteQuery = `
+            SELECT 
+                p.*,
+                TIMESTAMPDIFF(YEAR, p.data_nascimento, CURDATE()) as idade
+            FROM pacientes p
+            WHERE p.id = ?
+        `;
+        
+        db.query(pacienteQuery, [pacienteId], (err, pacienteResults) => {
+            if (err) {
+                console.error("❌ Erro ao buscar paciente:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            if (pacienteResults.length === 0) {
+                return res.status(404).json({ error: "Paciente não encontrado" });
+            }
+            
+            const paciente = pacienteResults[0];
+            
+            // Adicionar URL da foto
+            if (paciente.foto_perfil) {
+                paciente.foto_url = `/uploads/${paciente.foto_perfil}`;
+            } else {
+                paciente.foto_url = '/assets/default-avatar.png';
+            }
+            
+            console.log(`✅ Paciente encontrado para familiar cuidador: ${paciente.nome}`);
+            res.json(paciente);
+        });
+    });
+});
+
+// Sinais vitais para familiar cuidador
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/sinais-vitais", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📊 Buscando sinais vitais para familiar cuidador: ${usuarioId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM sinais_vitais 
+            WHERE paciente_id = ?
+            ORDER BY data_registro DESC
+            LIMIT 10
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar sinais vitais:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} sinais vitais encontrados para familiar cuidador`);
+            res.json(results);
+        });
+    });
+});
+
+// Medicamentos para familiar cuidador
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/medicamentos", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`💊 Buscando medicamentos para familiar cuidador: ${usuarioId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM medicamentos 
+            WHERE paciente_id = ? AND ativo = TRUE
+            ORDER BY horarios
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar medicamentos:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} medicamentos encontrados para familiar cuidador`);
+            res.json(results);
+        });
+    });
+});
+
+// Alertas para familiar cuidador
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/alertas", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`🚨 Buscando alertas para familiar cuidador: ${usuarioId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+        
+        const query = `
+            SELECT *
+            FROM alertas 
+            WHERE paciente_id = ? AND status = 'ativo'
+            ORDER BY data_criacao DESC
+            LIMIT 5
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar alertas:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            console.log(`✅ ${results.length} alertas encontrados para familiar cuidador`);
+            res.json(results);
+        });
+    });
+});
+
+// ✅ ADICIONAR esta rota nova:
+app.get("/api/cuidadores/:cuidadorId/pacientes", (req, res) => {
+    const cuidadorId = req.params.cuidadorId;
+    
+    const query = `
+        SELECT p.*
+        FROM pacientes p
+        INNER JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ? AND cpp.status_vinculo = 'ativo' AND p.ativo = TRUE
+    `;
+    
+    db.query(query, [cuidadorId], (err, results) => {
+        // ... tratamento de resultados
     });
 });

@@ -58,7 +58,7 @@
             // Carregar dependentes do usuário
             carregarDependentes();
 
-            // Selecionar um dependente
+            // CORREÇÃO: Atualizar a parte do redirecionamento
             document.addEventListener("click", function (e) {
                 if (e.target.classList.contains("btn-selecionar")) {
                     const card = e.target.closest(".dependente-card");
@@ -78,16 +78,19 @@
 
                     console.log("Dependente selecionado:", { id: dependenteId, nome: dependenteNome });
 
-                    // Redirecionar para a tela principal CORRIGIDA
+                    // CORREÇÃO: Redirecionar para dashboards específicos
                     const tipoUsuario = localStorage.getItem("usuarioTipo");
                     console.log("Tipo de usuário:", tipoUsuario);
 
                     if (tipoUsuario === "familiar_cuidador") {
-                        window.location.href = "/dashboard_familiar";
+                        // FAMILIAR CUIDADOR vai para DASHBOARD_FAMILIAR_CUIDADOR (novo)
+                        window.location.href = "/dashboard_familiar_cuidador";
                     } else if (tipoUsuario === "familiar_contratante") {
+                        // FAMILIAR CONTRATANTE vai para DASHBOARD_SUPERVISOR (existente)
                         window.location.href = "/dashboard_supervisor";
                     } else if (tipoUsuario === "cuidador_profissional") {
-                        window.location.href = "/dashboard_cuidador"; // ✅ CORRIGIDO: Cuidador vai para seu dashboard
+                        // CUIDADOR PROFISSIONAL vai para DASHBOARD_CUIDADOR
+                        window.location.href = "/dashboard_cuidador";
                     } else {
                         window.location.href = "/index.html";
                     }
@@ -116,31 +119,7 @@
             }
         });
 
-        // Adicionar esta função para carregar pacientes do cuidador
-        async function carregarPacientesCuidador(usuarioId) {
-            try {
-                const url = `http://localhost:3000/api/cuidadores/${usuarioId}/paciente`;
-                console.log("Carregando pacientes do cuidador da URL:", url);
-
-                const response = await fetch(url);
-                if (response.ok) {
-                    const paciente = await response.json();
-                    console.log("Paciente do cuidador carregado:", paciente);
-                    return [paciente]; // Retorna como array para compatibilidade
-                } else if (response.status === 404) {
-                    console.log("Cuidador não tem paciente vinculado");
-                    return [];
-                } else {
-                    console.error("Erro na resposta da API para cuidador:", response.status);
-                    return [];
-                }
-            } catch (error) {
-                console.error("Erro ao carregar pacientes do cuidador:", error);
-                return [];
-            }
-        }
-
-        // Modificar a função carregarDependentes para incluir cuidador
+        // Modificar a função carregarDependentes para familiar cuidador
         async function carregarDependentes() {
             const usuarioId = localStorage.getItem("usuarioId");
             const tipoUsuario = localStorage.getItem("usuarioTipo");
@@ -157,9 +136,18 @@
                 let pacientes = [];
 
                 if (tipoUsuario === "familiar_cuidador") {
-                    const response = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_cuidador`);
+                    // CORREÇÃO: Usar a rota específica para familiar cuidador
+                    const response = await fetch(`http://localhost:3000/api/familiares-cuidadores/${usuarioId}/pacientes`);
                     if (response.ok) {
                         pacientes = await response.json();
+                        console.log("Pacientes do familiar cuidador:", pacientes);
+                    } else {
+                        console.error("Erro ao carregar pacientes do familiar cuidador:", response.status);
+                        // Tentar rota alternativa
+                        const responseAlt = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_cuidador`);
+                        if (responseAlt.ok) {
+                            pacientes = await responseAlt.json();
+                        }
                     }
                 } else if (tipoUsuario === "familiar_contratante") {
                     const response = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_contratante`);
@@ -167,7 +155,6 @@
                         pacientes = await response.json();
                     }
                 } else if (tipoUsuario === "cuidador_profissional") {
-                    // NOVO: Carregar pacientes do cuidador
                     pacientes = await carregarPacientesCuidador(usuarioId);
                 } else {
                     console.error("Tipo de usuário desconhecido:", tipoUsuario);
@@ -377,6 +364,45 @@
             }
             console.log("======================");
         }
+        
+        // Função para debug - verificar se as rotas estão funcionando
+        async function testarRotasFamiliarCuidador() {
+            const usuarioId = localStorage.getItem("usuarioId");
+            const tipoUsuario = localStorage.getItem("usuarioTipo");
+            
+            if (tipoUsuario === "familiar_cuidador") {
+                console.log("=== TESTANDO ROTAS FAMILIAR CUIDADOR ===");
+                
+                // Testar rota nova
+                try {
+                    const response = await fetch(`http://localhost:3000/api/familiares-cuidadores/${usuarioId}/pacientes`);
+                    console.log("Rota nova - Status:", response.status);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("Rota nova - Dados:", data);
+                    }
+                } catch (error) {
+                    console.log("Rota nova - Erro:", error.message);
+                }
+                
+                // Testar rota antiga
+                try {
+                    const response = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_cuidador`);
+                    console.log("Rota antiga - Status:", response.status);
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("Rota antiga - Dados:", data);
+                    }
+                } catch (error) {
+                    console.log("Rota antiga - Erro:", error.message);
+                }
+                
+                console.log("========================================");
+            }
+        }
+
+        // Executar teste de rotas
+        testarRotasFamiliarCuidador();
 
         // Executar verificação do localStorage
         verificarLocalStorage();

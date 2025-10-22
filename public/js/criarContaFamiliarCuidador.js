@@ -2,6 +2,7 @@
 
 document.addEventListener("DOMContentLoaded", function() {
     feather.replace();
+    setupCPFMasking();
 });
 
 // ====================== Menu mobile ====================== //
@@ -20,6 +21,7 @@ if (hamburger && navMenu) {
         navMenu.classList.remove("active");
     }));
 }
+
 
 // ====================== Lógica de múltiplos passos do formulário ====================== //
 
@@ -61,45 +63,62 @@ function previousStep() {
 }
 
 function validateStep1() {
-    const nome = document.getElementById("name").value.trim();
-    const email = document.getElementById("email").value.trim();
-    const telefone = document.getElementById("phone").value.trim();
-    const data_nascimento = document.getElementById("birthDate").value;
-    const parentesco = document.getElementById("parentesco").value;
-    const senha = document.getElementById("password").value;
-    const confirmPassword = document.getElementById("confirmPassword").value;
-    const terms = document.getElementById("terms").checked;
+    try {
+        const getElement = (id) => {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.error(`❌ Elemento não encontrado na validação: ${id}`);
+                return null;
+            }
+            return element;
+        };
 
-    if (!nome || !email || !telefone || !data_nascimento || !parentesco || parentesco === "" || !senha || !confirmPassword) {
-        alert("Por favor, preencha todos os campos obrigatórios.");
+        const nome = getElement("name")?.value.trim();
+        const email = getElement("email")?.value.trim();
+        const telefone = getElement("phone")?.value.trim();
+        const data_nascimento = getElement("birthDate")?.value;
+        const parentesco = getElement("parentesco")?.value;
+        const senha = getElement("password")?.value;
+        const confirmPassword = getElement("confirmPassword")?.value;
+        const terms = getElement("terms")?.checked;
+
+        // Verificar se todos os campos obrigatórios estão preenchidos
+        if (!nome || !email || !telefone || !data_nascimento || !parentesco || parentesco === "" || !senha || !confirmPassword) {
+            alert("Por favor, preencha todos os campos obrigatórios.");
+            return false;
+        }
+
+        if (senha !== confirmPassword) {
+            alert("As senhas não coincidem.");
+            return false;
+        }
+
+        if (senha.length < 6) {
+            alert("A senha deve ter pelo menos 6 caracteres.");
+            return false;
+        }
+
+        const birthDateObj = new Date(data_nascimento);
+        const today = new Date();
+        const age = today.getFullYear() - birthDateObj.getFullYear();
+        
+        if (age < 13) {
+            alert("Você deve ter pelo menos 13 anos para se cadastrar.");
+            return false;
+        }
+
+        if (!terms) {
+            alert("Você deve aceitar os termos de uso.");
+            return false;
+        }
+
+        return true;
+        
+    } catch (error) {
+        console.error("❌ Erro na validação do passo 1:", error);
+        alert("Erro na validação dos dados. Por favor, verifique os campos e tente novamente.");
         return false;
     }
-
-    if (senha !== confirmPassword) {
-        alert("As senhas não coincidem.");
-        return false;
-    }
-
-    if (senha.length < 8) {
-        alert("A senha deve ter pelo menos 8 caracteres.");
-        return false;
-    }
-
-    const birthDateObj = new Date(data_nascimento);
-    const today = new Date();
-    const age = today.getFullYear() - birthDateObj.getFullYear();
-    
-    if (age < 13) {
-        alert("Você deve ter pelo menos 13 anos para se cadastrar.");
-        return false;
-    }
-
-    if (!terms) {
-        alert("Você deve aceitar os termos de uso.");
-        return false;
-    }
-
-    return true;
 }
 
 function validateStep2() {
@@ -115,60 +134,145 @@ function validateStep2() {
 }
 
 function saveFamiliarData() {
-    const familiarData = {
-        nome: document.getElementById("name").value.trim(),
-        email: document.getElementById("email").value.trim(),
-        telefone: document.getElementById("phone").value.trim(),
-        data_nascimento: document.getElementById("birthDate").value,
-        parentesco: document.getElementById("parentesco").value,
-        endereco: document.getElementById("endereco").value.trim(),
-        senha: document.getElementById("password").value,
-        tipo: 'familiar_cuidador'
-    };
+    try {
+        // Obter elementos com verificação de segurança
+        const getElement = (id) => {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.error(`❌ Elemento não encontrado: ${id}`);
+                return null;
+            }
+            return element;
+        };
 
-    localStorage.setItem('dadosUsuario', JSON.stringify(familiarData));
+        const nameElement = getElement("name");
+        const emailElement = getElement("email");
+        const phoneElement = getElement("phone");
+        const birthDateElement = getElement("birthDate");
+        const generoElement = getElement("genero");
+        const parentescoElement = getElement("parentesco");
+        const enderecoElement = getElement("endereco");
+        const passwordElement = getElement("password");
+
+        // Verificar se todos os elementos obrigatórios existem
+        const requiredElements = [nameElement, emailElement, phoneElement, birthDateElement, parentescoElement, passwordElement];
+        const missingElements = requiredElements.filter(element => !element);
+        
+        if (missingElements.length > 0) {
+            console.error("❌ Elementos obrigatórios não encontrados:", missingElements);
+            return;
+        }
+
+        const familiarData = {
+            nome: nameElement.value.trim(),
+            email: emailElement.value.trim(),
+            telefone: phoneElement.value.trim(),
+            data_nascimento: birthDateElement.value,
+            genero: generoElement ? generoElement.value : null,
+            parentesco: parentescoElement.value,
+            endereco: enderecoElement ? enderecoElement.value.trim() : null,
+            senha: passwordElement.value,
+            tipo: 'familiar_cuidador'
+        };
+
+        console.log("💾 Salvando dados do familiar:", familiarData);
+        localStorage.setItem('dadosUsuario', JSON.stringify(familiarData));
+        
+    } catch (error) {
+        console.error("❌ Erro ao salvar dados do familiar:", error);
+        alert("Erro ao salvar dados. Por favor, recarregue a página e tente novamente.");
+    }
 }
 
 function saveDependenteData() {
-    const dependenteData = {
-        nome: document.getElementById("nomeDependente").value.trim(),
-        data_nascimento: document.getElementById("dataNascimentoDependente").value,
-        genero: document.getElementById("generoDependente").value,
-        condicao_principal: document.getElementById("condicaoPrincipal").value.trim(),
-        plano_saude: document.getElementById("planoSaude").value.trim(),
-        alergias: document.getElementById("alergias").value.trim(),
-        historico_medico: document.getElementById("historicoMedico").value.trim(),
-        foto_perfil: document.getElementById("fotoPerfil").files[0] ? document.getElementById("fotoPerfil").files[0].name : null
-    };
+    try {
+        const getElement = (id) => {
+            const element = document.getElementById(id);
+            if (!element) {
+                console.error(`❌ Elemento não encontrado: ${id}`);
+                return null;
+            }
+            return element;
+        };
 
-    localStorage.setItem('dadosPaciente', JSON.stringify(dependenteData));
+        const nomeDependenteElement = getElement("nomeDependente");
+        const dataNascimentoElement = getElement("dataNascimentoDependente");
+        const generoDependenteElement = getElement("generoDependente");
+        const condicaoPrincipalElement = getElement("condicaoPrincipal");
+        const planoSaudeElement = getElement("planoSaude");
+        const alergiasElement = getElement("alergias");
+        const historicoMedicoElement = getElement("historicoMedico");
+        const fotoPerfilElement = getElement("fotoPerfil");
+
+        // Verificar elementos obrigatórios
+        if (!nomeDependenteElement || !dataNascimentoElement) {
+            console.error("❌ Elementos obrigatórios do dependente não encontrados");
+            return;
+        }
+
+        const dependenteData = {
+            nome: nomeDependenteElement.value.trim(),
+            data_nascimento: dataNascimentoElement.value,
+            genero: generoDependenteElement ? generoDependenteElement.value : null,
+            condicao_principal: condicaoPrincipalElement ? condicaoPrincipalElement.value.trim() : null,
+            plano_saude: planoSaudeElement ? planoSaudeElement.value.trim() : null,
+            alergias: alergiasElement ? alergiasElement.value.trim() : null,
+            historico_medico: historicoMedicoElement ? historicoMedicoElement.value.trim() : null,
+            foto_perfil: fotoPerfilElement && fotoPerfilElement.files[0] ? fotoPerfilElement.files[0].name : null
+        };
+
+        console.log("💾 Salvando dados do dependente:", dependenteData);
+        localStorage.setItem('dadosPaciente', JSON.stringify(dependenteData));
+        
+    } catch (error) {
+        console.error("❌ Erro ao salvar dados do dependente:", error);
+        alert("Erro ao salvar dados do dependente. Por favor, recarregue a página e tente novamente.");
+    }
 }
 
 function displaySummary() {
-    const familiarData = JSON.parse(localStorage.getItem('dadosUsuario'));
-    const dependenteData = JSON.parse(localStorage.getItem('dadosPaciente'));
+    try {
+        const familiarData = JSON.parse(localStorage.getItem('dadosUsuario'));
+        const dependenteData = JSON.parse(localStorage.getItem('dadosPaciente'));
 
-    const familiarSummaryDiv = document.getElementById('familiarSummary');
-    familiarSummaryDiv.innerHTML = `
-        <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${familiarData.nome}</span></div>
-        <div class="summary-item"><span class="summary-label">Email:</span> <span class="summary-value">${familiarData.email}</span></div>
-        <div class="summary-item"><span class="summary-label">Telefone:</span> <span class="summary-value">${familiarData.telefone}</span></div>
-        <div class="summary-item"><span class="summary-label">Nascimento:</span> <span class="summary-value">${formatarData(familiarData.data_nascimento)}</span></div>
-        <div class="summary-item"><span class="summary-label">Parentesco:</span> <span class="summary-value">${formatarParentesco(familiarData.parentesco)}</span></div>
-        <div class="summary-item"><span class="summary-label">Endereço:</span> <span class="summary-value">${familiarData.endereco || 'Não informado'}</span></div>
-    `;
+        if (!familiarData || !dependenteData) {
+            console.error("❌ Dados não encontrados no localStorage");
+            return;
+        }
 
-    const dependenteSummaryDiv = document.getElementById('dependenteSummary');
-    dependenteSummaryDiv.innerHTML = `
-        <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${dependenteData.nome}</span></div>
-        <div class="summary-item"><span class="summary-label">Nascimento:</span> <span class="summary-value">${formatarData(dependenteData.data_nascimento)}</span></div>
-        <div class="summary-item"><span class="summary-label">Gênero:</span> <span class="summary-value">${formatarGenero(dependenteData.genero)}</span></div>
-        <div class="summary-item"><span class="summary-label">Condição Principal:</span> <span class="summary-value">${dependenteData.condicao_principal || 'Não informado'}</span></div>
-        <div class="summary-item"><span class="summary-label">Plano de Saúde:</span> <span class="summary-value">${dependenteData.plano_saude || 'Não informado'}</span></div>
-        <div class="summary-item"><span class="summary-label">Alergias:</span> <span class="summary-value">${dependenteData.alergias || 'Não informado'}</span></div>
-        <div class="summary-item"><span class="summary-label">Histórico Médico:</span> <span class="summary-value">${dependenteData.historico_medico || 'Não informado'}</span></div>
-        ${dependenteData.foto_perfil ? `<div class="summary-item"><span class="summary-label">Foto:</span> <span class="summary-value">${dependenteData.foto_perfil}</span></div>` : ''}
-    `;
+        const familiarSummaryDiv = document.getElementById('familiarSummary');
+        const dependenteSummaryDiv = document.getElementById('dependenteSummary');
+
+        if (!familiarSummaryDiv || !dependenteSummaryDiv) {
+            console.error("❌ Elementos de summary não encontrados");
+            return;
+        }
+
+        familiarSummaryDiv.innerHTML = `
+            <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${familiarData.nome}</span></div>
+            <div class="summary-item"><span class="summary-label">Email:</span> <span class="summary-value">${familiarData.email}</span></div>
+            <div class="summary-item"><span class="summary-label">Telefone:</span> <span class="summary-value">${familiarData.telefone}</span></div>
+            <div class="summary-item"><span class="summary-label">Nascimento:</span> <span class="summary-value">${formatarData(familiarData.data_nascimento)}</span></div>
+            <div class="summary-item"><span class="summary-label">Gênero:</span> <span class="summary-value">${formatarGenero(familiarData.genero)}</span></div>
+            <div class="summary-item"><span class="summary-label">Parentesco:</span> <span class="summary-value">${formatarParentesco(familiarData.parentesco)}</span></div>
+            <div class="summary-item"><span class="summary-label">Endereço:</span> <span class="summary-value">${familiarData.endereco || 'Não informado'}</span></div>
+        `;
+
+        dependenteSummaryDiv.innerHTML = `
+            <div class="summary-item"><span class="summary-label">Nome:</span> <span class="summary-value">${dependenteData.nome}</span></div>
+            <div class="summary-item"><span class="summary-label">Nascimento:</span> <span class="summary-value">${formatarData(dependenteData.data_nascimento)}</span></div>
+            <div class="summary-item"><span class="summary-label">Gênero:</span> <span class="summary-value">${formatarGenero(dependenteData.genero)}</span></div>
+            <div class="summary-item"><span class="summary-label">Condição Principal:</span> <span class="summary-value">${dependenteData.condicao_principal || 'Não informado'}</span></div>
+            <div class="summary-item"><span class="summary-label">Plano de Saúde:</span> <span class="summary-value">${dependenteData.plano_saude || 'Não informado'}</span></div>
+            <div class="summary-item"><span class="summary-label">Alergias:</span> <span class="summary-value">${dependenteData.alergias || 'Não informado'}</span></div>
+            <div class="summary-item"><span class="summary-label">Histórico Médico:</span> <span class="summary-value">${dependenteData.historico_medico || 'Não informado'}</span></div>
+            ${dependenteData.foto_perfil ? `<div class="summary-item"><span class="summary-label">Foto:</span> <span class="summary-value">${dependenteData.foto_perfil}</span></div>` : ''}
+        `;
+        
+    } catch (error) {
+        console.error("❌ Erro ao exibir resumo:", error);
+        alert("Erro ao carregar resumo. Por favor, recarregue a página.");
+    }
 }
 
 async function finalizarCadastro() {
@@ -181,8 +285,11 @@ async function finalizarCadastro() {
     finalizeBtn.disabled = true;
 
     try {
-        // 1. Cadastrar o familiar
-        const userResponse = await fetch("/api/cadastrar", {
+        console.log("📝 Iniciando cadastro do familiar cuidador...");
+        console.log("Dados do familiar:", familiarData);
+
+        // 1. Cadastrar o familiar cuidador usando a NOVA ROTA
+        const userResponse = await fetch("/api/cadastrar-familiar-cuidador", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(familiarData)
@@ -190,28 +297,21 @@ async function finalizarCadastro() {
 
         const userData = await userResponse.json();
         
-        if (!userResponse.ok) {
-            alert(userData.error || "Erro ao cadastrar familiar.");
+        if (!userResponse.ok || !userData.success) {
+            alert(userData.message || userData.error || "Erro ao cadastrar familiar.");
             finalizeBtn.classList.remove("loading");
             finalizeBtn.disabled = false;
             return;
         }
 
-        const usuarioId = userData.id; // ID do usuário recém-cadastrado na tabela \'usuarios\'
+        const usuarioId = userData.usuario_id; // ID do usuário recém-cadastrado
+        const familiarId = userData.familiar_id; // ID do familiar cuidador
 
-        // 2. Obter o ID do familiar cuidador recém-cadastrado da tabela familiares_cuidadores
-        const familiarCuidadorResponse = await fetch(`/api/familiar/${usuarioId}/familiar_cuidador`);
-        const familiarCuidadorData = await familiarCuidadorResponse.json();
+        console.log(`✅ Familiar cuidador cadastrado com sucesso!`);
+        console.log(`👤 Usuário ID: ${usuarioId}`);
+        console.log(`👨‍👩‍👧‍👦 Familiar ID: ${familiarId}`);
 
-        if (!familiarCuidadorResponse.ok) {
-            alert(familiarCuidadorData.error || "Erro ao obter ID do familiar cuidador.");
-            finalizeBtn.classList.remove("loading");
-            finalizeBtn.disabled = false;
-            return;
-        }
-        const familiarCuidadorRealId = familiarCuidadorData.id;
-
-        // 3. Cadastrar o dependente
+        // 2. Cadastrar o dependente (paciente) vinculado ao familiar cuidador
         const formData = new FormData();
         
         // Adicionar dados do dependente
@@ -222,14 +322,15 @@ async function finalizarCadastro() {
         formData.append('plano_saude', dependenteData.plano_saude);
         formData.append('alergias', dependenteData.alergias);
         formData.append('historico_medico', dependenteData.historico_medico);
-        formData.append('familiar_cuidador_id', familiarCuidadorRealId);
+        formData.append('familiar_cuidador_id', familiarId); // Usar o ID do familiar (não do usuário)
 
         // Adicionar foto se existir
         if (fotoPerfilFile) {
             formData.append('foto_perfil', fotoPerfilFile);
         }
 
-                console.log("Enviando dados do dependente para /api/pacientes:", Object.fromEntries(formData.entries()));
+        console.log("📦 Enviando dados do dependente para /api/pacientes...");
+        console.log("Familiar ID usado:", familiarId);
 
         const pacienteResponse = await fetch("/api/pacientes", {
             method: "POST",
@@ -238,12 +339,14 @@ async function finalizarCadastro() {
 
         const pacienteData = await pacienteResponse.json();
 
-        if (!pacienteResponse.ok) {
-            alert(pacienteData.error || "Erro ao cadastrar dependente.");
+        if (!pacienteResponse.ok || !pacienteData.success) {
+            alert(pacienteData.message || pacienteData.error || "Erro ao cadastrar dependente.");
             finalizeBtn.classList.remove("loading");
             finalizeBtn.disabled = false;
             return;
         }
+
+        console.log("✅ Dependente cadastrado com sucesso!");
 
         alert("Cadastro completo! Familiar e dependente registrados com sucesso.");
         
@@ -256,10 +359,11 @@ async function finalizarCadastro() {
         localStorage.removeItem('dadosUsuario');
         localStorage.removeItem('dadosPaciente');
         
-        window.location.href = "/dependentes"; // Redireciona para a página de seleção de dependentes
+        // Redirecionar para login (já que você faz login no landingPage.html)
+        window.location.href = "/"; // Vai para landingPage.html
 
     } catch (err) {
-        console.error(err);
+        console.error("❌ Erro no cadastro:", err);
         alert("Erro ao conectar com o servidor durante o cadastro.");
     } finally {
         finalizeBtn.classList.remove("loading");
@@ -284,14 +388,14 @@ if (passwordInput && passwordStrength && strengthBar) {
             strength = "";
             passwordStrength.style.display = "none";
             strengthBar.style.width = "0%";
-        } else if (password.length < 8) {
+        } else if (password.length < 6) {
             strength = "Senha fraca";
             strengthValue = 33;
             passwordStrength.style.display = "block";
             passwordStrength.style.color = color;
             strengthBar.style.width = "33%";
             strengthBar.style.backgroundColor = color;
-        } else if (password.length < 12) {
+        } else if (password.length < 10) {
             strength = "Senha média";
             strengthValue = 66;
             color = "#F39C12";
@@ -312,7 +416,7 @@ if (passwordInput && passwordStrength && strengthBar) {
         const hasNumbers = /\d/.test(password);
         const hasLetters = /[a-zA-Z]/.test(password);
         
-        if (hasNumbers && hasLetters && password.length >= 8) {
+        if (hasNumbers && hasLetters && password.length >= 6) {
             strengthValue += 10;
             strengthBar.style.width = Math.min(strengthValue, 100) + "%";
         }
@@ -366,6 +470,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 reader.onload = function(e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
+                    img.style.maxWidth = '150px';
+                    img.style.maxHeight = '150px';
+                    img.style.borderRadius = '10px';
+                    img.style.objectFit = 'cover';
                     fotoPreviewDiv.appendChild(img);
                 };
                 
@@ -384,6 +492,12 @@ function formatarData(dataString) {
     if (!dataString) return 'Não informada';
     const data = new Date(dataString);
     return data.toLocaleDateString('pt-BR');
+}
+
+function formatarCPF(cpf) {
+    if (!cpf) return 'Não informado';
+    const cpfLimpo = cpf.replace(/\D/g, '');
+    return cpfLimpo.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
 }
 
 function formatarParentesco(parentesco) {
@@ -406,4 +520,4 @@ function formatarGenero(genero) {
         'outro': 'Outro'
     };
     return generos[genero] || genero || 'Não informado';
-}   
+}

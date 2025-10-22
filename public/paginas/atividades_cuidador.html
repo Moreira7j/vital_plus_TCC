@@ -5,9 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vital+ | Atividades</title>
-    <!-- CORREÇÃO: Caminho absoluto sem espaços -->
     <link rel="stylesheet" href="../styles/atividades_cuidador.css">
-    <!-- Adicione Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/feather-icons"></script>
 </head>
@@ -18,7 +16,7 @@
         <nav class="sidebar">
             <div class="sidebar-content">
                 <div class="sidebar-header">
-                    <img src="/assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo">
+                    <img src="../assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo">
                     <div class="sidebar-brand">
                         <h1>Vital+</h1>
                         <span>Cuidador Profissional</span>
@@ -66,7 +64,7 @@
         </nav>
 
         <!-- Conteúdo Principal -->
-        <main class="main-content">
+        <div class="main-content">
             <!-- Header -->
             <header class="header">
                 <div class="header-title">
@@ -75,42 +73,39 @@
                 </div>
 
                 <div class="header-actions">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">
-                                <i data-feather="bell"></i>
-                                <span>Notificações</span>
-                                <span class="badge bg-danger">1</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="#" class="nav-link">
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#">
+                            <i data-feather="bell"></i>
+                            <span>Notificações</span>
+                            <span class="badge">1</span>
+                        </a>
+                    </div>
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#">
+                            <i data-feather="user"></i>
+                            <span id="userName">Cuidador</span>
+                        </a>
+                        <div class="dropdown-menu">
+                            <a href="#" class="dropdown-item">
                                 <i data-feather="user"></i>
-                                <span id="userName">Cuidador</span>
-                                <i data-feather="chevron-down"></i>
+                                Meu Perfil
                             </a>
-                            <div class="dropdown-menu">
-                                <a href="#" class="dropdown-item">
-                                    <i data-feather="user"></i>
-                                    Meu Perfil
-                                </a>
-                                <a href="#" class="dropdown-item">
-                                    <i data-feather="settings"></i>
-                                    Configurações
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a href="#" class="dropdown-item" id="logoutBtn">
-                                    <i data-feather="log-out"></i>
-                                    Sair
-                                </a>
-                            </div>
-                        </li>
-                    </ul>
+                            <a href="#" class="dropdown-item">
+                                <i data-feather="settings"></i>
+                                Configurações
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item" id="logoutBtn">
+                                <i data-feather="log-out"></i>
+                                Sair
+                            </a>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <!-- Dashboard -->
-            <div class="dashboard">
+            <main class="dashboard">
                 <!-- Estatísticas Rápidas -->
                 <div class="dashboard-grid">
                     <div class="card">
@@ -226,8 +221,8 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </main>
+            </main>
+        </div>
     </div>
 
     <!-- Modal para Nova Atividade -->
@@ -292,30 +287,32 @@
         </div>
     </div>
 
-    <!-- CORREÇÃO: Caminho absoluto sem espaços -->
     <script src="../js/atividades_cuidador.js"></script>
     <script>
-    // Teste para verificar se o CSS está carregando
-    console.log('Testando carregamento de CSS...');
-    
-    // Verificar se algum estilo está aplicado
-    const bodyStyles = window.getComputedStyle(document.body);
-    console.log('Cor de fundo do body:', bodyStyles.backgroundColor);
-    
-    // Verificar se o arquivo CSS foi carregado
-    const links = document.getElementsByTagName('link');
-    for (let link of links) {
-        if (link.href.includes('atividades_cuidador.css')) {
-            console.log('Arquivo CSS encontrado:', link.href);
-            link.onload = function() {
-                console.log('CSS carregado com sucesso!');
-            };
-            link.onerror = function() {
-                console.log('ERRO: CSS não pôde ser carregado!');
-            };
+        // Inicializar Feather Icons
+        feather.replace();
+        
+        // Teste para verificar se o CSS está carregando
+        console.log('Testando carregamento de CSS...');
+        
+        // Verificar se algum estilo está aplicado
+        const bodyStyles = window.getComputedStyle(document.body);
+        console.log('Cor de fundo do body:', bodyStyles.backgroundColor);
+        
+        // Verificar se o arquivo CSS foi carregado
+        const links = document.getElementsByTagName('link');
+        for (let link of links) {
+            if (link.href.includes('atividades_cuidador.css')) {
+                console.log('Arquivo CSS encontrado:', link.href);
+                link.onload = function() {
+                    console.log('CSS carregado com sucesso!');
+                };
+                link.onerror = function() {
+                    console.log('ERRO: CSS não pôde ser carregado!');
+                };
+            }
         }
-    }
-</script>
+    </script>
 </body>
 
 </html>
