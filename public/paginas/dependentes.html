@@ -58,7 +58,7 @@
             // Carregar dependentes do usuário
             carregarDependentes();
 
-            // CORREÇÃO: Atualizar a parte do redirecionamento
+            // ✅ CORREÇÃO: Atualizar a parte do redirecionamento com salvamento correto
             document.addEventListener("click", function (e) {
                 if (e.target.classList.contains("btn-selecionar")) {
                     const card = e.target.closest(".dependente-card");
@@ -69,18 +69,23 @@
                     const avatarImg = card.querySelector('.dependente-avatar img');
                     const dependenteFoto = avatarImg ? avatarImg.src : '';
 
-                    // Salvar no localStorage
+                    // ✅ CORREÇÃO: Salvar em TODOS os formatos para compatibilidade
+                    localStorage.setItem("pacienteSelecionadoId", dependenteId); // ✅ Nova chave
                     localStorage.setItem("dependenteSelecionado", JSON.stringify({
                         id: dependenteId,
                         nome: dependenteNome,
                         foto: dependenteFoto
                     }));
 
-                    console.log("Dependente selecionado:", { id: dependenteId, nome: dependenteNome });
+                    console.log("✅ Dependente selecionado e salvo:", { 
+                        id: dependenteId, 
+                        nome: dependenteNome,
+                        chaves_salvas: ["pacienteSelecionadoId", "dependenteSelecionado"]
+                    });
 
                     // CORREÇÃO: Redirecionar para dashboards específicos
                     const tipoUsuario = localStorage.getItem("usuarioTipo");
-                    console.log("Tipo de usuário:", tipoUsuario);
+                    console.log("🎯 Tipo de usuário:", tipoUsuario);
 
                     if (tipoUsuario === "familiar_cuidador") {
                         // FAMILIAR CUIDADOR vai para DASHBOARD_FAMILIAR_CUIDADOR (novo)
@@ -111,6 +116,7 @@
                 logoutLink.addEventListener("click", function (e) {
                     e.preventDefault();
                     localStorage.removeItem("dependenteSelecionado");
+                    localStorage.removeItem("pacienteSelecionadoId"); // ✅ Nova linha
                     localStorage.removeItem("usuarioNome");
                     localStorage.removeItem("usuarioId");
                     localStorage.removeItem("usuarioTipo");
@@ -124,10 +130,10 @@
             const usuarioId = localStorage.getItem("usuarioId");
             const tipoUsuario = localStorage.getItem("usuarioTipo");
 
-            console.log("Usuário ID:", usuarioId, "Tipo:", tipoUsuario);
+            console.log("👤 Usuário ID:", usuarioId, "Tipo:", tipoUsuario);
 
             if (!usuarioId || !tipoUsuario) {
-                console.log("Usuário não logado ou tipo não definido - usando dados exemplo");
+                console.log("❌ Usuário não logado ou tipo não definido - usando dados exemplo");
                 usarDadosExemplo();
                 return;
             }
@@ -140,9 +146,9 @@
                     const response = await fetch(`http://localhost:3000/api/familiares-cuidadores/${usuarioId}/pacientes`);
                     if (response.ok) {
                         pacientes = await response.json();
-                        console.log("Pacientes do familiar cuidador:", pacientes);
+                        console.log("✅ Pacientes do familiar cuidador:", pacientes);
                     } else {
-                        console.error("Erro ao carregar pacientes do familiar cuidador:", response.status);
+                        console.error("❌ Erro ao carregar pacientes do familiar cuidador:", response.status);
                         // Tentar rota alternativa
                         const responseAlt = await fetch(`http://localhost:3000/api/familiares/${usuarioId}/pacientes_cuidador`);
                         if (responseAlt.ok) {
@@ -157,24 +163,40 @@
                 } else if (tipoUsuario === "cuidador_profissional") {
                     pacientes = await carregarPacientesCuidador(usuarioId);
                 } else {
-                    console.error("Tipo de usuário desconhecido:", tipoUsuario);
+                    console.error("❌ Tipo de usuário desconhecido:", tipoUsuario);
                     usarDadosExemplo();
                     return;
                 }
 
-                console.log("Pacientes carregados:", pacientes);
+                console.log("📋 Pacientes carregados:", pacientes);
                 exibirDependentes(pacientes);
 
             } catch (error) {
-                console.error("Erro ao carregar dependentes:", error);
+                console.error("❌ Erro ao carregar dependentes:", error);
                 usarDadosExemplo();
+            }
+        }
+
+        // Função auxiliar para carregar pacientes do cuidador profissional
+        async function carregarPacientesCuidador(usuarioId) {
+            try {
+                const response = await fetch(`http://localhost:3000/api/cuidadores/${usuarioId}/pacientes`);
+                if (response.ok) {
+                    return await response.json();
+                } else {
+                    console.error("❌ Erro ao carregar pacientes do cuidador:", response.status);
+                    return [];
+                }
+            } catch (error) {
+                console.error("❌ Erro na requisição do cuidador:", error);
+                return [];
             }
         }
 
         function exibirDependentes(pacientes) {
             const grid = document.getElementById("dependentesGrid");
             if (!grid) {
-                console.error("Elemento dependentesGrid não encontrado");
+                console.error("❌ Elemento dependentesGrid não encontrado");
                 return;
             }
 
@@ -184,18 +206,18 @@
 
             if (!pacientes || pacientes.length === 0) {
                 grid.insertAdjacentHTML('afterbegin', `
-            <div class="dependente-card empty-state">
-                <div class="dependente-avatar">
-                    <div class="avatar-placeholder">
-                        <i data-feather="users"></i>
+                    <div class="dependente-card empty-state">
+                        <div class="dependente-avatar">
+                            <div class="avatar-placeholder">
+                                <i data-feather="users"></i>
+                            </div>
+                        </div>
+                        <div class="dependente-info">
+                            <h3>Nenhum dependente</h3>
+                            <p>Adicione seu primeiro dependente para começar</p>
+                        </div>
                     </div>
-                </div>
-                <div class="dependente-info">
-                    <h3>Nenhum dependente</h3>
-                    <p>Adicione seu primeiro dependente para começar</p>
-                </div>
-            </div>
-        `);
+                `);
                 feather.replace();
                 return;
             }
@@ -223,54 +245,54 @@
             const condicao = paciente.condicao_principal || paciente.doenca_principal || "Sem condição específica";
             const fotoUrl = obterFotoDependente(paciente);
 
-            console.log(`Criando card para ${paciente.nome}:`, {
+            console.log(`🎴 Criando card para ${paciente.nome}:`, {
                 fotoUrl,
                 foto_perfil: paciente.foto_perfil,
                 id: paciente.id
             });
 
             card.innerHTML = `
-        <div class="dependente-avatar">
-            ${fotoUrl ?
-                    `<img src="${fotoUrl}" alt="${paciente.nome}" onerror="handleImageError(this)" />` :
-                    ''
-                }
-            <div class="avatar-placeholder" style="${fotoUrl ? 'display: none;' : 'display: flex;'}">
-                <i data-feather="user"></i>
-            </div>
-        </div>
-        <div class="dependente-info">
-            <h3>${paciente.nome || 'Nome não informado'}</h3>
-            <p>${idade} anos • ${condicao}</p>
-            <div class="dependente-status">
-                <span class="status-badge status-estavel">Estável</span>
-            </div>
-        </div>
-        <button class="btn-selecionar">Selecionar</button>
-    `;
+                <div class="dependente-avatar">
+                    ${fotoUrl ?
+                        `<img src="${fotoUrl}" alt="${paciente.nome}" onerror="handleImageError(this)" />` :
+                        ''
+                    }
+                    <div class="avatar-placeholder" style="${fotoUrl ? 'display: none;' : 'display: flex;'}">
+                        <i data-feather="user"></i>
+                    </div>
+                </div>
+                <div class="dependente-info">
+                    <h3>${paciente.nome || 'Nome não informado'}</h3>
+                    <p>${idade} anos • ${condicao}</p>
+                    <div class="dependente-status">
+                        <span class="status-badge status-estavel">Estável</span>
+                    </div>
+                </div>
+                <button class="btn-selecionar">Selecionar</button>
+            `;
 
             return card;
         }
 
         function obterFotoDependente(paciente) {
-            console.log("Buscando foto para paciente:", paciente.nome, paciente);
+            console.log("🖼️ Buscando foto para paciente:", paciente.nome, paciente);
 
             // Se tiver foto_perfil no banco de dados
             if (paciente.foto_perfil) {
-                console.log("Foto encontrada no campo foto_perfil:", paciente.foto_perfil);
+                console.log("✅ Foto encontrada no campo foto_perfil:", paciente.foto_perfil);
 
                 // Construir URL completa para a foto
                 let fotoUrl = `/uploads/${paciente.foto_perfil}`;
-                console.log("URL da foto:", fotoUrl);
+                console.log("📸 URL da foto:", fotoUrl);
                 return fotoUrl;
             }
 
             // Tentar outros campos possíveis
-            const possiveisCampos = ['foto_url', 'foto', 'avatar', 'imagem', 'fotoUrl', 'avatar_url', 'profile_picture', 'photo_url'];
+            const possiveisCampos = ['foto_url', 'foto', 'avatar', 'imagem', 'fotoUrl', 'avatar_url', 'profile_picture', 'photo_url']; 
 
             for (const campo of possiveisCampos) {
                 if (paciente[campo]) {
-                    console.log(`Foto encontrada no campo ${campo}:`, paciente[campo]);
+                    console.log(`✅ Foto encontrada no campo ${campo}:`, paciente[campo]);
 
                     let fotoUrl = paciente[campo];
 
@@ -288,12 +310,12 @@
             if (dependenteId) {
                 const fotoStorage = localStorage.getItem(`foto_dependente_${dependenteId}`);
                 if (fotoStorage) {
-                    console.log("Foto encontrada no localStorage:", fotoStorage);
+                    console.log("✅ Foto encontrada no localStorage:", fotoStorage);
                     return fotoStorage;
                 }
             }
 
-            console.log("Nenhuma foto encontrada para o paciente");
+            console.log("❌ Nenhuma foto encontrada para o paciente");
             return null;
         }
 
@@ -318,14 +340,14 @@
 
                 return idade;
             } catch (error) {
-                console.error("Erro ao calcular idade:", error);
+                console.error("❌ Erro ao calcular idade:", error);
                 return "N/A";
             }
         }
 
         // Função para usar dados de exemplo se a API não estiver disponível
         function usarDadosExemplo() {
-            console.log("Usando dados de exemplo");
+            console.log("🔄 Usando dados de exemplo");
             const pacientesExemplo = [
                 {
                     id: 1,
@@ -347,7 +369,7 @@
 
         // Função global para tratamento de erro de imagem
         function handleImageError(imgElement) {
-            console.log("Erro ao carregar imagem:", imgElement.src);
+            console.log("❌ Erro ao carregar imagem:", imgElement.src);
             imgElement.style.display = 'none';
             const placeholder = imgElement.nextElementSibling;
             if (placeholder && placeholder.classList.contains('avatar-placeholder')) {

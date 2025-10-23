@@ -1,4 +1,9 @@
 // dashboard_supervisor.js - CORRIGIDO (problema de paciente selecionado)
+const token = localStorage.getItem("token");
+const headersAutenticacao = {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`
+};
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 DOM carregado, inicializando dashboard supervisor...');
@@ -34,26 +39,36 @@ async function carregarDadosDependente() {
         const usuarioId = localStorage.getItem('usuarioId');
         const usuarioTipo = localStorage.getItem('usuarioTipo');
         
-        // ✅ CORREÇÃO: Verificar TODAS as possíveis chaves de paciente selecionado
-        let pacienteSelecionadoId = 
-            localStorage.getItem('pacienteSelecionadoId') || 
-            localStorage.getItem('dependenteSelecionadoId') ||
-            (() => {
-                // Tentar extrair de objeto JSON
-                const dependenteObj = localStorage.getItem('dependenteSelecionado');
-                if (dependenteObj) {
-                    try {
-                        const obj = JSON.parse(dependenteObj);
-                        return obj.id || obj.paciente_id;
-                    } catch (e) {
-                        return null;
-                    }
+        // ✅ CORREÇÃO COMPLETA: Buscar paciente selecionado de TODAS as formas
+        let pacienteSelecionadoId = null;
+        let pacienteSelecionadoObj = null;
+
+        // 1. Tentar buscar por pacienteSelecionadoId (chave direta)
+        pacienteSelecionadoId = localStorage.getItem('pacienteSelecionadoId');
+        
+        // 2. Se não encontrou, tentar extrair de dependenteSelecionado (JSON)
+        if (!pacienteSelecionadoId) {
+            const dependenteObjStr = localStorage.getItem('dependenteSelecionado');
+            if (dependenteObjStr) {
+                try {
+                    pacienteSelecionadoObj = JSON.parse(dependenteObjStr);
+                    pacienteSelecionadoId = pacienteSelecionadoObj.id || pacienteSelecionadoObj.paciente_id;
+                    console.log('✅ Paciente encontrado em dependenteSelecionado:', pacienteSelecionadoId);
+                } catch (e) {
+                    console.error('❌ Erro ao parsear dependenteSelecionado:', e);
                 }
-                return null;
-            })();
+            }
+        }
+
+        // 3. Se ainda não encontrou, tentar outras chaves possíveis
+        if (!pacienteSelecionadoId) {
+            pacienteSelecionadoId = localStorage.getItem('dependenteSelecionadoId') || 
+                                   localStorage.getItem('pacienteId') ||
+                                   localStorage.getItem('selectedPatientId');
+        }
 
         console.log('👤 Usuário:', usuarioId, 'Tipo:', usuarioTipo);
-        console.log('🎯 Paciente selecionado ID:', pacienteSelecionadoId);
+        console.log('🎯 Paciente selecionado ID final:', pacienteSelecionadoId);
 
         if (!usuarioId) {
             console.error('❌ Usuário não logado');
@@ -64,10 +79,12 @@ async function carregarDadosDependente() {
         if (!pacienteSelecionadoId) {
             console.error('❌ Nenhum paciente selecionado encontrado no localStorage');
             
-            // Listar todas as chaves disponíveis para debug
+            // DEBUG: Listar todas as chaves disponíveis
             console.log('🔍 Chaves disponíveis no localStorage:');
             for (let i = 0; i < localStorage.length; i++) {
-                console.log(`   - ${localStorage.key(i)}`);
+                const key = localStorage.key(i);
+                const value = localStorage.getItem(key);
+                console.log(`   - ${key}:`, value);
             }
             
             mostrarErro('Nenhum paciente selecionado. Por favor, selecione um paciente primeiro.');
@@ -77,39 +94,58 @@ async function carregarDadosDependente() {
             return;
         }
 
-        // ✅ CORREÇÃO: Buscar dados do paciente usando a rota CORRETA
-        let paciente;
-        if (usuarioTipo === 'familiar_contratante' || usuarioTipo === 'familiar_cuidador') {
-            // Usar rota do SUPERVISOR
-            console.log('🌐 Buscando dados do paciente via rota supervisor...');
-            const response = await fetch(`/api/supervisores/${usuarioId}/paciente/${pacienteSelecionadoId}`);
-            
-            if (!response.ok) {
-                const errorText = await response.text();
-                console.error('❌ Erro na resposta da API:', response.status, errorText);
-                
-                if (response.status === 404) {
-                    mostrarErro('Paciente não encontrado. Por favor, selecione outro paciente.');
-                    setTimeout(() => {
-                        window.location.href = 'dependentes.html';
-                    }, 3000);
-                    return;
-                }
-                throw new Error(`Erro ${response.status}: ${errorText}`);
-            }
-            
-            paciente = await response.json();
-        } else {
-            // Para outros tipos, usar rota genérica
-            const response = await fetch(`/api/dependentes/${pacienteSelecionadoId}`);
-            if (!response.ok) throw new Error('Erro ao carregar paciente');
-            paciente = await response.json();
+        // ✅ CORREÇÃO: Garantir que o ID está salvo em todas as chaves para compatibilidade futura
+        localStorage.setItem('pacienteSelecionadoId', pacienteSelecionadoId);
+        if (pacienteSelecionadoObj) {
+            localStorage.setItem('dependenteSelecionado', JSON.stringify(pacienteSelecionadoObj));
         }
 
+        // ✅ CORREÇÃO: Buscar dados do paciente baseado no tipo de usuário
+        let paciente;
+        let apiUrl;
+
+        if (usuarioTipo === 'familiar_contratante') {
+            // Familiar contratante usa rota de supervisor
+            apiUrl = `/api/supervisores/${usuarioId}/paciente/${pacienteSelecionadoId}`;
+            console.log('🌐 Buscando via rota supervisor (familiar_contratante):', apiUrl);
+            
+        } else if (usuarioTipo === 'familiar_cuidador') {
+            // Familiar cuidador usa rota específica
+            apiUrl = `/api/familiares-cuidadores/${usuarioId}/paciente/${pacienteSelecionadoId}`;
+            console.log('🌐 Buscando via rota familiar cuidador:', apiUrl);
+            
+        } else if (usuarioTipo === 'cuidador_profissional') {
+            // Cuidador profissional usa rota de cuidador
+            apiUrl = `/api/cuidadores/${usuarioId}/paciente`;
+            console.log('🌐 Buscando via rota cuidador profissional:', apiUrl);
+        } else {
+            // Para outros tipos, usar rota genérica
+            apiUrl = `/api/dependentes/${pacienteSelecionadoId}`;
+            console.log('🌐 Buscando via rota genérica:', apiUrl);
+        }
+
+        // Fazer a requisição
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erro na resposta da API:', response.status, errorText);
+            
+            if (response.status === 404) {
+                mostrarErro('Paciente não encontrado. Por favor, selecione outro paciente.');
+                setTimeout(() => {
+                    window.location.href = 'dependentes.html';
+                }, 3000);
+                return;
+            }
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+        
+        paciente = await response.json();
         console.log('✅ Dados do paciente recebidos:', paciente);
 
-        // ✅ CORREÇÃO: Garantir que o paciente está salvo em TODOS os formatos para compatibilidade
-        localStorage.setItem('pacienteSelecionadoId', paciente.id);
+        // ✅ CORREÇÃO: Garantir que o paciente está salvo em TODOS os formatos
+        localStorage.setItem('pacienteSelecionadoId', paciente.id || pacienteSelecionadoId);
         localStorage.setItem('dependenteSelecionado', JSON.stringify(paciente));
 
         // Atualizar interface
@@ -117,7 +153,7 @@ async function carregarDadosDependente() {
 
         // Carregar dados adicionais
         console.log('🔄 Carregando dados adicionais...');
-        await carregarDadosAdicionais(usuarioId, paciente.id);
+        await carregarDadosAdicionais(usuarioId, paciente.id || pacienteSelecionadoId);
 
         console.log('✅ Todos os dados carregados com sucesso!');
 
