@@ -52,20 +52,44 @@ async function carregarEstatisticas() {
         const usuarioId = localStorage.getItem('usuarioId');
         const pacienteId = localStorage.getItem('pacienteSelecionadoId');
         
+        console.log('📊 Carregando estatísticas para paciente:', pacienteId);
+        
         if (!usuarioId || !pacienteId) {
             console.error('IDs não encontrados');
+            mostrarErroEstatisticas();
             return;
         }
 
         const response = await fetch(`/api/familiares-cuidadores/${usuarioId}/pacientes/${pacienteId}/estatisticas`);
         
-        if (response.ok) {
-            const estatisticas = await response.json();
-            atualizarEstatisticas(estatisticas);
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}`);
         }
+        
+        const estatisticas = await response.json();
+        console.log('✅ Estatísticas carregadas:', estatisticas);
+        atualizarEstatisticas(estatisticas);
+
     } catch (error) {
-        console.error('Erro ao carregar estatísticas:', error);
+        console.error('❌ Erro ao carregar estatísticas:', error);
+        mostrarErroEstatisticas();
     }
+}
+
+function mostrarErroEstatisticas() {
+    const elementos = {
+        'healthRecordsCount': '--',
+        'medicationsCount': '--', 
+        'activitiesCount': '--',
+        'alertsCount': '--'
+    };
+
+    Object.keys(elementos).forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.textContent = elementos[id];
+        }
+    });
 }
 
 function atualizarEstatisticas(estatisticas) {

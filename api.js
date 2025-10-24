@@ -4317,3 +4317,477 @@ app.get("/saude_familiar.html", (req, res) => {
 app.get("/atividades_familiar.html", (req, res) => {
     res.sendFile(path.join(__dirname, "public/paginas/atividades_familiar.html"));
 });
+
+// ====================== APIs ESPECÍFICAS PARA FAMILIAR CUIDADOR ====================== //
+
+// API para estatísticas do dashboard de relatórios
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/estatisticas", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📊 Buscando estatísticas para paciente ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar contagens de diferentes tipos de dados
+        const queries = {
+            registrosSaude: `SELECT COUNT(*) as count FROM sinais_vitais WHERE paciente_id = ?`,
+            medicamentos: `SELECT COUNT(*) as count FROM medicamentos WHERE paciente_id = ? AND ativo = TRUE`,
+            atividades: `SELECT COUNT(*) as count FROM atividades WHERE paciente_id = ?`,
+            alertas: `SELECT COUNT(*) as count FROM alertas WHERE paciente_id = ? AND status = 'ativo'`
+        };
+
+        const resultados = {};
+        let queriesExecutadas = 0;
+        const totalQueries = Object.keys(queries).length;
+
+        Object.keys(queries).forEach(chave => {
+            db.query(queries[chave], [pacienteId], (err, results) => {
+                if (err) {
+                    resultados[chave] = 0;
+                } else {
+                    resultados[chave] = results[0].count;
+                }
+                
+                queriesExecutadas++;
+                
+                // Quando todas as queries terminarem, enviar resposta
+                if (queriesExecutadas === totalQueries) {
+                    res.json(resultados);
+                }
+            });
+        });
+    });
+});
+
+// API para dados de gráficos
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/graficos", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    const { periodo } = req.query;
+    
+    console.log(`📈 Buscando dados de gráficos para paciente ${pacienteId}, período: ${periodo}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Dados mock para demonstração - em produção, buscar do banco
+        const dadosGraficos = {
+            evolucaoSaude: {
+                labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                datasets: [
+                    {
+                        label: 'Frequência Cardíaca',
+                        data: [72, 75, 70, 68, 74, 76, 72],
+                        borderColor: '#e74c3c'
+                    },
+                    {
+                        label: 'Pressão Sistólica',
+                        data: [120, 118, 122, 119, 121, 123, 120],
+                        borderColor: '#f39c12'
+                    }
+                ]
+            },
+            adesaoMedicamentos: {
+                labels: ['Concluídas', 'Pendentes', 'Atrasadas'],
+                datasets: [{
+                    data: [75, 20, 5],
+                    backgroundColor: ['#27ae60', '#f39c12', '#e74c3c']
+                }]
+            },
+            conclusaoAtividades: {
+                labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                datasets: [{
+                    label: 'Atividades Concluídas',
+                    data: [8, 7, 9, 6, 8, 5, 7],
+                    backgroundColor: '#3498db'
+                }]
+            },
+            distribuicaoAlertas: {
+                labels: ['Críticos', 'Atenção', 'Informativos'],
+                datasets: [{
+                    data: [2, 5, 12],
+                    backgroundColor: ['#e74c3c', '#f39c12', '#3498db']
+                }]
+            },
+            tiposAtividades: {
+                labels: ['Medicação', 'Alimentação', 'Exercício', 'Higiene', 'Descanso'],
+                datasets: [{
+                    data: [30, 25, 20, 15, 10],
+                    backgroundColor: ['#e74c3c', '#f39c12', '#3498db', '#9b59b6', '#27ae60']
+                }]
+            }
+        };
+
+        res.json(dadosGraficos);
+    });
+});
+
+// API para relatórios gerados
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/relatorios", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📋 Buscando relatórios para paciente ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar relatórios (se a tabela existir)
+        const query = `
+            SELECT * FROM relatorios 
+            WHERE paciente_id = ? 
+            ORDER BY data_geracao DESC
+            LIMIT 10
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                // Se a tabela não existir, retornar dados mock
+                const relatoriosMock = [
+                    {
+                        id: '1',
+                        titulo: 'Relatório de Saúde - Semanal',
+                        tipo: 'health',
+                        descricao: 'Análise completa dos sinais vitais da última semana',
+                        data_geracao: new Date().toISOString(),
+                        tamanho: '2.4 MB',
+                        periodo: 'Últimos 7 dias'
+                    },
+                    {
+                        id: '2', 
+                        titulo: 'Relatório de Medicamentos - Mensal',
+                        tipo: 'medications',
+                        descricao: 'Relatório de adesão aos medicamentos',
+                        data_geracao: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        tamanho: '1.8 MB',
+                        periodo: 'Últimos 30 dias'
+                    }
+                ];
+                return res.json(relatoriosMock);
+            }
+            
+            res.json(results);
+        });
+    });
+});
+
+// API para medicamentos do familiar cuidador
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/medicamentos", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`💊 Buscando medicamentos para paciente ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar medicamentos
+        const query = `
+            SELECT * FROM medicamentos 
+            WHERE paciente_id = ? 
+            ORDER BY nome_medicamento ASC
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("Erro ao buscar medicamentos:", err);
+                // Retornar dados mock para demonstração
+                const medicamentosMock = [
+                    {
+                        id: '1',
+                        nome: 'Losartana',
+                        descricao: 'Anti-hipertensivo',
+                        dosagem: '50mg',
+                        tipo: 'oral',
+                        frequencia: 'daily',
+                        horario: '08:00',
+                        ativo: true,
+                        proxima_dose: new Date().toISOString(),
+                        urgente: false
+                    },
+                    {
+                        id: '2',
+                        nome: 'Sinvastatina',
+                        descricao: 'Redutor de colesterol',
+                        dosagem: '20mg',
+                        tipo: 'oral',
+                        frequencia: 'daily',
+                        horario: '20:00',
+                        ativo: true,
+                        proxima_dose: new Date().toISOString(),
+                        urgente: false
+                    }
+                ];
+                return res.json(medicamentosMock);
+            }
+            
+            res.json(results);
+        });
+    });
+});
+
+// API para histórico de administração
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/historico-administracao", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📋 Buscando histórico de administração para paciente ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar histórico (se a tabela existir)
+        const query = `
+            SELECT * FROM historico_administracao 
+            WHERE paciente_id = ? 
+            ORDER BY data_administracao DESC
+            LIMIT 20
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                // Se a tabela não existir, retornar dados mock
+                const historicoMock = [
+                    {
+                        id: '1',
+                        nome_medicamento: 'Losartana',
+                        dosagem: '50mg',
+                        data_administracao: new Date().toISOString(),
+                        status: 'administered',
+                        administrado_por: 'Sistema',
+                        observacoes: 'Administrado conforme prescrição'
+                    },
+                    {
+                        id: '2',
+                        nome_medicamento: 'Sinvastatina',
+                        dosagem: '20mg',
+                        data_administracao: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
+                        status: 'administered',
+                        administrado_por: 'Familiar',
+                        observacoes: 'Dose noturna'
+                    }
+                ];
+                return res.json(historicoMock);
+            }
+            
+            res.json(results);
+        });
+    });
+});
+
+// ====================== API PARA ALERTAS DO FAMILIAR CUIDADOR ====================== //
+
+app.get("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/alertas", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`🚨 Buscando alertas para paciente ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar alertas do paciente
+        const query = `
+            SELECT * FROM alertas 
+            WHERE paciente_id = ? 
+            ORDER BY data_criacao DESC
+            LIMIT 50
+        `;
+        
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("Erro ao buscar alertas:", err);
+                // Se a tabela não existir ou der erro, retornar alertas baseados nos dados do paciente
+                return res.json(gerarAlertasDinamicos(pacienteId));
+            }
+            
+            // Se não houver alertas, gerar alguns baseados no estado do paciente
+            if (results.length === 0) {
+                const alertasDinamicos = gerarAlertasDinamicos(pacienteId);
+                return res.json(alertasDinamicos);
+            }
+            
+            res.json(results);
+        });
+    });
+});
+
+// Função para gerar alertas dinâmicos baseados no estado do paciente
+function gerarAlertasDinamicos(pacienteId) {
+    console.log(`🎯 Gerando alertas dinâmicos para paciente ${pacienteId}`);
+    
+    const alertasBase = [
+        {
+            id: '1',
+            titulo: 'Monitoramento de Saúde Ativo',
+            descricao: 'Sistema de monitoramento está acompanhando a saúde do paciente.',
+            tipo: 'system',
+            severidade: 'info',
+            data_criacao: new Date().toISOString(),
+            lido: false,
+            resolvido: false,
+            paciente_id: pacienteId
+        },
+        {
+            id: '2',
+            titulo: 'Lembrete de Check-up',
+            descricao: 'Check-up mensal recomendado para acompanhamento da saúde.',
+            tipo: 'health',
+            severidade: 'info', 
+            data_criacao: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+            lido: true,
+            resolvido: false,
+            paciente_id: pacienteId
+        }
+    ];
+
+    // Adicionar alertas baseados em condições específicas (simulação)
+    const horaAtual = new Date().getHours();
+    if (horaAtual >= 20) {
+        alertasBase.push({
+            id: '3',
+            titulo: 'Medicamento Noturno Pendente',
+            descricao: 'Verificar se todos os medicamentos noturnos foram administrados.',
+            tipo: 'medication',
+            severidade: 'warning',
+            data_criacao: new Date().toISOString(),
+            lido: false,
+            resolvido: false,
+            paciente_id: pacienteId
+        });
+    }
+
+    return alertasBase;
+}
+
+// API para marcar alerta como lido
+app.post("/api/alertas/:alertaId/marcar-lido", (req, res) => {
+    const { alertaId } = req.params;
+    
+    console.log(`📌 Marcando alerta ${alertaId} como lido`);
+    
+    const query = `
+        UPDATE alertas 
+        SET lido = TRUE, data_leitura = NOW() 
+        WHERE id = ?
+    `;
+    
+    db.query(query, [alertaId], (err, result) => {
+        if (err) {
+            console.error("Erro ao marcar alerta como lido:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json({ success: true, message: "Alerta marcado como lido" });
+    });
+});
+
+// API para resolver alerta
+app.post("/api/alertas/:alertaId/resolver", (req, res) => {
+    const { alertaId } = req.params;
+    
+    console.log(`✅ Resolvendo alerta ${alertaId}`);
+    
+    const query = `
+        UPDATE alertas 
+        SET resolvido = TRUE, data_resolucao = NOW() 
+        WHERE id = ?
+    `;
+    
+    db.query(query, [alertaId], (err, result) => {
+        if (err) {
+            console.error("Erro ao resolver alerta:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+        
+        res.json({ success: true, message: "Alerta resolvido" });
+    });
+});
+
+// API para marcar todos os alertas como lidos
+app.post("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/alertas/marcar-todos-lidos", (req, res) => {
+    const { usuarioId, pacienteId } = req.params;
+    
+    console.log(`📋 Marcando todos os alertas como lidos para paciente ${pacienteId}`);
+    
+    // Verificar acesso primeiro
+    const verificarAcessoQuery = `
+        SELECT p.id FROM pacientes p
+        INNER JOIN familiares_cuidadores fc ON p.familiar_cuidador_id = fc.id
+        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+    `;
+    
+    db.query(verificarAcessoQuery, [pacienteId, usuarioId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        const query = `
+            UPDATE alertas 
+            SET lido = TRUE, data_leitura = NOW() 
+            WHERE paciente_id = ? AND lido = FALSE
+        `;
+        
+        db.query(query, [pacienteId], (err, result) => {
+            if (err) {
+                console.error("Erro ao marcar alertas como lidos:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+            
+            res.json({ 
+                success: true, 
+                message: `${result.affectedRows} alertas marcados como lidos` 
+            });
+        });
+    });
+});

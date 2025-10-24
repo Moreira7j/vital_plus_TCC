@@ -27,24 +27,48 @@ async function carregarAtividades() {
         const usuarioId = localStorage.getItem('usuarioId');
         const pacienteId = localStorage.getItem('pacienteSelecionadoId');
         
+        console.log('📅 Carregando atividades para paciente:', pacienteId);
+        
         if (!usuarioId || !pacienteId) {
             console.error('IDs não encontrados');
-            exibirAtividades([]);
+            mostrarErroAtividades('Nenhum paciente selecionado');
             return;
         }
 
         const response = await fetch(`/api/familiares-cuidadores/${usuarioId}/pacientes/${pacienteId}/atividades`);
         
-        if (response.ok) {
-            const atividades = await response.json();
-            exibirAtividades(atividades);
-        } else {
-            exibirAtividades([]);
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}`);
         }
+        
+        const atividades = await response.json();
+        console.log('✅ Atividades carregadas:', atividades.length);
+        exibirAtividades(atividades);
+
     } catch (error) {
-        console.error('Erro ao carregar atividades:', error);
-        exibirAtividades([]);
+        console.error('❌ Erro ao carregar atividades:', error);
+        mostrarErroAtividades('Erro ao carregar atividades: ' + error.message);
     }
+}
+
+function mostrarErroAtividades(mensagem) {
+    const container = document.getElementById('activitiesList');
+    if (container) {
+        container.innerHTML = `
+            <div class="empty-activities">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>Erro ao carregar atividades</p>
+                <small>${mensagem}</small>
+                <button class="btn-primary" onclick="carregarAtividades()" style="margin-top: 1rem;">
+                    <i class="fas fa-redo"></i>
+                    Tentar Novamente
+                </button>
+            </div>
+        `;
+    }
+    
+    // Zerar estatísticas em caso de erro
+    atualizarEstatisticas([]);
 }
 
 function exibirAtividades(atividades) {
