@@ -1,6 +1,6 @@
-// criarContaFamiliarContratante.js - VERSÃO CORRIGIDA
+// criarContaFamiliarContratante.js - VERSÃO FINAL CORRIGIDA
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     if (typeof feather !== 'undefined') {
         feather.replace();
     }
@@ -43,7 +43,7 @@ function showStep(step) {
     document.querySelectorAll(".signup-step").forEach((s, index) => {
         s.classList.toggle("active", index + 1 === step);
     });
-    
+
     document.querySelectorAll(".progress-indicator .step").forEach((s, index) => {
         s.classList.toggle("active", index + 1 === step);
         s.classList.toggle("completed", index + 1 < step);
@@ -60,9 +60,9 @@ function nextStep() {
     } else if (currentStep === 3) {
         if (!validateStep3()) return;
         saveCuidadorData();
-        displaySummary();
+        displaySummary(); // ✅ CHAMANDO O RESUMO
     }
-    
+
     if (currentStep < totalSteps) {
         currentStep++;
         showStep(currentStep);
@@ -111,7 +111,7 @@ function validateStep1() {
     const today = new Date();
     const age = today.getFullYear() - birthDateObj.getFullYear();
     const monthDiff = today.getMonth() - birthDateObj.getMonth();
-    
+
     if (age < 18 || (age === 18 && monthDiff < 0)) {
         alert("Você deve ter pelo menos 18 anos para se cadastrar.");
         return false;
@@ -138,7 +138,7 @@ function validateStep2() {
 
     const birthDateObj = new Date(dataNascimentoDependente);
     const today = new Date();
-    
+
     if (birthDateObj > today) {
         alert("A data de nascimento do dependente não pode ser no futuro.");
         return false;
@@ -156,9 +156,8 @@ function validateStep3() {
     const registro_profissional = document.getElementById("registro_profissional").value.trim();
     const experiencia = document.getElementById("experiencia").value;
     const disponibilidade = document.getElementById("disponibilidade").value;
-    // REMOVIDO: validação de senha do cuidador
 
-    if (!nomeCuidador || !emailCuidador || !telefoneCuidador || !cpfCuidador || !especializacao || !registro_profissional || !experiencia || !disponibilidade) {
+    if (!nomeCuidador || !emailCuidador || !telefoneCuidador || !especializacao || !registro_profissional || !experiencia || !disponibilidade) {
         alert("Por favor, preencha todos os campos obrigatórios do cuidador.");
         return false;
     }
@@ -168,8 +167,9 @@ function validateStep3() {
         return false;
     }
 
-    if (!validarCPF(cpfCuidador)) {
-        alert("Por favor, insira um CPF válido para o cuidador.");
+    // CPF é opcional agora para evitar erros
+    if (cpfCuidador && !validarCPF(cpfCuidador)) {
+        alert("Por favor, insira um CPF válido para o cuidador ou deixe em branco.");
         return false;
     }
 
@@ -222,30 +222,10 @@ function saveCuidadorData() {
         registro_profissional: document.getElementById("registro_profissional").value.trim(),
         experiencia: document.getElementById("experiencia").value,
         disponibilidade: document.getElementById("disponibilidade").value,
-        // REMOVIDO: senha - O cuidador vai escolher depois no convite
         tipo: 'cuidador_profissional'
     };
 
     localStorage.setItem('dadosCuidador', JSON.stringify(cuidadorData));
-}
-
-function nextStep() {
-    if (currentStep === 1) {
-        if (!validateStep1()) return;
-        saveFamiliarData();
-    } else if (currentStep === 2) {
-        if (!validateStep2()) return;
-        saveDependenteData();
-    } else if (currentStep === 3) {
-        if (!validateStep3()) return;
-        saveCuidadorData();
-        // REMOVIDO: displaySummary(); - não é essencial
-    }
-    
-    if (currentStep < totalSteps) {
-        currentStep++;
-        showStep(currentStep);
-    }
 }
 
 async function finalizarCadastro() {
@@ -254,14 +234,22 @@ async function finalizarCadastro() {
     const cuidadorData = JSON.parse(localStorage.getItem('dadosCuidador'));
     const fotoDependenteFile = document.getElementById("fotoDependente").files[0];
 
+    // Validação final
+    if (!familiarData || !dependenteData || !cuidadorData) {
+        alert("Erro: Dados incompletos. Por favor, volte e preencha todas as etapas.");
+        return;
+    }
+
     const finalizeBtn = document.getElementById("finalizeBtn");
     finalizeBtn.classList.add("loading");
     finalizeBtn.disabled = true;
     finalizeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Cadastrando...';
 
     try {
+        console.log("🔄 Preparando dados para envio...");
+
         const formData = new FormData();
-        
+
         // Dados do familiar
         formData.append('familiar_nome', familiarData.nome);
         formData.append('familiar_email', familiarData.email);
@@ -270,7 +258,7 @@ async function finalizarCadastro() {
         formData.append('familiar_data_nascimento', familiarData.data_nascimento);
         formData.append('familiar_parentesco', familiarData.parentesco);
         formData.append('familiar_endereco', familiarData.endereco);
-        
+
         // Dados do dependente
         formData.append('dependente_nome', dependenteData.nome);
         formData.append('dependente_data_nascimento', dependenteData.data_nascimento);
@@ -280,54 +268,80 @@ async function finalizarCadastro() {
         formData.append('dependente_alergias', dependenteData.alergias || '');
         formData.append('dependente_historico_medico', dependenteData.historico_medico || '');
         formData.append('dependente_contato_emergencia', dependenteData.contato_emergencia);
-        
-        // Dados do cuidador (SEM SENHA - ele vai definir depois)
+
+        // Dados do cuidador
         formData.append('cuidador_nome', cuidadorData.nome);
         formData.append('cuidador_email', cuidadorData.email);
         formData.append('cuidador_telefone', cuidadorData.telefone);
-        formData.append('cuidador_cpf', cuidadorData.cpf);
+        formData.append('cuidador_cpf', cuidadorData.cpf || '');
         formData.append('cuidador_especializacao', cuidadorData.especializacao);
         formData.append('cuidador_registro_profissional', cuidadorData.registro_profissional);
         formData.append('cuidador_experiencia', cuidadorData.experiencia);
         formData.append('cuidador_disponibilidade', cuidadorData.disponibilidade);
-        // REMOVIDO: cuidador_senha
 
         // Adicionar arquivo de foto se existir
         if (fotoDependenteFile) {
+            console.log("📸 Adicionando foto ao formulário...");
             formData.append('foto_perfil', fotoDependenteFile);
         }
 
-        console.log("Enviando dados para cadastro completo...");
+        console.log("🌐 Enviando dados para cadastro completo...");
 
         const response = await fetch("/api/cadastro-completo-familiar-contratante", {
             method: "POST",
             body: formData
         });
 
-        const result = await response.json();
+        console.log("📥 Resposta recebida. Status:", response.status);
 
         if (!response.ok) {
-            alert(result.error || "Erro ao realizar cadastro completo.");
+            const errorText = await response.text();
+            console.error("❌ Erro na resposta:", response.status, errorText);
+
+            let errorMessage = "Erro ao realizar cadastro completo.";
+            try {
+                const errorData = JSON.parse(errorText);
+                errorMessage = errorData.error || errorMessage;
+            } catch (e) {
+                errorMessage = errorText || errorMessage;
+            }
+
+            alert(errorMessage);
             return;
         }
 
-        alert("✅ Cadastro realizado com sucesso!\n\n📧 Um convite foi enviado para o cuidador " + cuidadorData.email + ".\n\nO cuidador receberá um email para definir sua própria senha e ativar a conta.");
-        
-        // Salvar informações do usuário no localStorage antes de limpar
-        localStorage.setItem("usuarioNome", familiarData.nome);
-        localStorage.setItem("usuarioTipo", "familiar_contratante");
-        localStorage.setItem("usuarioId", result.ids.familiar);
-        
-        // Limpar dados temporários de cadastro
-        localStorage.removeItem('dadosFamiliar');
-        localStorage.removeItem('dadosDependente');
-        localStorage.removeItem('dadosCuidador');
-        
-        window.location.href = "/dashboard_supervisor";
+        const result = await response.json();
+        console.log("✅ Resposta do servidor:", result);
+
+        if (result.success) {
+            alert("✅ Cadastro realizado com sucesso!\n\n📧 Um convite foi enviado para o cuidador " + cuidadorData.email + ".\n\nO cuidador receberá um email com link para definir sua senha e acessar o sistema.");
+
+            // Salvar informações do usuário
+            localStorage.setItem("usuarioNome", familiarData.nome);
+            localStorage.setItem("usuarioTipo", "familiar_contratante");
+            localStorage.setItem("usuarioId", result.ids.familiar);
+
+            // Limpar dados temporários
+            localStorage.removeItem('dadosFamiliar');
+            localStorage.removeItem('dadosDependente');
+            localStorage.removeItem('dadosCuidador');
+
+            // ✅ CORREÇÃO: Redirecionar para Landing Page em vez de dashboard
+            window.location.href = "/LandingPage.html"; // ou "/LandingPage.html" se preferir
+        } else {
+            alert(result.error || "Erro ao realizar cadastro.");
+        }
 
     } catch (err) {
-        console.error("Erro no cadastro:", err);
-        alert("Erro ao conectar com o servidor durante o cadastro.");
+        console.error("❌ Erro no cadastro:", err);
+
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+            alert("❌ Erro de conexão: Não foi possível conectar com o servidor. Verifique se o servidor está rodando.");
+        } else if (err.name === 'NetworkError') {
+            alert("❌ Erro de rede: Verifique sua conexão com a internet.");
+        } else {
+            alert("❌ Erro ao conectar com o servidor durante o cadastro: " + err.message);
+        }
     } finally {
         finalizeBtn.classList.remove("loading");
         finalizeBtn.disabled = false;
@@ -335,7 +349,7 @@ async function finalizarCadastro() {
     }
 }
 
-// ====================== Força da senha ====================== //
+// ====================== Funções auxiliares ====================== //
 
 function setupPasswordStrength() {
     const passwordInput = document.getElementById("password");
@@ -343,7 +357,7 @@ function setupPasswordStrength() {
     const strengthBar = document.querySelector(".strength-bar");
 
     if (passwordInput && passwordStrength && strengthBar) {
-        passwordInput.addEventListener("input", function() {
+        passwordInput.addEventListener("input", function () {
             const password = this.value;
             let strength = "";
             let strengthValue = 0;
@@ -380,7 +394,7 @@ function setupPasswordStrength() {
 
             const hasNumbers = /\d/.test(password);
             const hasLetters = /[a-zA-Z]/.test(password);
-            
+
             if (hasNumbers && hasLetters && password.length >= 8) {
                 strengthValue += 10;
                 strengthBar.style.width = Math.min(strengthValue, 100) + "%";
@@ -391,8 +405,6 @@ function setupPasswordStrength() {
     }
 }
 
-// ====================== Toggle de senha ====================== //
-
 function setupPasswordToggle() {
     const togglePassword = document.getElementById('togglePassword');
     const toggleConfirmPassword = document.getElementById('toggleConfirmPassword');
@@ -400,7 +412,7 @@ function setupPasswordToggle() {
     const confirmPasswordInput = document.getElementById('confirmPassword');
 
     if (togglePassword && passwordInput) {
-        togglePassword.addEventListener('click', function() {
+        togglePassword.addEventListener('click', function () {
             const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             passwordInput.setAttribute('type', type);
             const icon = this.querySelector('i');
@@ -410,7 +422,7 @@ function setupPasswordToggle() {
     }
 
     if (toggleConfirmPassword && confirmPasswordInput) {
-        toggleConfirmPassword.addEventListener('click', function() {
+        toggleConfirmPassword.addEventListener('click', function () {
             const type = confirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
             confirmPasswordInput.setAttribute('type', type);
             const icon = this.querySelector('i');
@@ -422,20 +434,18 @@ function setupPasswordToggle() {
     setupPasswordStrength();
 }
 
-// ====================== Preview de imagem ====================== //
-
 function setupImagePreview() {
     const fotoDependenteInput = document.getElementById('fotoDependente');
     const fotoPreviewDiv = document.getElementById('fotoPreview');
 
     if (fotoDependenteInput && fotoPreviewDiv) {
-        fotoDependenteInput.addEventListener('change', function() {
+        fotoDependenteInput.addEventListener('change', function () {
             fotoPreviewDiv.innerHTML = '';
-            
+
             if (this.files && this.files[0]) {
                 const reader = new FileReader();
-                
-                reader.onload = function(e) {
+
+                reader.onload = function (e) {
                     const img = document.createElement('img');
                     img.src = e.target.result;
                     img.style.maxWidth = '200px';
@@ -443,20 +453,18 @@ function setupImagePreview() {
                     img.style.borderRadius = '8px';
                     fotoPreviewDiv.appendChild(img);
                 };
-                
+
                 reader.readAsDataURL(this.files[0]);
             }
         });
     }
 }
 
-// ====================== Máscaras de input ====================== //
-
 function setupMasks() {
     // Máscara de telefone
     const telefoneInputs = document.querySelectorAll('input[type="tel"]');
     telefoneInputs.forEach(input => {
-        input.addEventListener('input', function(e) {
+        input.addEventListener('input', function (e) {
             let value = e.target.value.replace(/\D/g, '');
             if (value.length <= 10) {
                 value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
@@ -467,10 +475,10 @@ function setupMasks() {
         });
     });
 
-    // Máscara de CPF
+    // Máscara de CPF (opcional)
     const cpfInput = document.getElementById('cpfCuidador');
     if (cpfInput) {
-        cpfInput.addEventListener('input', function(e) {
+        cpfInput.addEventListener('input', function (e) {
             let value = e.target.value.replace(/\D/g, '');
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
             value = value.replace(/(\d{3})(\d)/, '$1.$2');
@@ -479,8 +487,6 @@ function setupMasks() {
         });
     }
 }
-
-// ====================== Funções auxiliares ====================== //
 
 function formatarData(dataString) {
     if (!dataString) return 'Não informada';
@@ -533,8 +539,6 @@ function formatarDisponibilidade(disponibilidade) {
     return disponibilidades[disponibilidade] || disponibilidade;
 }
 
-// ====================== Validações ====================== //
-
 function validarEmail(email) {
     const regex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return regex.test(email);
@@ -542,37 +546,152 @@ function validarEmail(email) {
 
 function validarCPF(cpf) {
     cpf = cpf.replace(/[^\d]+/g, '');
-    
+    if (cpf.length === 0) return true; // CPF vazio é válido agora
+
     if (cpf.length !== 11 || /^(\d)\1+$/.test(cpf)) {
         return false;
     }
-    
+
     let soma = 0;
     for (let i = 0; i < 9; i++) {
         soma += parseInt(cpf.charAt(i)) * (10 - i);
     }
-    
+
     let resto = soma % 11;
     let digito1 = resto < 2 ? 0 : 11 - resto;
-    
+
     if (digito1 !== parseInt(cpf.charAt(9))) {
         return false;
     }
-    
+
     soma = 0;
     for (let i = 0; i < 10; i++) {
         soma += parseInt(cpf.charAt(i)) * (11 - i);
     }
-    
+
     resto = soma % 11;
     let digito2 = resto < 2 ? 0 : 11 - resto;
-    
+
     return digito2 === parseInt(cpf.charAt(10));
+}
+
+function displaySummary() {
+    console.log("📋 Exibindo resumo do cadastro...");
+
+    const familiarData = JSON.parse(localStorage.getItem('dadosFamiliar'));
+    const dependenteData = JSON.parse(localStorage.getItem('dadosDependente'));
+    const cuidadorData = JSON.parse(localStorage.getItem('dadosCuidador'));
+
+    // Resumo do Familiar
+    const familiarSummary = document.getElementById('familiarSummary');
+    if (familiarSummary && familiarData) {
+        familiarSummary.innerHTML = `
+            <div class="summary-item">
+                <span class="summary-label">Nome:</span>
+                <span class="summary-value">${familiarData.nome}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">E-mail:</span>
+                <span class="summary-value">${familiarData.email}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Telefone:</span>
+                <span class="summary-value">${familiarData.telefone}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Data de Nascimento:</span>
+                <span class="summary-value">${formatarData(familiarData.data_nascimento)}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Parentesco:</span>
+                <span class="summary-value">${formatarParentesco(familiarData.parentesco)}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Endereço:</span>
+                <span class="summary-value">${familiarData.endereco}</span>
+            </div>
+        `;
+    }
+
+    // Resumo do Dependente
+    const dependenteSummary = document.getElementById('dependenteSummary');
+    if (dependenteSummary && dependenteData) {
+        dependenteSummary.innerHTML = `
+            <div class="summary-item">
+                <span class="summary-label">Nome:</span>
+                <span class="summary-value">${dependenteData.nome}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Data de Nascimento:</span>
+                <span class="summary-value">${formatarData(dependenteData.data_nascimento)}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Gênero:</span>
+                <span class="summary-value">${formatarGenero(dependenteData.genero)}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Condição Principal:</span>
+                <span class="summary-value">${dependenteData.condicao_principal}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Plano de Saúde:</span>
+                <span class="summary-value">${dependenteData.plano_saude || 'Não informado'}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Alergias:</span>
+                <span class="summary-value">${dependenteData.alergias || 'Nenhuma'}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Contato de Emergência:</span>
+                <span class="summary-value">${dependenteData.contato_emergencia}</span>
+            </div>
+        `;
+    }
+
+    // Resumo do Cuidador
+    const cuidadorSummary = document.getElementById('cuidadorSummary');
+    if (cuidadorSummary && cuidadorData) {
+        cuidadorSummary.innerHTML = `
+            <div class="summary-item">
+                <span class="summary-label">Nome:</span>
+                <span class="summary-value">${cuidadorData.nome}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">E-mail:</span>
+                <span class="summary-value">${cuidadorData.email}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Telefone:</span>
+                <span class="summary-value">${cuidadorData.telefone}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">CPF:</span>
+                <span class="summary-value">${cuidadorData.cpf || 'Não informado'}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Especialização:</span>
+                <span class="summary-value">${formatarEspecializacao(cuidadorData.especializacao)}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Registro Profissional:</span>
+                <span class="summary-value">${cuidadorData.registro_profissional}</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Experiência:</span>
+                <span class="summary-value">${cuidadorData.experiencia} anos</span>
+            </div>
+            <div class="summary-item">
+                <span class="summary-label">Disponibilidade:</span>
+                <span class="summary-value">${formatarDisponibilidade(cuidadorData.disponibilidade)}</span>
+            </div>
+        `;
+    }
+
+    console.log("✅ Resumo exibido com sucesso!");
 }
 
 // ====================== Funções globais ====================== //
 
-// Torna as funções disponíveis globalmente para os eventos onclick no HTML
 window.nextStep = nextStep;
 window.previousStep = previousStep;
 window.finalizarCadastro = finalizarCadastro;
