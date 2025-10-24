@@ -4276,3 +4276,44 @@ app.get("/aceitar-convite", (req, res) => {
 app.get("/aceitar-convite.html", (req, res) => {
     res.sendFile(path.join(__dirname, "public/paginas/aceitar-convite.html"));
 });
+
+// ====================== ROTAS PARA FAMILIAR CUIDADOR ====================== //
+
+// Dashboard
+app.get("/dashboard_familiar_cuidador", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/dashboard_familiar_cuidador.html"));
+});
+
+// Páginas do familiar cuidador
+app.get("/alertas_familiar", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/alertas_familiar.html"));
+});
+
+app.get("/relatorios_familiar", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/relatorios_familiar.html"));
+});
+
+app.get("/saude_familiar", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/saude_familiar.html"));
+});
+
+app.get("/atividades_familiar", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/atividades_familiar.html"));
+});
+
+// Rotas com .html também
+app.get("/alertas_familiar.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/alertas_familiar.html"));
+});
+
+app.get("/relatorios_familiar.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/relatorios_familiar.html"));
+});
+
+app.get("/saude_familiar.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/saude_familiar.html"));
+});
+
+app.get("/atividades_familiar.html", (req, res) => {
+    res.sendFile(path.join(__dirname, "public/paginas/atividades_familiar.html"));
+});

@@ -478,30 +478,7 @@ function configurarEventos() {
         });
     }
 
-    // Navegação entre seções
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', function (e) {
-            e.preventDefault();
-            const section = this.getAttribute('data-section');
-            
-            // Remover classe active de todos
-            navItems.forEach(nav => nav.classList.remove('active'));
-            document.querySelectorAll('.content-section').forEach(section => {
-                section.classList.remove('active');
-            });
-            
-            // Adicionar classe active ao item clicado
-            this.classList.add('active');
-            
-            // Mostrar seção correspondente
-            const targetSection = document.getElementById(section);
-            if (targetSection) {
-                targetSection.classList.add('active');
-            }
-        });
-    });
-
+ 
     // Ações rápidas
     const actionButtons = document.querySelectorAll('.action-btn');
     actionButtons.forEach(btn => {
@@ -622,3 +599,203 @@ function sair() {
     localStorage.clear();
     window.location.href = '/';
 }
+
+
+// ====================== FUNÇÕES DE NAVEGAÇÃO PARA PÁGINAS DO FAMILIAR CUIDADOR ====================== //
+
+// Função para navegar para Alertas
+function navegarParaAlertas() {
+    console.log('🚨 Navegando para página de Alertas...');
+    
+    // Salvar dados atuais antes de navegar
+    salvarEstadoAtual();
+    
+    // Navegar para a página de alertas
+    window.location.href = 'alertas_familiar.html';
+}
+
+// Função para navegar para Relatórios
+function navegarParaRelatorios() {
+    console.log('📊 Navegando para página de Relatórios...');
+    
+    // Salvar dados atuais antes de navegar
+    salvarEstadoAtual();
+    
+    // Navegar para a página de relatórios
+    window.location.href = 'relatorios_familiar.html';
+}
+
+// Função para navegar para Saúde
+function navegarParaSaude() {
+    console.log('💓 Navegando para página de Saúde...');
+    
+    // Salvar dados atuais antes de navegar
+    salvarEstadoAtual();
+    
+    // Navegar para a página de saúde
+    window.location.href = 'saude_familiar.html';
+}
+
+// Função para navegar para Atividades
+function navegarParaAtividades() {
+    console.log('📝 Navegando para página de Atividades...');
+    
+    // Salvar dados atuais antes de navegar
+    salvarEstadoAtual();
+    
+    // Navegar para a página de atividades
+    window.location.href = 'atividades_familiar.html';
+}
+
+// Função para voltar ao Dashboard principal
+function voltarParaDashboard() {
+    console.log('🏠 Voltando para Dashboard principal...');
+    window.location.href = 'dashboard_familiar_cuidador.html';
+}
+
+// Função para salvar estado atual antes de navegar
+function salvarEstadoAtual() {
+    console.log('💾 Salvando estado atual...');
+    
+    // Salvar timestamp da última atualização
+    const agora = new Date().toISOString();
+    localStorage.setItem('ultimaNavegacao', agora);
+    
+    // Salvar dados do paciente atual
+    const pacienteSelecionado = localStorage.getItem('dependenteSelecionado');
+    if (pacienteSelecionado) {
+        localStorage.setItem('pacienteBackup', pacienteSelecionado);
+    }
+}
+
+// Função para carregar estado salvo ao retornar
+function carregarEstadoSalvo() {
+    console.log('🔄 Carregando estado salvo...');
+    
+    const ultimaNavegacao = localStorage.getItem('ultimaNavegacao');
+    if (ultimaNavegacao) {
+        console.log('⏰ Última navegação:', new Date(ultimaNavegacao).toLocaleString());
+    }
+    
+    // Verificar se há backup do paciente
+    const pacienteBackup = localStorage.getItem('pacienteBackup');
+    if (pacienteBackup && !localStorage.getItem('dependenteSelecionado')) {
+        localStorage.setItem('dependenteSelecionado', pacienteBackup);
+        console.log('✅ Estado do paciente restaurado do backup');
+    }
+}
+
+// ====================== CONFIGURAÇÃO DE EVENTOS DE NAVEGAÇÃO ====================== //
+
+function configurarNavegacao() {
+    console.log('🧭 Configurando navegação entre páginas...');
+    
+    // Botões de navegação no dashboard
+    const botoesNavegacao = {
+        'btnAlertas': navegarParaAlertas,
+        'btnRelatorios': navegarParaRelatorios,
+        'btnSaude': navegarParaSaude,
+        'btnAtividades': navegarParaAtividades,
+        'btnVoltarDashboard': voltarParaDashboard
+    };
+    
+    // Configurar event listeners para cada botão
+    Object.keys(botoesNavegacao).forEach(botaoId => {
+        const botao = document.getElementById(botaoId);
+        if (botao) {
+            botao.addEventListener('click', botoesNavegacao[botaoId]);
+            console.log(`✅ Botão ${botaoId} configurado`);
+        }
+    });
+    
+    // Configurar cards clicáveis para navegação
+    const cardsNavegaveis = document.querySelectorAll('.card-clickable');
+    cardsNavegaveis.forEach(card => {
+        card.addEventListener('click', function() {
+            const destino = this.getAttribute('data-destino');
+            if (destino) {
+                switch(destino) {
+                    case 'alertas':
+                        navegarParaAlertas();
+                        break;
+                    case 'relatorios':
+                        navegarParaRelatorios();
+                        break;
+                    case 'saude':
+                        navegarParaSaude();
+                        break;
+                    case 'atividades':
+                        navegarParaAtividades();
+                        break;
+                    default:
+                        console.log('ℹ️ Destino não reconhecido:', destino);
+                }
+            }
+        });
+    });
+}
+
+// ====================== INICIALIZAÇÃO DA NAVEGAÇÃO ====================== //
+
+// Adicione esta linha na função principal do DOMContentLoaded
+// Dentro do DOMContentLoaded, após configurarEventos(), adicione:
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('🚀 DOM carregado, inicializando dashboard familiar cuidador...');
+
+    // DEBUG: Verificar localStorage completo
+    console.log('🔍 DEBUG - localStorage completo:');
+    for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        const value = localStorage.getItem(key);
+        console.log(`📦 ${key}:`, value);
+    }
+
+    // Inicializar ícones do Feather
+    if (typeof feather !== 'undefined') {
+        feather.replace();
+    }
+
+    // Carregar estado salvo (se houver)
+    carregarEstadoSalvo();
+
+    // Carregar dados do dependente
+    carregarDadosDependente();
+
+    // Configurar eventos
+    configurarEventos();
+
+    // Configurar navegação (NOVA LINHA)
+    configurarNavegacao();
+
+    console.log('🎯 Dashboard familiar cuidador inicializado com sucesso!');
+});
+
+// Função para destacar o item ativo na sidebar
+function destacarItemAtivo() {
+    const currentPage = window.location.pathname;
+    const navItems = document.querySelectorAll('.nav-item');
+    
+    navItems.forEach(item => {
+        item.classList.remove('active');
+        const href = item.getAttribute('href');
+        if (href === currentPage) {
+            item.classList.add('active');
+        }
+    });
+    
+    // Se estiver na página inicial, destacar "Visão Geral"
+    if (currentPage === '/dashboard_familiar_cuidador') {
+        const overviewItem = document.querySelector('a[href="/dashboard_familiar_cuidador"]');
+        if (overviewItem) {
+            overviewItem.classList.add('active');
+        }
+    }
+}
+
+// Chamar a função quando a página carregar
+document.addEventListener('DOMContentLoaded', function () {
+    // ... código existente ...
+    
+    // Destacar item ativo na sidebar (NOVA LINHA)
+    destacarItemAtivo();
+});

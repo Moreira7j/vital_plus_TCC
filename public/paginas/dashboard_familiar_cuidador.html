@@ -18,7 +18,7 @@
                 <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
                 <span class="user-type">Familiar Cuidador</span>
             </div>
-            
+
             <div class="user-info">
                 <div class="user-welcome">
                     <span id="userName">Carregando...</span>
@@ -41,30 +41,26 @@
     <!-- Main Content -->
     <main class="dashboard-main">
         <div class="dashboard-container">
-            <!-- Sidebar -->
+            <!-- Sidebar ATUALIZADA -->
             <aside class="sidebar">
                 <nav class="sidebar-nav">
-                    <a href="#overview" class="nav-item active" data-section="overview">
+                    <a href="/dashboard_familiar_cuidador" class="nav-item active">
                         <i class="fas fa-home"></i>
                         <span>Visão Geral</span>
                     </a>
-                    <a href="#health" class="nav-item" data-section="health">
+                    <a href="/saude_familiar" class="nav-item">
                         <i class="fas fa-heartbeat"></i>
                         <span>Saúde</span>
                     </a>
-                    <a href="#medications" class="nav-item" data-section="medications">
-                        <i class="fas fa-pills"></i>
-                        <span>Medicamentos</span>
-                    </a>
-                    <a href="#activities" class="nav-item" data-section="activities">
+                    <a href="/atividades_familiar" class="nav-item">
                         <i class="fas fa-tasks"></i>
                         <span>Atividades</span>
                     </a>
-                    <a href="#reports" class="nav-item" data-section="reports">
+                    <a href="/relatorios_familiar" class="nav-item">
                         <i class="fas fa-chart-bar"></i>
                         <span>Relatórios</span>
                     </a>
-                    <a href="#alerts" class="nav-item" data-section="alerts">
+                    <a href="/alertas_familiar" class="nav-item">
                         <i class="fas fa-exclamation-triangle"></i>
                         <span>Alertas</span>
                     </a>
@@ -210,76 +206,6 @@
                                 <span>Gerar Relatório</span>
                             </button>
                         </div>
-                    </div>
-                </section>
-
-                <!-- Health Section -->
-                <section id="health" class="content-section">
-                    <div class="section-header">
-                        <h2>Monitoramento de Saúde</h2>
-                        <button class="btn-primary" onclick="registrarSinaisVitais()">
-                            <i class="fas fa-plus"></i>
-                            Novo Registro
-                        </button>
-                    </div>
-                    <div class="health-charts" id="healthCharts">
-                        <!-- Gráficos de saúde serão carregados aqui -->
-                    </div>
-                </section>
-
-                <!-- Medications Section -->
-                <section id="medications" class="content-section">
-                    <div class="section-header">
-                        <h2>Gestão de Medicamentos</h2>
-                        <button class="btn-primary" onclick="registrarMedicamento()">
-                            <i class="fas fa-plus"></i>
-                            Novo Medicamento
-                        </button>
-                    </div>
-                    <div class="medications-management" id="medicationsManagement">
-                        <!-- Gestão de medicamentos será carregada aqui -->
-                    </div>
-                </section>
-
-                <!-- Activities Section -->
-                <section id="activities" class="content-section">
-                    <div class="section-header">
-                        <h2>Atividades e Rotina</h2>
-                        <button class="btn-primary" onclick="adicionarAtividade()">
-                            <i class="fas fa-plus"></i>
-                            Nova Atividade
-                        </button>
-                    </div>
-                    <div class="activities-management" id="activitiesManagement">
-                        <!-- Gestão de atividades será carregada aqui -->
-                    </div>
-                </section>
-
-                <!-- Reports Section -->
-                <section id="reports" class="content-section">
-                    <div class="section-header">
-                        <h2>Relatórios e Análises</h2>
-                        <button class="btn-primary" onclick="gerarRelatorio()">
-                            <i class="fas fa-download"></i>
-                            Gerar Relatório
-                        </button>
-                    </div>
-                    <div class="reports-management" id="reportsManagement">
-                        <!-- Relatórios serão carregados aqui -->
-                    </div>
-                </section>
-
-                <!-- Alerts Section -->
-                <section id="alerts" class="content-section">
-                    <div class="section-header">
-                        <h2>Alertas e Notificações</h2>
-                        <button class="btn-primary" onclick="configurarAlertas()">
-                            <i class="fas fa-cog"></i>
-                            Configurar Alertas
-                        </button>
-                    </div>
-                    <div class="alerts-management" id="alertsManagement">
-                        <!-- Gestão de alertas será carregada aqui -->
                     </div>
                 </section>
             </div>
