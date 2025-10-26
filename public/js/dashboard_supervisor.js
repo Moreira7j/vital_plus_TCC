@@ -1,9 +1,23 @@
-// dashboard_supervisor.js - CORRIGIDO (problema de paciente selecionado)
+// dashboard_supervisor.js - CORRIGIDO (header e paciente selecionado)
 const token = localStorage.getItem("token");
 const headersAutenticacao = {
   "Content-Type": "application/json",
   "Authorization": `Bearer ${token}`
 };
+
+// ✅ NOVO: Inicializar header primeiro
+function inicializarHeader() {
+    console.log('🔧 Inicializando header...');
+    
+    // Tentar carregar dados básicos do header mesmo antes da API
+    const usuarioNome = localStorage.getItem('usuarioNome');
+    const userNameElement = document.getElementById('userName');
+    
+    if (userNameElement && usuarioNome) {
+        userNameElement.textContent = usuarioNome;
+        console.log('✅ Header inicializado com:', usuarioNome);
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     console.log('🚀 DOM carregado, inicializando dashboard supervisor...');
@@ -21,6 +35,9 @@ document.addEventListener('DOMContentLoaded', function () {
         feather.replace();
     }
 
+    // ✅ NOVO: Inicializar header primeiro
+    inicializarHeader();
+
     // Carregar dados do dependente
     carregarDadosDependente();
 
@@ -29,6 +46,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log('🎯 Dashboard supervisor inicializado com sucesso!');
 });
+
+// ✅ NOVO: FUNÇÃO PARA ATUALIZAR O HEADER DO SUPERVISOR
+function atualizarHeaderSupervisor(paciente) {
+    console.log('🎯 Atualizando header do supervisor...');
+    
+    // Elementos do header
+    const userNameElement = document.getElementById('userName');
+    const patientNameElement = document.getElementById('patientName');
+    
+    // Obter nome do usuário logado do localStorage
+    const usuarioNome = localStorage.getItem('usuarioNome') || 'Familiar Supervisor';
+    
+    // Atualizar elementos
+    if (userNameElement) {
+        userNameElement.textContent = usuarioNome;
+        console.log('✅ Nome do usuário atualizado:', usuarioNome);
+    }
+    
+    if (patientNameElement && paciente) {
+        patientNameElement.textContent = paciente.nome || 'Paciente não informado';
+        console.log('✅ Nome do paciente atualizado:', paciente.nome);
+    }
+}
 
 // Função para carregar dados do dependente - CORREÇÃO COMPLETA
 async function carregarDadosDependente() {
@@ -76,21 +116,10 @@ async function carregarDadosDependente() {
             return;
         }
 
+        // ✅ CORREÇÃO: Se não tem paciente selecionado, redirecionar SILENCIOSAMENTE
         if (!pacienteSelecionadoId) {
-            console.error('❌ Nenhum paciente selecionado encontrado no localStorage');
-            
-            // DEBUG: Listar todas as chaves disponíveis
-            console.log('🔍 Chaves disponíveis no localStorage:');
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                const value = localStorage.getItem(key);
-                console.log(`   - ${key}:`, value);
-            }
-            
-            mostrarErro('Nenhum paciente selecionado. Por favor, selecione um paciente primeiro.');
-            setTimeout(() => {
-                window.location.href = 'dependentes.html';
-            }, 3000);
+            console.log('🔁 Nenhum paciente selecionado, redirecionando para dependentes...');
+            window.location.href = 'dependentes.html';
             return;
         }
 
@@ -132,10 +161,8 @@ async function carregarDadosDependente() {
             console.error('❌ Erro na resposta da API:', response.status, errorText);
             
             if (response.status === 404) {
-                mostrarErro('Paciente não encontrado. Por favor, selecione outro paciente.');
-                setTimeout(() => {
-                    window.location.href = 'dependentes.html';
-                }, 3000);
+                console.log('🔁 Paciente não encontrado, redirecionando para dependentes...');
+                window.location.href = 'dependentes.html';
                 return;
             }
             throw new Error(`Erro ${response.status}: ${errorText}`);
@@ -159,7 +186,6 @@ async function carregarDadosDependente() {
 
     } catch (error) {
         console.error('❌ Erro ao carregar dados do dependente:', error);
-        mostrarErro('Erro ao carregar dados: ' + error.message);
     }
 }
 
@@ -177,9 +203,12 @@ async function carregarDadosAdicionais(usuarioId, pacienteId) {
     }
 }
 
-// Função para atualizar a interface - MANTIDA (já está correta)
+// Função para atualizar a interface - ATUALIZADA
 function atualizarInterfaceDependente(paciente) {
     console.log('🎨 Atualizando interface para paciente:', paciente);
+
+    // ✅ NOVO: Atualizar header primeiro
+    atualizarHeaderSupervisor(paciente);
 
     // Elementos principais
     const elementos = {
@@ -204,10 +233,16 @@ function atualizarInterfaceDependente(paciente) {
         const cuidadorNome = document.getElementById('cuidadorNome');
         const cuidadorContato = document.getElementById('cuidadorContato');
         const cuidadorEspecializacao = document.getElementById('cuidadorEspecializacao');
+        const cuidadorNomeCompleto = document.getElementById('cuidadorNomeCompleto');
+        const cuidadorTelefone = document.getElementById('cuidadorTelefone');
+        const cuidadorEmail = document.getElementById('cuidadorEmail');
         
         if (cuidadorNome) cuidadorNome.textContent = paciente.cuidador_nome;
         if (cuidadorContato) cuidadorContato.textContent = paciente.cuidador_telefone || 'Contato não informado';
         if (cuidadorEspecializacao) cuidadorEspecializacao.textContent = paciente.cuidador_especializacao || 'Especialização não informada';
+        if (cuidadorNomeCompleto) cuidadorNomeCompleto.textContent = paciente.cuidador_nome;
+        if (cuidadorTelefone) cuidadorTelefone.textContent = paciente.cuidador_telefone || '--';
+        if (cuidadorEmail) cuidadorEmail.textContent = paciente.cuidador_email || '--';
     }
 
     // Informações do familiar
@@ -647,6 +682,63 @@ function mostrarErro(mensagem) {
 function mostrarSucesso(mensagem) {
     console.log('✅ ' + mensagem);
     alert('✅ ' + mensagem);
+}
+
+// FUNÇÃO PARA VOLTAR PARA A PÁGINA DE DEPENDENTES (CORRIGIDA)
+function voltarParaDependentes() {
+    console.log('🔄 Voltando para página de dependentes...');
+    
+    // Limpar apenas os dados do paciente selecionado, mantendo o login
+    const token = localStorage.getItem('token');
+    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioTipo = localStorage.getItem('usuarioTipo');
+    const usuarioNome = localStorage.getItem('usuarioNome');
+    
+    console.log('💾 Salvando dados do usuário para manter login:', {
+        usuarioId,
+        usuarioTipo,
+        usuarioNome
+    });
+    
+    // Limpar dados específicos do paciente/dependente
+    const keysToRemove = [
+        'pacienteSelecionadoId',
+        'dependenteSelecionado',
+        'dependenteSelecionadoId', 
+        'pacienteId',
+        'selectedPatientId'
+    ];
+    
+    keysToRemove.forEach(key => {
+        if (localStorage.getItem(key)) {
+            console.log(`🗑️ Removendo ${key}:`, localStorage.getItem(key));
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // Manter dados do usuário logado
+    if (token) localStorage.setItem('token', token);
+    if (usuarioId) localStorage.setItem('usuarioId', usuarioId);
+    if (usuarioTipo) localStorage.setItem('usuarioTipo', usuarioTipo);
+    if (usuarioNome) localStorage.setItem('usuarioNome', usuarioNome);
+    
+    console.log('✅ Dados limpos. Redirecionando para dependentes.html');
+    
+    // ✅ CORREÇÃO: Redirecionar IMEDIATAMENTE sem mostrar erro
+    window.location.href = 'dependentes.html';
+}
+
+// FUNÇÃO PARA SAIR DO SISTEMA (LOGOUT COMPLETO)
+function sair() {
+    console.log('🚪 Saindo do sistema...');
+    
+    // Limpar todo o localStorage
+    localStorage.clear();
+    
+    console.log('✅ Todos os dados removidos. Redirecionando para login.');
+    
+    // Redirecionar para a página de login
+    window.location.href = '/';
 }
 
 // Atualizar ícones periodicamente

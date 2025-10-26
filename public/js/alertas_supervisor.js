@@ -411,3 +411,47 @@ function mostrarNotificacao(mensagem) {
 if ('Notification' in window) {
     Notification.requestPermission();
 }
+
+// FUNÇÃO PARA VOLTAR PARA A PÁGINA DE DEPENDENTES (CORRIGIDA)
+function voltarParaDependentes() {
+    console.log('🔄 Voltando para página de dependentes...');
+    
+    // Limpar apenas os dados do paciente selecionado, mantendo o login
+    const token = localStorage.getItem('token');
+    const usuarioId = localStorage.getItem('usuarioId');
+    const usuarioTipo = localStorage.getItem('usuarioTipo');
+    const usuarioNome = localStorage.getItem('usuarioNome');
+    
+    console.log('💾 Salvando dados do usuário para manter login:', {
+        usuarioId,
+        usuarioTipo,
+        usuarioNome
+    });
+    
+    // Limpar dados específicos do paciente/dependente
+    const keysToRemove = [
+        'pacienteSelecionadoId',
+        'dependenteSelecionado',
+        'dependenteSelecionadoId', 
+        'pacienteId',
+        'selectedPatientId'
+    ];
+    
+    keysToRemove.forEach(key => {
+        if (localStorage.getItem(key)) {
+            console.log(`🗑️ Removendo ${key}:`, localStorage.getItem(key));
+            localStorage.removeItem(key);
+        }
+    });
+    
+    // Manter dados do usuário logado
+    if (token) localStorage.setItem('token', token);
+    if (usuarioId) localStorage.setItem('usuarioId', usuarioId);
+    if (usuarioTipo) localStorage.setItem('usuarioTipo', usuarioTipo);
+    if (usuarioNome) localStorage.setItem('usuarioNome', usuarioNome);
+    
+    console.log('✅ Dados limpos. Redirecionando para dependentes.html');
+    
+    // ✅ CORREÇÃO: Redirecionar IMEDIATAMENTE sem mostrar erro
+    window.location.href = 'dependentes.html';
+}

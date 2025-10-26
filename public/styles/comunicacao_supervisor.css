@@ -8,7 +8,7 @@
 /* Lista de Conversas */
 .conversas-lista {
     background: white;
-    border-radius: var(--border-radius);
+    border-radius: var(--radius);
     box-shadow: var(--card-shadow);
     overflow: hidden;
 }
@@ -98,7 +98,7 @@
     flex-direction: column;
     height: 600px;
     background: white;
-    border-radius: var(--border-radius);
+    border-radius: var(--radius);
     box-shadow: var(--card-shadow);
     overflow: hidden;
 }
@@ -419,4 +419,64 @@
 
 .empty-state p {
     margin-bottom: 1.5rem;
+}
+
+/* Botões de ícone */
+.btn-icon {
+    background: var(--light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.6rem;
+    cursor: pointer;
+    transition: var(--transition);
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-icon:hover {
+    background: var(--primary-light);
+    color: var(--primary);
+    transform: translateY(-2px);
+}
+
+/* Responsividade adicional */
+@media (max-width: 768px) {
+    .comunicacao-layout {
+        height: auto;
+    }
+    
+    .chat-container {
+        height: 500px;
+    }
+    
+    .chat-acoes-rapidas {
+        justify-content: center;
+    }
+    
+    .btn-acao-rapida {
+        flex: 1;
+        min-width: 120px;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .chat-container {
+        height: 400px;
+    }
+    
+    .mensagem {
+        max-width: 85%;
+    }
+    
+    .chat-acoes-rapidas {
+        gap: 0.25rem;
+    }
+    
+    .btn-acao-rapida {
+        font-size: 0.7rem;
+        padding: 0.4rem 0.6rem;
+    }
 }
