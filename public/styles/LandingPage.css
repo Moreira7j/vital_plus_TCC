@@ -67,12 +67,12 @@ body {
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
     z-index: 1000;
-    padding: 10px 0;
+    padding: 15px 0;
     transition: var(--transition);
 }
 
 .navbar.scrolled {
-    padding: 5px 0;
+    padding: 10px 0;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
 }
 
@@ -86,8 +86,14 @@ body {
 }
 
 .logo-img {
-    height: 60px;
+    height: 80px;
+    width: auto;
     transition: var(--transition);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.navbar.scrolled .logo-img {
+    height: 70px;
 }
 
 .nav-menu {
@@ -145,7 +151,7 @@ body {
 
 /* ===== HERO SECTION VIBRANTE ===== */
 .hero {
-    padding: 160px 0 100px;
+    padding: 180px 0 100px;
     background: linear-gradient(135deg, #f8fcff 0%, #e6f0ff 100%);
     position: relative;
     overflow: hidden;
@@ -181,7 +187,7 @@ body {
 }
 
 .hero-title {
-    font-size: 3.2rem;
+    font-size: 3.5rem;
     font-weight: 700;
     margin-bottom: 20px;
     line-height: 1.2;
@@ -197,7 +203,7 @@ body {
 }
 
 .hero-description {
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     margin-bottom: 35px;
     color: var(--text-muted);
     line-height: 1.7;
@@ -213,7 +219,7 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 14px 32px;
+    padding: 16px 35px;
     border-radius: 50px;
     text-decoration: none;
     font-weight: 600;
@@ -222,7 +228,7 @@ body {
     gap: 8px;
     border: none;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 1.1rem;
 }
 
 .btn-primary {
@@ -274,8 +280,8 @@ body {
 
 .floating-element {
     position: absolute;
-    width: 70px;
-    height: 70px;
+    width: 80px;
+    height: 80px;
     background: white;
     border-radius: 20px;
     display: flex;
@@ -284,7 +290,7 @@ body {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
     animation: float 3s infinite ease-in-out;
     color: var(--primary);
-    font-size: 28px;
+    font-size: 32px;
     z-index: 2;
 }
 
@@ -320,12 +326,12 @@ body {
 
 /* ===== SECTIONS GERAIS ===== */
 section {
-    padding: 100px 0;
+    padding: 120px 0;
 }
 
 .section-title {
     text-align: center;
-    font-size: 2.8rem;
+    font-size: 3rem;
     margin-bottom: 20px;
     color: var(--dark);
     font-weight: 700;
@@ -340,7 +346,7 @@ section {
 
 .section-description {
     text-align: center;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     max-width: 700px;
     margin: 0 auto 60px;
     color: var(--text-muted);
@@ -480,8 +486,8 @@ section {
 }
 
 .phone-mockup {
-    width: 220px;
-    height: 440px;
+    width: 240px;
+    height: 480px;
     background: white;
     border-radius: 40px;
     padding: 15px;
@@ -489,6 +495,7 @@ section {
     overflow: hidden;
     position: relative;
     transition: var(--transition);
+    cursor: pointer;
 }
 
 .phone-mockup:hover {
@@ -505,6 +512,11 @@ section {
     height: 100%;
     object-fit: cover;
     border-radius: 30px;
+    transition: var(--transition);
+}
+
+.phone-mockup:hover img {
+    transform: scale(1.05);
 }
 
 .app-thumbnails {
@@ -700,6 +712,7 @@ section {
 
 .benefits-image-container {
     position: relative;
+    cursor: pointer;
 }
 
 .benefits-image-container img {
@@ -830,6 +843,7 @@ section {
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     transition: var(--transition);
+    cursor: pointer;
 }
 
 .browser-mockup:hover {
@@ -840,6 +854,11 @@ section {
 .browser-mockup img {
     width: 100%;
     display: block;
+    transition: var(--transition);
+}
+
+.browser-mockup:hover img {
+    transform: scale(1.02);
 }
 
 .web-thumbnails {
@@ -1063,6 +1082,70 @@ section {
     text-decoration: underline;
 }
 
+/* ===== MODAL PARA FOTOS ===== */
+.photo-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 2000;
+    animation: fadeIn 0.3s ease;
+}
+
+.photo-modal.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.photo-modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+    animation: zoomIn 0.3s ease;
+}
+
+.photo-modal-content img {
+    max-width: 100%;
+    max-height: 80vh;
+    border-radius: 10px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.photo-modal-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    color: white;
+    font-size: 40px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.photo-modal-close:hover {
+    color: var(--primary);
+}
+
+.photo-modal-caption {
+    color: white;
+    text-align: center;
+    margin-top: 15px;
+    font-size: 1.1rem;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
 /* ===== FOOTER ===== */
 footer {
     background: linear-gradient(135deg, var(--dark) 0%, var(--dark-light) 100%);
@@ -1179,7 +1262,7 @@ footer::before {
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 1200px) {
     .hero-title {
-        font-size: 2.8rem;
+        font-size: 3rem;
     }
     
     .section-title {
@@ -1279,6 +1362,14 @@ footer::before {
     section {
         padding: 80px 0;
     }
+    
+    .logo-img {
+        height: 70px;
+    }
+    
+    .navbar.scrolled .logo-img {
+        height: 60px;
+    }
 }
 
 @media (max-width: 576px) {
@@ -1305,4 +1396,13 @@ footer::before {
     .login-info, .login-form {
         padding: 40px 30px;
     }
+    
+    .logo-img {
+        height: 60px;
+    }
+    
+    .navbar.scrolled .logo-img {
+        height: 50px;
+    }
 }
+

@@ -20,6 +20,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Configurar thumbnails da plataforma web
     setupWebThumbnails();
+
+    // Configurar thumbnails do app mobile
+    setupMobileThumbnails();
+
+    // Configurar modal de fotos
+    setupPhotoModal();
+
+    // Configurar navbar scroll effect
+    setupNavbarScroll();
+
+    // Configurar animações de scroll
+    setupScrollAnimations();
+
+    // Configurar efeitos hover nas imagens
+    setupImageHoverEffects();
+
+    // Configurar funcionalidade das setas do teclado
+    setupKeyboardNavigation();
 });
 
 // ====================== Menu Mobile ====================== //
@@ -232,6 +250,98 @@ function setupWebThumbnails() {
     }
 }
 
+// ====================== Thumbnails do App Mobile ====================== //
+function setupMobileThumbnails() {
+    const mobileThumbnails = document.querySelectorAll('.app-thumbnail');
+    const phoneMockups = document.querySelectorAll('.phone-mockup img');
+
+    if (mobileThumbnails.length > 0 && phoneMockups.length > 0) {
+        mobileThumbnails.forEach(thumbnail => {
+            thumbnail.addEventListener('click', function () {
+                // Remover classe active de todos os thumbnails
+                mobileThumbnails.forEach(t => t.classList.remove('active'));
+
+                // Adicionar classe active ao thumbnail clicado
+                this.classList.add('active');
+
+                // Trocar imagens dos phone mockups
+                const newSrc = this.querySelector('img').getAttribute('data-full');
+                if (newSrc) {
+                    phoneMockups.forEach(mockup => {
+                        mockup.src = newSrc;
+                    });
+                }
+            });
+        });
+    }
+}
+
+// ====================== Modal de Fotos ====================== //
+function setupPhotoModal() {
+    const photoModal = document.getElementById('photoModal');
+    const modalImage = document.getElementById('modalImage');
+    const modalCaption = document.querySelector('.photo-modal-caption');
+    const modalClose = document.querySelector('.photo-modal-close');
+
+    if (!photoModal || !modalImage) return;
+
+    // Adicionar funcionalidade de clique nas imagens
+    const clickableImages = document.querySelectorAll(
+        '.phone-mockup img, .browser-mockup img, .benefits-image-container img, .hero-image-container img, .app-thumbnail img, .web-thumbnail img'
+    );
+
+    clickableImages.forEach(img => {
+        img.addEventListener('click', function () {
+            const imgSrc = this.src;
+            const imgAlt = this.alt || 'Imagem do Vital+';
+            
+            modalImage.src = imgSrc;
+            modalCaption.textContent = imgAlt;
+            photoModal.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        });
+    });
+
+    // Fechar modal
+    if (modalClose) {
+        modalClose.addEventListener('click', function () {
+            photoModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+    }
+
+    // Fechar modal clicando fora da imagem
+    photoModal.addEventListener('click', function (e) {
+        if (e.target === photoModal) {
+            photoModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+    });
+
+    // Fechar modal com ESC
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && photoModal.classList.contains('active')) {
+            photoModal.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        }
+    });
+}
+
+// ====================== Navbar Scroll Effect ====================== //
+function setupNavbarScroll() {
+    const navbar = document.querySelector('.navbar');
+    
+    if (navbar) {
+        window.addEventListener('scroll', function () {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+    }
+}
+
 // ====================== Animações de Scroll ====================== //
 function setupScrollAnimations() {
     const observerOptions = {
@@ -248,10 +358,173 @@ function setupScrollAnimations() {
     }, observerOptions);
 
     // Observar elementos que devem ser animados
-    document.querySelectorAll('.feature-card, .app-feature, .web-feature').forEach(el => {
+    const elementsToAnimate = document.querySelectorAll(
+        '.feature-card, .mobile-feature, .web-feature, .benefit-item, .phone-mockup, .browser-mockup'
+    );
+    
+    elementsToAnimate.forEach(el => {
         observer.observe(el);
     });
 }
 
-// Inicializar animações de scroll quando a página carregar
-window.addEventListener('load', setupScrollAnimations);
+// ====================== Efeitos Hover nas Imagens ====================== //
+function setupImageHoverEffects() {
+    // Efeito de escala nas imagens dos cards
+    const hoverImages = document.querySelectorAll('.feature-card, .benefit-item, .phone-mockup, .browser-mockup');
+    
+    hoverImages.forEach(element => {
+        element.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-5px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+        
+        element.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+
+    // Efeito de brilho nas imagens principais
+    const mainImages = document.querySelectorAll('.hero-image-container img, .benefits-image-container img');
+    
+    mainImages.forEach(img => {
+        img.addEventListener('mouseenter', function() {
+            this.style.filter = 'brightness(1.1)';
+        });
+        
+        img.addEventListener('mouseleave', function() {
+            this.style.filter = 'brightness(1)';
+        });
+    });
+}
+
+// ====================== Navegação por Teclado ====================== //
+function setupKeyboardNavigation() {
+    document.addEventListener('keydown', function(e) {
+        // Navegação entre seções com Tab
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            // Lógica de navegação por tab pode ser adicionada aqui
+        }
+
+        // Atalhos de teclado para funcionalidades específicas
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key) {
+                case '1':
+                    e.preventDefault();
+                    document.getElementById('hero')?.scrollIntoView({ behavior: 'smooth' });
+                    break;
+                case '2':
+                    e.preventDefault();
+                    document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' });
+                    break;
+                case '3':
+                    e.preventDefault();
+                    document.getElementById('mobile-app')?.scrollIntoView({ behavior: 'smooth' });
+                    break;
+                case '4':
+                    e.preventDefault();
+                    document.getElementById('web-platform')?.scrollIntoView({ behavior: 'smooth' });
+                    break;
+                case '5':
+                    e.preventDefault();
+                    document.getElementById('login')?.scrollIntoView({ behavior: 'smooth' });
+                    break;
+            }
+        }
+    });
+}
+
+// ====================== Carregamento Otimizado de Imagens ====================== //
+function setupImageLoading() {
+    // Lazy loading para imagens
+    const images = document.querySelectorAll('img[data-src]');
+    
+    const imageObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const img = entry.target;
+                img.src = img.dataset.src;
+                img.removeAttribute('data-src');
+                imageObserver.unobserve(img);
+            }
+        });
+    });
+
+    images.forEach(img => imageObserver.observe(img));
+}
+
+// ====================== Feedback de Carregamento ====================== //
+function setupLoadingFeedback() {
+    // Mostrar spinner durante o carregamento de imagens pesadas
+    const heavyImages = document.querySelectorAll('.hero-image-container img, .browser-mockup img');
+    
+    heavyImages.forEach(img => {
+        img.addEventListener('load', function() {
+            this.style.opacity = '1';
+            this.style.transition = 'opacity 0.5s ease';
+        });
+        
+        img.addEventListener('error', function() {
+            console.error('Erro ao carregar imagem:', this.src);
+            this.alt = 'Imagem não disponível';
+        });
+    });
+}
+
+// ====================== Inicialização Final ====================== //
+window.addEventListener('load', function() {
+    // Inicializar funcionalidades que dependem do carregamento completo
+    setupImageLoading();
+    setupLoadingFeedback();
+    
+    // Atualizar feather icons após carregamento dinâmico
+    if (typeof feather !== 'undefined') {
+        setTimeout(() => {
+            feather.replace();
+        }, 100);
+    }
+
+    // Adicionar classe loaded para animações de entrada
+    document.body.classList.add('loaded');
+
+    console.log('✅ Landing Page Vital+ carregada com sucesso!');
+});
+
+// ====================== Utilitários Globais ====================== //
+// Função para debounce (otimização de performance)
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Função para throttle (otimização de performance)
+function throttle(func, limit) {
+    let inThrottle;
+    return function() {
+        const args = arguments;
+        const context = this;
+        if (!inThrottle) {
+            func.apply(context, args);
+            inThrottle = true;
+            setTimeout(() => inThrottle = false, limit);
+        }
+    }
+}
+
+// Exportar funções para uso global (se necessário)
+if (typeof window !== 'undefined') {
+    window.VitalPlusLanding = {
+        debounce,
+        throttle,
+        validateEmail,
+        showLoginMessage
+    };
+}
+
