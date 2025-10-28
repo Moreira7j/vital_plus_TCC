@@ -4790,4 +4790,7 @@ app.post("/api/familiares-cuidadores/:usuarioId/pacientes/:pacienteId/alertas/ma
             });
         });
     });
+
 });
+
+

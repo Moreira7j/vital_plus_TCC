@@ -956,3 +956,35 @@ body {
     text-align: center;
   }
 }
+
+/* ===== BOTÃO VOLTAR PARA LANDING PAGE ===== */
+.btn-landing {
+    background: linear-gradient(135deg, #00B5C2, #0095a1);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: var(--radius);
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-landing:hover {
+    background: linear-gradient(135deg, #0095a1, #007a85);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 181, 194, 0.3);
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+    .btn-landing {
+        padding: 0.5rem 1rem;
+    }
+    
+    .btn-landing span {
+        display: none; /* Em mobile mostra só o ícone */
+    }
+}

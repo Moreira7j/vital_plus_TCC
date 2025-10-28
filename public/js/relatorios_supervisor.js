@@ -572,4 +572,10 @@ function voltarParaDependentes() {
     window.location.href = 'dependentes.html';
 }
 
+// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
+function voltarParaLanding() {
+    console.log('🏠 Voltando para a landing page...');
+    window.location.href = 'landingpage.html';
+}
+
 console.log('🔧 relatorios_supervisor.js carregado - versão corrigida');

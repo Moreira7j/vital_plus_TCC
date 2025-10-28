@@ -509,3 +509,81 @@ function voltarParaDependentes() {
 setInterval(() => {
     feather.replace();
 }, 1000);a
+
+// Função corrigida para criar medicamento
+async function criarMedicamento(medicamentoData) {
+    try {
+        console.log('📤 Enviando dados do medicamento:', medicamentoData);
+
+        const token = localStorage.getItem('token');
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+
+        if (!pacienteId) {
+            throw new Error('Nenhum paciente selecionado');
+        }
+
+        const response = await fetch('/api/medicamentos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                ...medicamentoData,
+                paciente_id: pacienteId
+            })
+        });
+
+        console.log('📥 Resposta do servidor:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `Erro ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Medicamento criado com sucesso:', data);
+        return data;
+
+    } catch (error) {
+        console.error('❌ Erro ao criar medicamento:', error);
+        throw error;
+    }
+}
+
+// Função salvar medicamento corrigida
+async function salvarMedicamento(formData) {
+    const submitBtn = document.getElementById('salvarMedicamentoBtn');
+    const originalText = submitBtn.innerHTML;
+    
+    try {
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando...';
+        submitBtn.disabled = true;
+
+        console.log('💊 Salvando medicamento...', formData);
+
+        const resultado = await criarMedicamento(formData);
+        
+        mostrarMensagem('Medicamento criado com sucesso!', 'success');
+        fecharModalMedicamento();
+        
+        // Recarregar a lista de medicamentos
+        await carregarMedicamentos();
+        
+        return resultado;
+
+    } catch (error) {
+        console.error('❌ Erro no salvarMedicamento:', error);
+        mostrarMensagem(`Erro ao criar medicamento: ${error.message}`, 'error');
+        throw error;
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
+function voltarParaLanding() {
+    console.log('🏠 Voltando para a landing page...');
+    window.location.href = 'landingpage.html';
+}

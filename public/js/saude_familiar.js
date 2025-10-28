@@ -611,3 +611,9 @@ setInterval(() => {
 setInterval(() => {
     carregarHistoricoSinaisVitais();
 }, 120000);
+
+// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
+function voltarParaLanding() {
+    console.log('🏠 Voltando para a landing page...');
+    window.location.href = 'landingpage.html';
+}

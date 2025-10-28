@@ -523,3 +523,9 @@ function voltarParaDependentes() {
 setInterval(() => {
     feather.replace();
 }, 1000);
+
+// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
+function voltarParaLanding() {
+    console.log('🏠 Voltando para a landing page...');
+    window.location.href = 'landingpage.html';
+}

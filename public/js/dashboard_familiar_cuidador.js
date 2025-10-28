@@ -799,3 +799,9 @@ document.addEventListener('DOMContentLoaded', function () {
     // Destacar item ativo na sidebar (NOVA LINHA)
     destacarItemAtivo();
 });
+
+// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
+function voltarParaLanding() {
+    console.log('🏠 Voltando para a landing page...');
+    window.location.href = 'landingpage.html';
+}
