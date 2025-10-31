@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Relatórios - Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/dashboard_familiar_cuidador.css">
+    <link rel="stylesheet" href="../styles/relatorios_familiar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Cuidador</span>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientName"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_familiar_cuidador.html" class="nav-item">
+                        <i class="fas fa-home"></i>
+                        <span>Visão Geral</span>
+                    </a>
+                    <a href="saude_familiar.html" class="nav-item">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Saúde</span>
+                    </a>
+                    <a href="medicamentos_familiar.html" class="nav-item">
+                        <i class="fas fa-pills"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_familiar.html" class="nav-item">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+                    <a href="relatorios_familiar.html" class="nav-item active">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="alertas_familiar.html" class="nav-item">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Reports Section -->
+                <section id="reports" class="content-section active">
+                    <div class="section-header">
+                        <h2>Relatórios e Análises</h2>
+                        <button class="btn-primary" onclick="gerarRelatorio()">
+                            <i class="fas fa-download"></i>
+                            Gerar Relatório
+                        </button>
+                    </div>
+
+                    <!-- Filtros de Relatórios -->
+                    <div class="reports-filters">
+                        <div class="filter-group">
+                            <label>Tipo de Relatório:</label>
+                            <select id="reportType" class="filter-select">
+                                <option value="health">Saúde</option>
+                                <option value="medications">Medicamentos</option>
+                                <option value="activities">Atividades</option>
+                                <option value="comprehensive">Completo</option>
+                            </select>
+                            
+                            <label>Período:</label>
+                            <select id="reportPeriod" class="filter-select">
+                                <option value="7">Últimos 7 dias</option>
+                                <option value="30">Últimos 30 dias</option>
+                                <option value="90">Últimos 3 meses</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+
+                            <div id="customDateRange" class="custom-range" style="display: none;">
+                                <input type="date" id="startDate" class="date-input">
+                                <span>até</span>
+                                <input type="date" id="endDate" class="date-input">
+                            </div>
+                        </div>
+                        
+                        <div class="filter-actions">
+                            <button class="btn-primary" onclick="gerarRelatorio()">
+                                <i class="fas fa-chart-line"></i>
+                                Gerar Relatório
+                            </button>
+                            <button class="btn-secondary" onclick="exportarRelatorio()">
+                                <i class="fas fa-file-export"></i>
+                                Exportar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas Rápidas -->
+                    <div class="quick-stats">
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-heartbeat"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="healthRecordsCount">--</h3>
+                                    <p>Registros de Saúde</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="medicationsCount">--</h3>
+                                    <p>Medicamentos</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-tasks"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="activitiesCount">--</h3>
+                                    <p>Atividades</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-bell"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="alertsCount">--</h3>
+                                    <p>Alertas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos e Visualizações -->
+                    <div class="reports-visualizations">
+                        <div class="visualization-row">
+                            <div class="chart-card large">
+                                <div class="card-header">
+                                    <h4>Evolução da Saúde</h4>
+                                    <div class="chart-actions">
+                                        <button class="btn-chart-action active">7D</button>
+                                        <button class="btn-chart-action">30D</button>
+                                        <button class="btn-chart-action">3M</button>
+                                    </div>
+                                </div>
+                                <div class="chart-content">
+                                    <canvas id="healthEvolutionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="visualization-row">
+                            <div class="chart-card">
+                                <div class="card-header">
+                                    <h4>Adesão a Medicamentos</h4>
+                                </div>
+                                <div class="chart-content">
+                                    <canvas id="medicationAdherenceChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <div class="card-header">
+                                    <h4>Conclusão de Atividades</h4>
+                                </div>
+                                <div class="chart-content">
+                                    <canvas id="activitiesCompletionChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="visualization-row">
+                            <div class="chart-card">
+                                <div class="card-header">
+                                    <h4>Distribuição de Alertas</h4>
+                                </div>
+                                <div class="chart-content">
+                                    <canvas id="alertsDistributionChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <div class="card-header">
+                                    <h4>Tipos de Atividades</h4>
+                                </div>
+                                <div class="chart-content">
+                                    <canvas id="activitiesTypesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Relatórios Gerados -->
+                    <div class="generated-reports">
+                        <div class="section-header">
+                            <h3>Relatórios Gerados</h3>
+                            <button class="btn-secondary" onclick="carregarRelatorios()">
+                                <i class="fas fa-sync-alt"></i>
+                                Atualizar
+                            </button>
+                        </div>
+                        
+                        <div class="reports-list" id="reportsList">
+                            <!-- Relatórios serão carregados dinamicamente -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/relatorios_familiar.js"></script>
+</body>
+</html>

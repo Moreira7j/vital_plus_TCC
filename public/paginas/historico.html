@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Histórico do Paciente</title>
+    <link rel="stylesheet" href="../styles/historico.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <img src="../assets/logo minimalista.png" alt="Logo Vital+" class="sidebar-logo" style="width: 80px; height: 80px;">
+                    <div class="sidebar-brand">
+                        <h1>Vital+</h1>
+                        <span>Acesso Familiar</span>
+                    </div>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="index.html">
+                            <i data-feather="home"></i>
+                            <span>Visão Geral</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="relatorios.html">
+                            <i data-feather="file-text"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="medicamentos.html">
+                            <i data-feather="plus-square"></i>
+                            <span>Medicamentos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="historico.html">
+                            <i data-feather="activity"></i>
+                            <span>Histórico</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="alertas.html">
+                            <i data-feather="bell"></i>
+                            <span>Alertas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <small>Vital+ &copy; 2023</small>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h1>Histórico do Paciente</h1>
+                    <p>Visualize e acompanhe o histórico completo de saúde</p>
+                </div>
+
+                <div class="header-actions">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i data-feather="user"></i>
+                                <span>Maria Oliveira</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#">
+                                    <i data-feather="settings"></i> Configurações
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#">
+                                    <i data-feather="log-out"></i> Sair
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Dashboard -->
+            <div class="dashboard">
+                <!-- Filtros -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3><i data-feather="filter"></i> Filtros do Histórico</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="filtroPeriodo">Período</label>
+                                <select id="filtroPeriodo">
+                                    <option value="7">Últimos 7 dias</option>
+                                    <option value="15">Últimos 15 dias</option>
+                                    <option value="30" selected>Últimos 30 dias</option>
+                                    <option value="90">Últimos 3 meses</option>
+                                    <option value="180">Últimos 6 meses</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroCategoria">Categoria</label>
+                                <select id="filtroCategoria">
+                                    <option value="todos" selected>Todos</option>
+                                    <option value="medicamentos">Medicamentos</option>
+                                    <option value="sinais">Sinais Vitais</option>
+                                    <option value="alimentacao">Alimentação</option>
+                                    <option value="atividade">Atividade Física</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroDataInicio">Data Início</label>
+                                <input type="date" id="filtroDataInicio">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroDataFim">Data Fim</label>
+                                <input type="date" id="filtroDataFim">
+                            </div>
+                            <div class="filter-group">
+                                <label class="hidden-label">&nbsp;</label>
+                                <button type="button" class="btn btn-primary" id="aplicarFiltros">
+                                    <i data-feather="filter"></i>
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estatísticas Rápidas -->
+                <div class="dashboard-grid mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="activity"></i> Atividade Recente</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="vitals-grid">
+                                <div class="vital-card">
+                                    <i data-feather="heart"></i>
+                                    <h4>78%</h4>
+                                    <small>Adesão a Medicação</small>
+                                    <span class="badge bg-success">+5%</span>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="trending-up"></i>
+                                    <h4>86%</h4>
+                                    <small>Dias Ativos</small>
+                                    <span class="badge bg-success">+8%</span>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="check-circle"></i>
+                                    <h4>92%</h4>
+                                    <small>Meta Alimentar</small>
+                                    <span class="badge bg-primary">+3%</span>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="clock"></i>
+                                    <h4>6.2h</h4>
+                                    <small>Sono Médio</small>
+                                    <span class="badge bg-warning">-0.5h</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="bar-chart-2"></i> Visão Geral</h3>
+                            <button class="btn btn-sm btn-outline" id="toggleView">
+                                <i data-feather="list"></i> Alternar Visualização
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="overviewChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Linha do Tempo -->
+                <div class="card timeline-view" id="timelineView">
+                    <div class="card-header">
+                        <h3><i data-feather="clock"></i> Linha do Tempo</h3>
+                        <div class="timeline-legend">
+                            <span class="legend-item"><i class="medicamento"></i> Medicamento</span>
+                            <span class="legend-item"><i class="sinal"></i> Sinais Vitais</span>
+                            <span class="legend-item"><i class="alimentacao"></i> Alimentação</span>
+                            <span class="legend-item"><i class="atividade"></i> Atividade</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="timeline-container">
+                            <!-- Dia 1 -->
+                            <div class="timeline-day">
+                                <div class="timeline-date">Hoje, 20 Nov</div>
+                                
+                                <div class="timeline-item medicamento">
+                                    <div class="timeline-time">08:30</div>
+                                    <div class="timeline-content">
+                                        <h3>Medicação Administrada</h3>
+                                        <p>Metformina 850mg - Tomada conforme prescrito</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="check-circle"></i> Confirmado por João Silva</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-item sinal">
+                                    <div class="timeline-time">09:15</div>
+                                    <div class="timeline-content">
+                                        <h3>Medição de Glicemia</h3>
+                                        <p>Resultado: 120 mg/dL - Dentro dos parâmetros normais</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="activity"></i> Registro automático</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-item alimentacao">
+                                    <div class="timeline-time">12:30</div>
+                                    <div class="timeline-content">
+                                        <h3>Refeição Registrada</h3>
+                                        <p>Almoço: Frango grelhado, arroz integral e salada</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="user"></i> Registrado pelo paciente</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dia 2 -->
+                            <div class="timeline-day">
+                                <div class="timeline-date">Ontem, 19 Nov</div>
+                                
+                                <div class="timeline-item atividade">
+                                    <div class="timeline-time">07:45</div>
+                                    <div class="timeline-content">
+                                        <h3>Atividade Física</h3>
+                                        <p>Caminhada matinal - 30 minutos, 2.5km</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="watch"></i> Registro por smartwatch</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-item medicamento atraso">
+                                    <div class="timeline-time">14:20</div>
+                                    <div class="timeline-content">
+                                        <h3>Medicação com Atraso</h3>
+                                        <p>Losartana 50mg - Administrada com 1h20min de atraso</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="alert-triangle"></i> Atraso notificado</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-item sinal">
+                                    <div class="timeline-time">18:00</div>
+                                    <div class="timeline-content">
+                                        <h3>Pressão Arterial</h3>
+                                        <p>Resultado: 132/84 mmHg - Levemente elevada</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="alert-circle"></i> Fora da meta estabelecida</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dia 3 -->
+                            <div class="timeline-day">
+                                <div class="timeline-date">18 Nov</div>
+                                
+                                <div class="timeline-item medicamento">
+                                    <div class="timeline-time">08:00</div>
+                                    <div class="timeline-content">
+                                        <h3>Medicação Administrada</h3>
+                                        <p>Metformina 850mg - Tomada conforme prescrito</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="check-circle"></i> Confirmado por João Silva</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-item alimentacao">
+                                    <div class="timeline-time">13:15</div>
+                                    <div class="timeline-content">
+                                        <h3>Refeição Registrada</h3>
+                                        <p>Almoço: Peixe assado, legumes e quinoa</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="user"></i> Registrado pelo paciente</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="timeline-item atividade">
+                                    <div class="timeline-time">16:30</div>
+                                    <div class="timeline-content">
+                                        <h3>Atividade Física</h3>
+                                        <p>Yoga - 45 minutos, frequência cardíaca média: 112 bpm</p>
+                                        <div class="timeline-meta">
+                                            <span><i data-feather="watch"></i> Registro por smartwatch</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/historico.js"></script>
+</body>
+</html>

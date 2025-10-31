@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Atividades - Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/dashboard_familiar_cuidador.css">
+    <link rel="stylesheet" href="../styles/atividades_familiar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Cuidador</span>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientName"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_familiar_cuidador.html" class="nav-item">
+                        <i class="fas fa-home"></i>
+                        <span>Visão Geral</span>
+                    </a>
+                    <a href="saude_familiar.html" class="nav-item">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Saúde</span>
+                    </a>
+                    <a href="medicamentos_familiar.html" class="nav-item">
+                        <i class="fas fa-pills"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_familiar.html" class="nav-item active">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+                    <a href="relatorios_familiar.html" class="nav-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="alertas_familiar.html" class="nav-item">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Activities Section -->
+                <section id="activities" class="content-section active">
+                    <div class="section-header">
+                        <h2>Atividades e Rotina</h2>
+                        <button class="btn-primary" onclick="adicionarAtividade()">
+                            <i class="fas fa-plus"></i>
+                            Nova Atividade
+                        </button>
+                    </div>
+
+                    <!-- Filtros e Estatísticas -->
+                    <div class="activities-overview">
+                        <div class="activities-stats">
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="completedCount">--</h3>
+                                    <p>Concluídas</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="pendingCount">--</h3>
+                                    <p>Pendentes</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="overdueCount">--</h3>
+                                    <p>Atrasadas</p>
+                                </div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-icon">
+                                    <i class="fas fa-calendar"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="todayCount">--</h3>
+                                    <p>Para Hoje</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="activities-filters">
+                        <div class="filter-group">
+                            <label>Filtrar por:</label>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">Todos os Status</option>
+                                <option value="pending">Pendentes</option>
+                                <option value="completed">Concluídas</option>
+                                <option value="overdue">Atrasadas</option>
+                            </select>
+                            <select id="typeFilter" class="filter-select">
+                                <option value="all">Todos os Tipos</option>
+                                <!-- Tipos serão carregados dinamicamente -->
+                            </select>
+                            <select id="dateFilter" class="filter-select">
+                                <option value="today">Hoje</option>
+                                <option value="week">Esta Semana</option>
+                                <option value="month">Este Mês</option>
+                                <option value="all">Todos</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-secondary" onclick="limparFiltros()">
+                                <i class="fas fa-times"></i>
+                                Limpar Filtros
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Atividades -->
+                    <div class="activities-container">
+                        <div class="activities-list" id="activitiesList">
+                            <!-- Atividades serão carregadas dinamicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Calendário de Atividades -->
+                    <div class="calendar-section">
+                        <div class="section-header">
+                            <h3>Calendário de Atividades</h3>
+                            <div class="calendar-actions">
+                                <button class="btn-secondary" onclick="vistaSemana()">
+                                    <i class="fas fa-calendar-week"></i>
+                                    Semana
+                                </button>
+                                <button class="btn-secondary" onclick="vistaMes()">
+                                    <i class="fas fa-calendar-alt"></i>
+                                    Mês
+                                </button>
+                            </div>
+                        </div>
+                        <div class="calendar-container" id="calendarContainer">
+                            <!-- Calendário será carregado dinamicamente -->
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/atividades_familiar.js"></script>
+</body>
+</html>

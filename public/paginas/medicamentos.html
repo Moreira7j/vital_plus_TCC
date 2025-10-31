@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vital+ | Medicamentos</title>
+  <link rel="stylesheet" href="../styles/index.css">
+  <link rel="stylesheet" href="../styles/medicamentos.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+   <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Sidebar -->
+    <nav class="sidebar">
+      <div class="sidebar-content">
+        <div class="sidebar-header">
+          <img src="../assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo" style="width: 80px; height: 80px;">
+          <div class="sidebar-brand">
+            <h1>Vital+</h1>
+            <span>Acesso Familiar</span>
+          </div>
+        </div>
+
+        <ul class="sidebar-nav">
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="index.html">
+              <i data-feather="home"></i>
+              <span>Visão Geral</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="relatorios.html">
+              <i data-feather="file-text"></i>
+              <span>Relatórios</span>
+            </a>
+          </li>
+          <li class="sidebar-item active">
+            <a class="sidebar-link" href="medicamentos.html">
+              <i data-feather="plus-square"></i>
+              <span>Medicamentos</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="historico.html">
+              <i data-feather="activity"></i>
+              <span>Histórico</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="alertas.html">
+              <i data-feather="bell"></i>
+              <span>Alertas</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <small>Vital+ &copy; 2025</small>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+      <!-- Header -->
+      <header class="header">
+        <div class="header-title">
+          <h1>Gestão de Medicamentos</h1>
+          <p>Controle e acompanhamento da medicação</p>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-primary" id="novoMedicamentoBtn">
+            <i data-feather="plus"></i> Novo Medicamento
+          </button>
+
+          <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#">
+              <i data-feather="user"></i>
+              <span>Familiar</span>
+            </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="#">
+                <i data-feather="settings"></i> Configurações
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#">
+                <i data-feather="log-out"></i> Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Área de Conteúdo -->
+      <main class="dashboard">
+        <!-- Filtros e Estatísticas -->
+        <div class="dashboard-grid">
+          <!-- Estatísticas Rápidas -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="bar-chart"></i> Estatísticas</h3>
+            </div>
+            <div class="card-body">
+              <div class="vitals-grid">
+                <div class="vital-card">
+                  <i data-feather="check-circle"></i>
+                  <div>
+                    <h4>12</h4>
+                    <small>Medicamentos Ativos</small>
+                  </div>
+                  <span class="badge bg-success">Ativos</span>
+                </div>
+
+                <div class="vital-card">
+                  <i data-feather="clock"></i>
+                  <div>
+                    <h4>3</h4>
+                    <small>Pendentes Hoje</small>
+                  </div>
+                  <span class="badge bg-warning">Pendentes</span>
+                </div>
+
+                <div class="vital-card">
+                  <i data-feather="calendar"></i>
+                  <div>
+                    <h4>89%</h4>
+                    <small>Taxa de Adesão</small>
+                  </div>
+                  <span class="badge bg-primary">Boa</span>
+                </div>
+
+                <div class="vital-card">
+                  <i data-feather="alert-triangle"></i>
+                  <div>
+                    <h4>2</h4>
+                    <small>Alertas</small>
+                  </div>
+                  <span class="badge bg-danger">Urgente</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Filtros -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="filter"></i> Filtros</h3>
+            </div>
+            <div class="card-body">
+              <div class="filter-row">
+                <div class="filter-group">
+                  <label for="filtroStatus">Status</label>
+                  <select id="filtroStatus">
+                    <option value="todos">Todos</option>
+                    <option value="ativo">Ativos</option>
+                    <option value="inativo">Inativos</option>
+                    <option value="pendente">Pendentes</option>
+                  </select>
+                </div>
+
+                <div class="filter-group">
+                  <label for="filtroCategoria">Categoria</label>
+                  <select id="filtroCategoria">
+                    <option value="todos">Todas</option>
+                    <option value="controlado">Controlados</option>
+                    <option value="comum">Comuns</option>
+                    <option value="vitamina">Vitaminas</option>
+                  </select>
+                </div>
+
+                <div class="filter-group">
+                  <label for="filtroBusca">Buscar</label>
+                  <div class="search-input">
+                    <i data-feather="search"></i>
+                    <input type="text" id="filtroBusca" placeholder="Nome do medicamento...">
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-outline-primary" id="aplicarFiltros">
+                <i data-feather="filter"></i> Aplicar Filtros
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Lista de Medicamentos -->
+        <div class="card">
+          <div class="card-header">
+            <h3><i data-feather="list"></i> Lista de Medicamentos</h3>
+            <div class="view-options">
+              <button class="btn btn-sm btn-outline active" data-view="grid">
+                <i data-feather="grid"></i> Grade
+              </button>
+              <button class="btn btn-sm btn-outline" data-view="list">
+                <i data-feather="list"></i> Lista
+              </button>
+            </div>
+          </div>
+          <div class="card-body">
+            <!-- Grade de Medicamentos -->
+            <div class="medicamentos-grid" id="medicamentosView">
+              <!-- Medicamento 1 -->
+              <div class="medicamento-card">
+                <div class="medicamento-header">
+                  <div class="medicamento-icon bg-primary">
+                    <i data-feather="pill"></i>
+                  </div>
+                  <div class="medicamento-actions">
+                    <button class="btn-icon" title="Editar">
+                      <i data-feather="edit"></i>
+                    </button>
+                    <button class="btn-icon" title="Histórico">
+                      <i data-feather="clock"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="medicamento-info">
+                  <h4>Metformina 850mg</h4>
+                  <p class="text-muted">Para diabetes tipo 2</p>
+                  <div class="medicamento-details">
+                    <div class="detail-item">
+                      <small>Dosagem</small>
+                      <span>850mg - 2x ao dia</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Próxima dose</small>
+                      <span>13:30 (2h)</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Status</small>
+                      <span class="badge bg-success">Em dia</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="medicamento-footer">
+                  <button class="btn btn-sm btn-outline">
+                    <i data-feather="check-circle"></i> Registrar dose
+                  </button>
+                </div>
+              </div>
+
+              <!-- Medicamento 2 -->
+              <div class="medicamento-card">
+                <div class="medicamento-header">
+                  <div class="medicamento-icon bg-warning">
+                    <i data-feather="droplet"></i>
+                  </div>
+                  <div class="medicamento-actions">
+                    <button class="btn-icon" title="Editar">
+                      <i data-feather="edit"></i>
+                    </button>
+                    <button class="btn-icon" title="Histórico">
+                      <i data-feather="clock"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="medicamento-info">
+                  <h4>Insulina NPH</h4>
+                  <p class="text-muted">Aplicação subcutânea</p>
+                  <div class="medicamento-details">
+                    <div class="detail-item">
+                      <small>Dosagem</small>
+                      <span>20UI - 1x ao dia</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Próxima dose</small>
+                      <span>08:00 (18h)</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Status</small>
+                      <span class="badge bg-secondary">Agendado</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="medicamento-footer">
+                  <button class="btn btn-sm btn-outline">
+                    <i data-feather="check-circle"></i> Registrar dose
+                  </button>
+                </div>
+              </div>
+
+              <!-- Medicamento 3 -->
+              <div class="medicamento-card">
+                <div class="medicamento-header">
+                  <div class="medicamento-icon bg-danger">
+                    <i data-feather="alert-triangle"></i>
+                  </div>
+                  <div class="medicamento-actions">
+                    <button class="btn-icon" title="Editar">
+                      <i data-feather="edit"></i>
+                    </button>
+                    <button class="btn-icon" title="Histórico">
+                      <i data-feather="clock"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="medicamento-info">
+                  <h4>Losartana 50mg</h4>
+                  <p class="text-muted">Pressão arterial</p>
+                  <div class="medicamento-details">
+                    <div class="detail-item">
+                      <small>Dosagem</small>
+                      <span>50mg - 1x ao dia</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Próxima dose</small>
+                      <span>20:00 (10h)</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Status</small>
+                      <span class="badge bg-warning">Atrasado</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="medicamento-footer">
+                  <button class="btn btn-sm btn-primary">
+                    <i data-feather="check-circle"></i> Registrar agora
+                  </button>
+                </div>
+              </div>
+
+              <!-- Medicamento 4 -->
+              <div class="medicamento-card">
+                <div class="medicamento-header">
+                  <div class="medicamento-icon bg-success">
+                    <i data-feather="heart"></i>
+                  </div>
+                  <div class="medicamento-actions">
+                    <button class="btn-icon" title="Editar">
+                      <i data-feather="edit"></i>
+                    </button>
+                    <button class="btn-icon" title="Histórico">
+                      <i data-feather="clock"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="medicamento-info">
+                  <h4>Aspirina 100mg</h4>
+                  <p class="text-muted">Prevenção cardiovascular</p>
+                  <div class="medicamento-details">
+                    <div class="detail-item">
+                      <small>Dosagem</small>
+                      <span>100mg - 1x ao dia</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Próxima dose</small>
+                      <span>09:00 (17h)</span>
+                    </div>
+                    <div class="detail-item">
+                      <small>Status</small>
+                      <span class="badge bg-success">Administrado</span>
+                    </div>
+                  </div>
+                </div>
+                <div class="medicamento-footer">
+                  <button class="btn btn-sm btn-outline" disabled>
+                    <i data-feather="check"></i> Concluído
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alertas e Lembretes -->
+        <div class="dashboard-grid">
+          <!-- Próximas Dosagens -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="clock"></i> Próximas Dosagens</h3>
+            </div>
+            <div class="card-body">
+              <div class="timeline">
+                <div class="timeline-item">
+                  <div class="timeline-time">13:30</div>
+                  <div class="timeline-content">
+                    <h5>Metformina 850mg</h5>
+                    <p>2ª dose do dia</p>
+                    <span class="badge bg-warning">Em 2 horas</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-time">20:00</div>
+                  <div class="timeline-content">
+                    <h5>Losartana 50mg</h5>
+                    <p>Dose única</p>
+                    <span class="badge bg-secondary">À noite</span>
+                  </div>
+                </div>
+                <div class="timeline-item">
+                  <div class="timeline-time">08:00</div>
+                  <div class="timeline-content">
+                    <h5>Insulina NPH</h5>
+                    <p>Aplicação matinal</p>
+                    <span class="badge bg-info">Amanhã</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Alertas Importantes -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="alert-triangle"></i> Alertas</h3>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-warning">
+                <i data-feather="alert-circle"></i>
+                <div class="alert-content">
+                  <h5>Losartana em atraso</h5>
+                  <p>Dose de 20:00 não administrada</p>
+                </div>
+              </div>
+
+              <div class="alert alert-danger">
+                <i data-feather="alert-octagon"></i>
+                <div class="alert-content">
+                  <h5>Estoque baixo</h5>
+                  <p>Insulina NPH acabando (2 aplicações restantes)</p>
+                </div>
+              </div>
+
+              <div class="alert alert-success">
+                <i data-feather="check-circle"></i>
+                <div class="alert-content">
+                  <h5>Metformina em dia</h5>
+                  <p>Taxa de adesão: 95% na última semana</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="../js/medicamentos.js"></script>
+</body>
+</html>

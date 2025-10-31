@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Sistema de Acompanhamento para Cuidadores</title>
+    <link rel="stylesheet" href="../styles/LandingPage.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="#" class="logo">
+                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                </a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="#hero" class="nav-link">Início</a></li>
+                    <li class="nav-item"><a href="#about" class="nav-link">Sobre</a></li>
+                    <li class="nav-item"><a href="#mobile-app" class="nav-link">App Mobile</a></li>
+                    <li class="nav-item"><a href="#web-platform" class="nav-link">Plataforma Web</a></li>
+                    <li class="nav-item"><a href="#login" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="#contact" class="nav-link">Contato</a></li>
+                </ul>
+                <button class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section id="hero" class="hero">
+        <div class="hero-container">
+            <div class="hero-content">
+                <h1 class="hero-title">Cuidar de quem você ama nunca foi tão <span>simples</span></h1>
+                <p class="hero-description">O Vital+ ajuda cuidadores e familiares a monitorarem a saúde de seus
+                    pacientes de forma eficiente e organizada.</p>
+                <div class="hero-buttons">
+                    <a href="#mobile-app" class="btn btn-primary">Conhecer o App</a>
+                    <a href="/selecaoTipoUsuario" class="btn btn-secondary">Criar Conta</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="hero-image-container">
+                    <img src="../assets/Captura de tela 2025-10-27 010256.png" alt="Dashboard do Vital+ mostrando monitoramento de saúde">
+                    <div class="floating-element element-1">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="floating-element element-2">
+                        <i class="fas fa-pills"></i>
+                    </div>
+                    <div class="floating-element element-3">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Sobre o Software -->
+    <section id="about" class="about">
+        <div class="container">
+            <h2 class="section-title">O que é o <span>Vital+</span>?</h2>
+            <p class="section-description">Uma solução completa para o acompanhamento de pacientes que necessitam de
+                cuidados especiais</p>
+
+            <div class="features">
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-mobile-alt"></i>
+                    </div>
+                    <h3>Aplicativo Mobile</h3>
+                    <p>Registro fácil de pressão arterial, glicemia, medicamentos e alertas importantes diretamente pelo
+                        celular.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Plataforma Web</h3>
+                    <p>Acompanhe a evolução do paciente através de gráficos e relatórios detalhados para uma análise
+                        completa.</p>
+                </div>
+
+                <div class="feature-card">
+                    <div class="feature-icon">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <h3>Alertas Inteligentes</h3>
+                    <p>Notificações sobre horário de medicamentos, consultas e alterações significativas nos sinais
+                        vitais.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- App Mobile com Imagens -->
+    <section id="mobile-app" class="mobile-app">
+        <div class="container">
+            <h2 class="section-title">App <span>Mobile</span> para Cuidadores</h2>
+            <p class="section-description">Registro rápido e intuitivo de informações de saúde no dia a dia</p>
+
+            <div class="mobile-content">
+                <div class="mobile-visual">
+                    <div class="phone-showcase">
+                        <div class="phone-mockup">
+                            <img src="../assets/tela 1 mobile.jpg" alt="Tela do app Vital+ - Registro de saúde">
+                        </div>
+                        <div class="phone-mockup secondary">
+                            <img src="../assets/tela 2 mobile.jpg" alt="Tela do app Vital+ - Histórico de medicamentos">
+                        </div>
+                    </div>
+                    <div class="app-thumbnails">
+                        <div class="app-thumbnail active">
+                            <img src="../assets/tela 1 mobile.jpg" alt="Registro" data-full="../assets/tela 1 mobile.jpg">
+                        </div>
+                        <div class="app-thumbnail">
+                            <img src="../assets/tela 2 mobile.jpg" alt="Medicamentos"
+                                data-full="../assets/tela 2 mobile.jpg">
+                        </div>
+                        <div class="app-thumbnail">
+                            <img src="../assets/tela 1 mobile.jpg" alt="Alertas" data-full="../assets/tela 1 mobile.jpg">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mobile-text">
+                    <div class="mobile-feature">
+                        <div class="feature-number">01</div>
+                        <div class="feature-content">
+                            <h3>Registro Simplificado</h3>
+                            <p>Interface intuitiva para registro rápido de pressão arterial, glicemia, temperatura e
+                                outros sinais vitais.</p>
+                        </div>
+                    </div>
+
+                    <div class="mobile-feature">
+                        <div class="feature-number">02</div>
+                        <div class="feature-content">
+                            <h3>Controle de Medicamentos</h3>
+                            <p>Programe lembretes para medicamentos e acompanhe o histórico de administração.</p>
+                        </div>
+                    </div>
+
+                    <div class="mobile-feature">
+                        <div class="feature-number">03</div>
+                        <div class="feature-content">
+                            <h3>Alertas Personalizados</h3>
+                            <p>Receba notificações para consultas, medicamentos e alterações significativas nos sinais
+                                vitais.</p>
+                        </div>
+                    </div>
+
+                    <div class="download-buttons mobile-download">
+                        <a href="#" class="store-btn">
+                            <i class="fab fa-google-play"></i>
+                            <div>
+                                <span>Disponível no</span>
+                                <strong>Google Play</strong>
+                            </div>
+                        </a>
+                        <a href="#" class="store-btn">
+                            <i class="fab fa-apple"></i>
+                            <div>
+                                <span>Disponível na</span>
+                                <strong>App Store</strong>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Benefícios -->
+    <section id="benefits" class="benefits">
+        <div class="container">
+            <h2 class="section-title">Benefícios para <span>Cuidadores</span> e <span>Familiares</span></h2>
+
+            <div class="benefits-content">
+                <div class="benefits-text">
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h3>Organização Centralizada</h3>
+                            <p>Todas as informações de saúde em um único lugar, acessível a familiares e cuidadores
+                                autorizados.</p>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h3>Monitoramento em Tempo Real</h3>
+                            <p>Acompanhe a condição do paciente de qualquer lugar, a qualquer momento.</p>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h3>Relatórios para Profissionais</h3>
+                            <p>Gere relatórios detalhados para compartilhar com médicos e outros profissionais de saúde.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="benefit-item">
+                        <div class="benefit-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="benefit-content">
+                            <h3>Redução de Estresse</h3>
+                            <p>Menos preocupação com esquecimentos e mais tranquilidade no cuidado.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="benefits-image">
+                    <div class="benefits-image-container">
+                        <img src="../assets/atividades.png" alt="Dashboard mostrando os benefícios do Vital+">
+                        <div class="floating-card card-1">
+                            <i class="fas fa-chart-pie"></i>
+                            <p>Gráficos detalhados</p>
+                        </div>
+                        <div class="floating-card card-2">
+                            <i class="fas fa-bell"></i>
+                            <p>Alertas personalizados</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Plataforma Web com Imagens -->
+    <section id="web-platform" class="web-platform">
+        <div class="container">
+            <h2 class="section-title">Plataforma <span>Web</span> Completa</h2>
+            <p class="section-description">Visualize e analise todos os dados de saúde de forma intuitiva</p>
+
+            <div class="web-content">
+                <div class="web-text">
+                    <div class="web-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Gráficos Interativos</h3>
+                            <p>Acompanhe a evolução dos sinais vitais com gráficos detalhados e interativos, permitindo
+                                visualizar tendências e padrões.</p>
+                        </div>
+                    </div>
+
+                    <div class="web-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-medical"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Relatórios Completos</h3>
+                            <p>Gere relatórios personalizados para compartilhar com médicos e profissionais de saúde.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div class="web-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-bell"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Alertas Inteligentes</h3>
+                            <p>Receba notificações sobre eventos importantes e alertas baseados nos dados coletados.</p>
+                        </div>
+                    </div>
+
+                    <div class="web-feature">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="feature-content">
+                            <h3>Acesso Multi-usuário</h3>
+                            <p>Compartilhe o acesso com familiares e outros cuidadores para acompanhamento colaborativo.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="web-visual">
+                    <div class="browser-mockup large">
+                        <img src="../assets/comunicacao.png" alt="Comunicação web Vital+">
+                    </div>
+                    <div class="web-thumbnails">
+                        <div class="web-thumbnail active">
+                            <img src="../assets/RelatorioGerado.png" alt="Dashboard"
+                                data-full="../assets/RelatorioGerado.png">
+                        </div>
+                        <div class="web-thumbnail">
+                            <img src="../assets/relatoriosWebFoto.png" alt="Gráficos"
+                                data-full="../assets/relatoriosWebFoto.png">
+                        </div>
+                        <div class="web-thumbnail">
+                            <img src="../assets/visaogeral.png" alt="Relatórios" data-full="../assets/visaogeral.png">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!--Área de login-->
+    <section id="login" class="login">
+        <div class="container">
+            <div class="login-container">
+                <div class="login-info">
+                    <h2>Acesso à Plataforma Web</h2>
+                    <p>Para familiares e cuidadores que desejam visualizar gráficos e relatórios detalhados.</p>
+                    <div class="login-features">
+                        <div class="login-feature">
+                            <i class="fas fa-chart-pie"></i>
+                            <span>Gráficos interativos</span>
+                        </div>
+                        <div class="login-feature">
+                            <i class="fas fa-file-medical"></i>
+                            <span>Relatórios completos</span>
+                        </div>
+                        <div class="login-feature">
+                            <i class="fas fa-history"></i>
+                            <span>Histórico completo</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="login-form">
+                    <form id="loginForm">
+                        <h3>Login</h3>
+                        <div class="form-group">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" name="email" required placeholder="seu@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Senha</label>
+                            <div class="password-input-container">
+                                <input type="password" id="password" name="password" required placeholder="Sua senha">
+                                <button type="button" class="password-toggle" id="togglePassword">
+                                    <i class="fas fa-eye" id="eyeIcon"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full">Acessar Plataforma</button>
+                        <div id="loginMensagem" class="login-mensagem"></div>
+                        <div class="login-links">
+                            <a href="esqueciSenha.html">Esqueci minha senha</a>
+                            <a href="selecaoTipoUsuario.html">Não tem uma conta? Cadastre-se</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo-footer">
+                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                    </div>
+                    <p>Simplificando o cuidado com quem mais importa.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contato@vitalmais.com.br</li>
+                        <li><i class="fas fa-phone"></i> (11) 99999-9999</li>
+                        <li><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Links Rápidos</h4>
+                    <ul>
+                        <li><a href="#hero">Início</a></li>
+                        <li><a href="#about">Sobre</a></li>
+                        <li><a href="#mobile-app">App Mobile</a></li>
+                        <li><a href="#web-platform">Plataforma Web</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Tutoriais</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2025 Vital+ - Todos os direitos reservados. Desenvolvido como projeto de TCC.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal para Visualização de Fotos -->
+    <div id="photoModal" class="photo-modal">
+        <div class="photo-modal-content">
+            <span class="photo-modal-close">&times;</span>
+            <img id="modalImage" src="" alt="Imagem ampliada">
+            <div class="photo-modal-caption"></div>
+        </div>
+    </div>
+
+    <script src="../js/LandingPage.js"></script>
+</body>
+
+</html>

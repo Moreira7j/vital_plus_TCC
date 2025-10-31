@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Cadastro Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/criarContaFamiliarCuidador.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="LandingPage.html" class="logo">
+                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img"
+                        style="height: 120px; width: auto;">
+                </a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="LandingPage.html#hero" class="nav-link">Início</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#about" class="nav-link">Sobre</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#mobile-app" class="nav-link">App Mobile</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#web-platform" class="nav-link">Plataforma Web</a>
+                    </li>
+                    <li class="nav-item"><a href="LandingPage.html#login" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#contact" class="nav-link">Contato</a></li>
+                </ul>
+                <div class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Área de Cadastro -->
+    <section id="signup" class="signup-section">
+        <div class="container">
+            <!-- Indicador de Progresso -->
+            <div class="progress-indicator">
+                <div class="step active" data-step="1">
+                    <div class="step-number">1</div>
+                    <div class="step-label">Seus Dados</div>
+                </div>
+                <div class="step" data-step="2">
+                    <div class="step-number">2</div>
+                    <div class="step-label">Dados do Dependente</div>
+                </div>
+                <div class="step" data-step="3">
+                    <div class="step-number">3</div>
+                    <div class="step-label">Finalização</div>
+                </div>
+            </div>
+
+            <div class="signup-container">
+                <!-- Etapa 1: Dados do Familiar -->
+                <div class="signup-step active" id="step1">
+                    <div class="step-header">
+                        <h2>Criar Sua Conta</h2>
+                        <p>Como familiar cuidador, você será responsável por registrar e acompanhar as informações de
+                            saúde do seu ente querido.</p>
+                    </div>
+
+                    <form id="familiarForm" class="auth-form">
+                        <!-- Informações Pessoais -->
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-user"></i>
+                                Informações Pessoais
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="name">Nome Completo *</label>
+                                    <input type="text" id="name" name="name" required placeholder="Seu nome completo">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="email">E-mail *</label>
+                                    <input type="email" id="email" name="email" required placeholder="seu@email.com">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <!-- <div class="form-group">
+                                    <label for="cpf">CPF *</label>
+                                    <input type="text" id="cpf" name="cpf" required placeholder="000.000.000-00" 
+                                           pattern="\d{3}\.\d{3}\.\d{3}-\d{2}" 
+                                           title="Formato: 000.000.000-00">
+                                </div> -->
+
+                                <div class="form-group">
+                                    <label for="phone">Telefone *</label>
+                                    <input type="tel" id="phone" name="phone" required placeholder="(11) 99999-9999">
+                                </div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="birthDate">Data de Nascimento *</label>
+                                    <input type="date" id="birthDate" name="birthDate" required>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="genero">Gênero</label>
+                                    <select id="genero" name="genero">
+                                        <option value="">Selecione o gênero</option>
+                                        <option value="masculino">Masculino</option>
+                                        <option value="feminino">Feminino</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Informações do Familiar -->
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-users"></i>
+                                Informações do Familiar
+                            </h3>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="parentesco">Parentesco com o Dependente *</label>
+                                    <select id="parentesco" name="parentesco" required>
+                                        <option value="">Selecione o parentesco</option>
+                                        <option value="filho">Filho(a)</option>
+                                        <option value="conjuge">Cônjuge</option>
+                                        <option value="pai">Pai/Mãe</option>
+                                        <option value="irmao">Irmão/Irmã</option>
+                                        <option value="neto">Neto(a)</option>
+                                        <option value="sobrinho">Sobrinho(a)</option>
+                                        <option value="outro">Outro</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="endereco">Endereço</label>
+                                    <input type="text" id="endereco" name="endereco" placeholder="Endereço completo">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Segurança -->
+                        <div class="form-section">
+                            <h3 class="section-title">
+                                <i class="fas fa-lock"></i>
+                                Segurança da Conta
+                            </h3>
+                            <div class="form-group">
+                                <label for="password">Senha *</label>
+                                <div class="password-input-container">
+                                    <input type="password" id="password" name="password" required
+                                        placeholder="Crie uma senha forte">
+                                    <button type="button" class="password-toggle" id="togglePassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                                <small class="password-strength"></small>
+                                <div class="password-strength-meter">
+                                    <div class="strength-bar"></div>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="confirmPassword">Confirmar Senha *</label>
+                                <div class="password-input-container">
+                                    <input type="password" id="confirmPassword" name="confirmPassword" required
+                                        placeholder="Digite novamente sua senha">
+                                    <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group checkbox-group">
+                            <input type="checkbox" id="terms" name="terms" required>
+                            <label for="terms">Aceito os <a href="#">termos de uso</a> e <a href="#">política de
+                                    privacidade</a></label>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="window.location.href='/selecaoTipoUsuario'">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep()">
+                                Próximo <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Etapa 2: Dados do Dependente -->
+                <div class="signup-step" id="step2">
+                    <div class="step-header">
+                        <h2>Dados do Dependente</h2>
+                        <p>Agora vamos cadastrar as informações da pessoa que você irá cuidar.</p>
+                    </div>
+
+                    <form id="dependenteForm" class="auth-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="nomeDependente">Nome Completo do Dependente *</label>
+                                <input type="text" id="nomeDependente" name="nomeDependente" required
+                                    placeholder="Nome completo">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="dataNascimentoDependente">Data de Nascimento *</label>
+                                <input type="date" id="dataNascimentoDependente" name="dataNascimentoDependente"
+                                    required>
+                            </div>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="generoDependente">Gênero</label>
+                                <select id="generoDependente" name="generoDependente">
+                                    <option value="">Selecione o gênero</option>
+                                    <option value="masculino">Masculino</option>
+                                    <option value="feminino">Feminino</option>
+                                    <option value="outro">Outro</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="planoSaude">Plano de Saúde</label>
+                                <input type="text" id="planoSaude" name="planoSaude"
+                                    placeholder="Nome do plano de saúde">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="condicaoPrincipal">Condição Principal de Saúde</label>
+                            <input type="text" id="condicaoPrincipal" name="condicaoPrincipal"
+                                placeholder="Ex: Diabetes, Hipertensão, Alzheimer...">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="alergias">Alergias</label>
+                            <textarea id="alergias" name="alergias" rows="3"
+                                placeholder="Descreva alergias conhecidas (medicamentos, alimentos, etc.)"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="historicoMedico">Histórico Médico</label>
+                            <textarea id="historicoMedico" name="historicoMedico" rows="4"
+                                placeholder="Breve histórico médico relevante"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="fotoPerfil">Foto do Dependente</label>
+                            <div class="file-input-container">
+                                <input type="file" id="fotoPerfil" name="fotoPerfil" accept="image/*">
+                                <label for="fotoPerfil" class="file-input-label">
+                                    <i class="fas fa-camera"></i>
+                                    <span>Escolher foto</span>
+                                </label>
+                                <div class="file-preview" id="fotoPreview"></div>
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                                <i class="fas fa-arrow-left"></i> Anterior
+                            </button>
+                            <button type="button" class="btn btn-primary" onclick="nextStep()">
+                                Próximo <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Etapa 3: Finalização -->
+                <div class="signup-step" id="step3">
+                    <div class="step-header">
+                        <h2>Finalizar Cadastro</h2>
+                        <p>Revise as informações e finalize seu cadastro no Vital+.</p>
+                    </div>
+
+                    <div class="summary-container">
+                        <div class="summary-section">
+                            <h3><i class="fas fa-user"></i> Seus Dados</h3>
+                            <div id="familiarSummary"></div>
+                        </div>
+
+                        <div class="summary-section">
+                            <h3><i class="fas fa-heart"></i> Dados do Dependente</h3>
+                            <div id="dependenteSummary"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" onclick="previousStep()">
+                            <i class="fas fa-arrow-left"></i> Anterior
+                        </button>
+                        <button type="button" class="btn btn-success" id="finalizeBtn" onclick="finalizarCadastro()">
+                            <i class="fas fa-check"></i> Finalizar Cadastro
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo-footer">
+                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img"
+                            style="height: 120px; width: auto;">
+                    </div>
+                    <p>Simplificando o cuidado com quem mais importa.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contato@vitalmais.com.br</li>
+                        <li><i class="fas fa-phone"></i> (11) 99999-9999</li>
+                        <li><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Links Rápidos</h4>
+                    <ul>
+                        <li><a href="LandingPage.html#hero">Início</a></li>
+                        <li><a href="LandingPage.html#about">Sobre</a></li>
+                        <li><a href="LandingPage.html#mobile-app">App Mobile</a></li>
+                        <li><a href="LandingPage.html#web-platform">Plataforma Web</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Tutoriais</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2023 Vital+ - Todos os direitos reservados. Desenvolvido como projeto de TCC.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/criarContaFamiliarCuidador.js"></script>
+</body>
+
+</html>

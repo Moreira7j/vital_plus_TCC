@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Atividades</title>
+    <link rel="stylesheet" href="../styles/atividades_cuidador.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+    <script src="https://unpkg.com/feather-icons"></script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Cuidador Profissional</span>
+            </div>
+
+            <div class="user-info">
+                
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">1</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_cuidador.html" class="nav-item" data-section="overview">
+                        <i class="fas fa-home"></i>
+                        <span>Visão Geral</span>
+                    </a>
+                    <a href="medicamentos_cuidador.html" class="nav-item" data-section="medications">
+                        <i class="fas fa-plus-square"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_cuidador.html" class="nav-item active" data-section="activities">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+                    <a href="comunicacao_cuidador.html" class="nav-item" data-section="communication">
+                        <i class="fas fa-comments"></i>
+                        <span>Comunicação</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Activities Section -->
+                <section id="activities" class="content-section active">
+                    <div class="section-header">
+                        <h2>Gestão de Atividades</h2>
+                        <div class="last-update">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizado agora
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas Rápidas -->
+                    <div class="dashboard-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-check-square"></i> Atividades de Hoje</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="vitals-grid">
+                                    <div class="vital-card">
+                                        <i class="fas fa-list"></i>
+                                        <h4 id="totalAtividades">0</h4>
+                                        <small>Total para Hoje</small>
+                                    </div>
+                                    <div class="vital-card">
+                                        <i class="fas fa-check-circle"></i>
+                                        <h4 id="atividadesConcluidas">0</h4>
+                                        <small>Concluídas</small>
+                                    </div>
+                                    <div class="vital-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h4 id="atividadesPendentes">0</h4>
+                                        <small>Pendentes</small>
+                                    </div>
+                                    <div class="vital-card">
+                                        <i class="fas fa-trending-up"></i>
+                                        <h4 id="taxaConclusao">0%</h4>
+                                        <small>Taxa de Conclusão</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-chart-bar"></i> Distribuição por Tipo</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="atividadesChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label for="filtroData">Data</label>
+                                    <input type="date" id="filtroData" class="form-control" value="">
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="filtroStatus">Status</label>
+                                    <select id="filtroStatus" class="form-control">
+                                        <option value="todos">Todos os Status</option>
+                                        <option value="pendente">Pendentes</option>
+                                        <option value="concluida">Concluídas</option>
+                                        <option value="atrasada">Atrasadas</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group">
+                                    <label for="filtroTipo">Tipo de Atividade</label>
+                                    <select id="filtroTipo" class="form-control">
+                                        <option value="todos">Todos os Tipos</option>
+                                        <option value="alimentacao">Alimentação</option>
+                                        <option value="exercicio">Exercício</option>
+                                        <option value="higiene">Higiene</option>
+                                        <option value="medicacao">Medicação</option>
+                                        <option value="repouso">Repouso</option>
+                                        <option value="social">Atividade Social</option>
+                                    </select>
+                                </div>
+
+                                <div class="filter-group filter-button">
+                                    <button id="aplicarFiltros" class="btn btn-primary">
+                                        <i class="fas fa-filter"></i>
+                                        Aplicar Filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ações Rápidas -->
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Gestão de Atividades</h4>
+                                <button id="novaAtividadeBtn" class="btn btn-primary">
+                                    <i class="fas fa-plus"></i>
+                                    Nova Atividade
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Atividades -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-list"></i> Atividades do Dia</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="atividades-container" id="atividadesContainer">
+                                <!-- Atividades serão carregadas aqui via JavaScript -->
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <h4>Carregando atividades...</h4>
+                                    <p>Aguarde enquanto carregamos as atividades do paciente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal para Nova Atividade -->
+    <div id="atividadeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Nova Atividade</h2>
+                <button type="button" class="btn-icon" id="fecharModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="atividadeForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="atividadeTitulo">Título da Atividade *</label>
+                        <input type="text" id="atividadeTitulo" name="titulo" required class="form-control"
+                            placeholder="Digite o título da atividade">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="atividadeTipo">Tipo de Atividade *</label>
+                            <select id="atividadeTipo" name="tipo" required class="form-control">
+                                <option value="alimentacao">Alimentação</option>
+                                <option value="exercicio">Exercício</option>
+                                <option value="higiene">Higiene</option>
+                                <option value="medicacao">Medicação</option>
+                                <option value="repouso">Repouso</option>
+                                <option value="social">Atividade Social</option>
+                                <option value="outro">Outro</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="atividadeHorario">Horário *</label>
+                            <input type="time" id="atividadeHorario" name="horario" required class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="atividadeDescricao">Descrição *</label>
+                        <textarea id="atividadeDescricao" name="descricao" required class="form-control"
+                            placeholder="Descreva a atividade em detalhes..." rows="3"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="atividadeObservacoes">Observações</label>
+                        <textarea id="atividadeObservacoes" name="observacoes" class="form-control"
+                            placeholder="Observações adicionais..." rows="2"></textarea>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" id="cancelarBtn" class="btn btn-outline">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        Salvar Atividade
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/atividades_cuidador.js"></script>
+    <script>
+        feather.replace();
+    </script>
+</body>
+</html>

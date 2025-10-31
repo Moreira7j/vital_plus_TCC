@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aceitar Convite - Vital+</title>
+    <link rel="stylesheet" href="../styles/aceitar-convite.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo">
+            <h1>Convite do Vital+</h1>
+            <p class="subtitle">Você foi convidado(a) para cuidar de um paciente</p>
+        </div>
+        
+        <div id="loading" class="loading">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Carregando informações do convite...</p>
+        </div>
+        
+        <div id="conviteInfo" class="convite-card" style="display: none;">
+            <div class="card-header">
+                <h2>📋 Detalhes do Convite</h2>
+            </div>
+            <div class="card-body">
+                <div class="info-item">
+                    <i class="fas fa-user"></i>
+                    <div>
+                        <strong>Paciente:</strong>
+                        <span id="pacienteNome">Carregando...</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-stethoscope"></i>
+                    <div>
+                        <strong>Condição Principal:</strong>
+                        <span id="pacienteCondicao">Carregando...</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <strong>Familiar Contratante:</strong>
+                        <span id="familiarNome">Carregando...</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-envelope"></i>
+                    <div>
+                        <strong>Email do Familiar:</strong>
+                        <span id="familiarEmail">Carregando...</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-phone"></i>
+                    <div>
+                        <strong>Telefone:</strong>
+                        <span id="familiarTelefone">Carregando...</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-clock"></i>
+                    <div>
+                        <strong>Convite expira em:</strong>
+                        <span id="expiracao">Carregando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="formAceitar" class="form-container" style="display: none;">
+            <div class="card-header">
+                <h2>✅ Aceitar Convite</h2>
+            </div>
+            <div class="card-body">
+                <p class="form-description">Complete seus dados para aceitar o convite:</p>
+                <form id="formDadosCuidador">
+                    <div class="form-group">
+                        <label for="cuidadorNome">
+                            <i class="fas fa-user"></i>
+                            Seu Nome Completo *
+                        </label>
+                        <input type="text" id="cuidadorNome" required placeholder="Digite seu nome completo">
+                    </div>
+                    <div class="form-group">
+                        <label for="cuidadorTelefone">
+                            <i class="fas fa-phone"></i>
+                            Telefone *
+                        </label>
+                        <input type="tel" id="cuidadorTelefone" required placeholder="(11) 99999-9999">
+                    </div>
+                    <div class="form-group">
+                        <label for="cuidadorSenha">
+                            <i class="fas fa-lock"></i>
+                            Crie uma Senha *
+                        </label>
+                        <input type="password" id="cuidadorSenha" required placeholder="Crie uma senha segura">
+                        <small class="password-hint">Mínimo 8 caracteres</small>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-check"></i>
+                            Aceitar Convite
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="recusarConvite()">
+                            <i class="fas fa-times"></i>
+                            Recusar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div id="mensagemResultado" class="resultado-card" style="display: none;">
+            <div class="card-header">
+                <h2 id="resultadoTitulo">Resultado</h2>
+            </div>
+            <div class="card-body">
+                <div id="resultadoMensagem" class="resultado-mensagem">
+                    <!-- Mensagem de resultado será exibida aqui -->
+                </div>
+                <div class="resultado-actions">
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home"></i>
+                        Ir para o Início
+                    </a>
+                    <a href="/dashboard_cuidador" class="btn btn-success" id="btnDashboard" style="display: none;">
+                        <i class="fas fa-tachometer-alt"></i>
+                        Ir para o Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div id="erroCard" class="erro-card" style="display: none;">
+            <div class="card-header error">
+                <h2>❌ Erro</h2>
+            </div>
+            <div class="card-body">
+                <div id="erroMensagem" class="erro-mensagem">
+                    <!-- Mensagem de erro será exibida aqui -->
+                </div>
+                <div class="erro-actions">
+                    <a href="/" class="btn btn-primary">
+                        <i class="fas fa-home"></i>
+                        Ir para o Início
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="../js/aceitar-convite.js"></script>
+</body>
+</html>

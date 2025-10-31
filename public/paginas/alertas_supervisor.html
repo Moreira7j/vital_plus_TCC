@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Alertas Supervisor</title>
+    <link rel="stylesheet" href="../styles/dashboard_supervisor.css">
+    <link rel="stylesheet" href="../styles/alertas_supervisor.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://unpkg.com/feather-icons"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Supervisor</span>
+            </div>
+
+            <div class="user-info">
+                
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">0</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_supervisor.html" class="nav-item" data-section="overview">
+                        <i class="fas fa-home"></i>
+                        <span>Meu Dependente</span>
+                    </a>
+                    <a href="relatorios_supervisor.html" class="nav-item" data-section="reports">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="comunicacao_supervisor.html" class="nav-item" data-section="communication">
+                        <i class="fas fa-comments"></i>
+                        <span>Comunicação</span>
+                    </a>
+                    <a href="alertas_supervisor.html" class="nav-item active" data-section="alerts">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Alerts Section -->
+                <section id="alerts" class="content-section active">
+                    <div class="section-header">
+                        <h2>Gerenciamento de Alertas</h2>
+                        <div class="last-update">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizado agora
+                        </div>
+                    </div>
+
+                    <!-- Estatísticas Rápidas -->
+                    <div class="dashboard-grid">
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-activity"></i> Resumo de Alertas</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="vitals-grid">
+                                    <div class="vital-card">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        <h4 id="totalAlertas">0</h4>
+                                        <small>Total de Alertas</small>
+                                    </div>
+                                    <div class="vital-card">
+                                        <i class="fas fa-clock"></i>
+                                        <h4 id="alertasAtivos">0</h4>
+                                        <small>Alertas Ativos</small>
+                                    </div>
+                                    <div class="vital-card">
+                                        <i class="fas fa-check-circle"></i>
+                                        <h4 id="alertasResolvidos">0</h4>
+                                        <small>Resolvidos</small>
+                                    </div>
+                                    <div class="vital-card">
+                                        <i class="fas fa-exclamation-circle"></i>
+                                        <h4 id="alertasAlta">0</h4>
+                                        <small>Prioridade Alta</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-chart-bar"></i> Tendência de Alertas</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="alertasChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="status-card">
+                        <div class="card-body">
+                            <div class="filter-row">
+                                <div class="filter-group">
+                                    <label for="filtroStatus">Status</label>
+                                    <select id="filtroStatus" class="filter-select">
+                                        <option value="todos">Todos os Status</option>
+                                        <option value="ativo">Ativos</option>
+                                        <option value="resolvido">Resolvidos</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filtroPrioridade">Prioridade</label>
+                                    <select id="filtroPrioridade" class="filter-select">
+                                        <option value="todos">Todas as Prioridades</option>
+                                        <option value="alta">Alta</option>
+                                        <option value="media">Média</option>
+                                        <option value="baixa">Baixa</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filtroData">Data</label>
+                                    <input type="date" id="filtroData" class="filter-select">
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="filtroBusca" class="hidden-label">Buscar</label>
+                                    <div class="search-input">
+                                        <i data-feather="search"></i>
+                                        <input type="text" id="filtroBusca" placeholder="Buscar alertas..." class="filter-select">
+                                    </div>
+                                </div>
+                                
+                                <div class="filter-group filter-button">
+                                    <button id="aplicarFiltros" class="btn-link">
+                                        <i data-feather="filter"></i>
+                                        Aplicar Filtros
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ações Rápidas -->
+                    <div class="status-card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h4 class="mb-0">Gestão de Alertas</h4>
+                                <button id="novoAlertaBtn" class="btn-link">
+                                    <i data-feather="plus"></i>
+                                    Novo Alerta
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Alertas -->
+                    <div class="status-card">
+                        <div class="card-header">
+                            <h4><i class="fas fa-list"></i> Alertas do Sistema</h4>
+                        </div>
+                        <div class="card-body">
+                            <div class="alertas-container" id="alertasContainer">
+                                <!-- Alertas serão carregados aqui via JavaScript -->
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <h4>Carregando alertas...</h4>
+                                    <p>Aguarde enquanto carregamos os alertas do sistema</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal para Novo Alerta -->
+    <div id="alertaModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitulo">Novo Alerta</h2>
+                <button type="button" class="btn-icon" id="fecharModal">
+                    <i data-feather="x"></i>
+                </button>
+            </div>
+            
+            <form id="alertaForm">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="alertaTitulo">Título do Alerta *</label>
+                        <input type="text" id="alertaTitulo" name="titulo" required class="form-control" placeholder="Digite o título do alerta">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="alertaDescricao">Descrição *</label>
+                        <textarea id="alertaDescricao" name="descricao" required class="form-control" placeholder="Descreva o alerta em detalhes" rows="4"></textarea>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="alertaPrioridade">Prioridade *</label>
+                            <select id="alertaPrioridade" name="prioridade" required class="form-control">
+                                <option value="baixa">Baixa</option>
+                                <option value="media">Média</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="alertaDependente">Destinatário *</label>
+                            <select id="alertaDependente" name="dependente" required class="form-control">
+                                <option value="1">João Silva</option>
+                                <option value="2">Maria Santos</option>
+                                <option value="3">Carlos Oliveira</option>
+                                <option value="todos">Todos os Dependentes</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="alertaData">Data e Hora</label>
+                        <input type="datetime-local" id="alertaData" name="data" class="form-control">
+                    </div>
+                </div>
+                
+                <div class="modal-footer">
+                    <button type="button" id="cancelarBtn" class="btn-outline">Cancelar</button>
+                    <button type="submit" class="btn-primary">
+                        <i data-feather="save"></i>
+                        Salvar Alerta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="../js/alertas_supervisor.js"></script>
+    <script>
+        feather.replace();
+    </script>
+</body>
+</html>

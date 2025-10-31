@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Cuidador Profissional</title>
+    <link rel="stylesheet" href="../styles/dashboard_cuidador.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                <span class="user-type">Cuidador Profissional</span>
+            </div>
+
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientNameHeader"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">0</span>
+                    </button>
+                    <button class="btn-profile" id="quickActionBtn">
+                        <i class="fas fa-plus"></i>
+                        Nova Atividade
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_cuidador.html" class="nav-item active" data-section="overview">
+                        <i class="fas fa-home"></i>
+                        <span>Meu Paciente</span>
+                    </a>
+                    <a href="medicamentos_cuidador.html" class="nav-item" data-section="medications">
+                        <i class="fas fa-pills"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_cuidador.html" class="nav-item" data-section="activities">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+
+                    <a href="comunicacao_cuidador.html" class="nav-item" data-section="communication">
+                        <i class="fas fa-comments"></i>
+                        <span>Comunicação</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Overview Section -->
+                <section id="overview" class="content-section active">
+                    <div class="section-header">
+                        <h2>Cuidado do Paciente</h2>
+                        <div class="last-update">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizado agora
+                        </div>
+                    </div>
+
+                    <!-- Perfil do Paciente -->
+                    <div class="patient-profile-card">
+                        <div class="patient-basic-info">
+                            <div class="patient-avatar">
+                                <img src="../assets/default-avatar.png" alt="Foto do Paciente" id="patientAvatar">
+                            </div>
+                            <div class="patient-details">
+                                <h3 id="patientName">Carregando...</h3>
+                                <div class="patient-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-birthday-cake"></i>
+                                        <span id="patientAge">-- anos</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-stethoscope"></i>
+                                        <span id="patientCondition">Condição principal</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-user-md"></i>
+                                        <span>Cuidador Profissional</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-user"></i>
+                                        <span id="familiarName">Carregando...</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Status de Saúde - Adicionado igual tinha antes -->
+                        <div class="patient-status-info">
+                            <div class="health-status">
+                                <i class="fas fa-heart"></i>
+                                <div>
+                                    <h5 id="healthStatus">Estável</h5>
+                                    <p class="text-muted" id="healthDescription">Todas as métricas normais</p>
+                                </div>
+                            </div>
+                            
+                            <div class="patient-additional-info">
+                                <div class="info-item">
+                                    <small>Condição Principal</small>
+                                    <p id="patientConditionDetail">Carregando...</p>
+                                </div>
+                                <div class="info-item">
+                                    <small>Plano de Saúde</small>
+                                    <p id="healthPlan">Carregando...</p>
+                                </div>
+                                <div class="info-item">
+                                    <small>Alergias</small>
+                                    <p id="patientAllergies">Nenhuma</p>
+                                </div>
+                                <div class="info-item">
+                                    <small>Medicações Contínuas</small>
+                                    <p id="continuousMeds">Carregando...</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Grid Principal -->
+                    <div class="health-status-grid">
+                        <!-- Sinais Vitais -->
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-heartbeat"></i> Sinais Vitais</h4>
+                                <button class="btn-link" id="addVitalBtn">
+                                    <i class="fas fa-plus"></i> Registrar
+                                </button>
+                            </div>
+                            <div class="vital-stats">
+                                <div class="vital-item">
+                                    <div class="vital-icon pressure">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="bloodPressure">--/--</span>
+                                        <span class="vital-label">Pressão Arterial</span>
+                                        <span class="vital-status" id="bpStatus">--</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon heart">
+                                        <i class="fas fa-tint"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="glucose">--</span>
+                                        <span class="vital-label">Glicemia (mg/dL)</span>
+                                        <span class="vital-status" id="glucoseStatus">--</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon temp">
+                                        <i class="fas fa-thermometer-half"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="temperature">--°C</span>
+                                        <span class="vital-label">Temperatura</span>
+                                        <span class="vital-status" id="tempStatus">--</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon heart">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="heartRate">--</span>
+                                        <span class="vital-label">Batimentos (bpm)</span>
+                                        <span class="vital-status" id="hrStatus">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="vital-actions">
+                                <small class="text-muted" id="lastVitalUpdate">Última atualização: --</small>
+                            </div>
+                        </div>
+
+                        <!-- Medicamentos do Dia -->
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-pills"></i> Medicamentos de Hoje</h4>
+                                <a href="medicamentos_cuidador.html" class="btn-link">
+                                    <i class="fas fa-external-link-alt"></i> Ver todos
+                                </a>
+                            </div>
+                            <div class="activities-list">
+                                <div class="medication-schedule" id="medicationSchedule">
+                                    <div class="empty-state">
+                                        <i class="fas fa-calendar"></i>
+                                        <p>Nenhum medicamento para hoje</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Tarefas e Atividades -->
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-tasks"></i> Tarefas de Hoje</h4>
+                                <button class="btn-link" id="addTaskBtn">
+                                    <i class="fas fa-plus"></i> Nova
+                                </button>
+                            </div>
+                            <div class="activities-list">
+                                <div class="tasks-list" id="tasksList">
+                                    <div class="empty-state">
+                                        <i class="fas fa-check-circle"></i>
+                                        <p>Nenhuma tarefa para hoje</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Alertas e Observações -->
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-exclamation-triangle"></i> Alertas</h4>
+                                <span class="badge bg-warning" id="alertsCount">0</span>
+                            </div>
+                            <div class="alerts-list">
+                                <div class="alerts-container" id="alertsContainer">
+                                    <div class="empty-state">
+                                        <i class="fas fa-bell-off"></i>
+                                        <p>Nenhum alerta no momento</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Anotações Rápidas -->
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-edit"></i> Anotações</h4>
+                            </div>
+                            <div class="card-body">
+                                <form class="notes-form" id="quickNoteForm">
+                                    <textarea placeholder="Registre observações sobre o paciente..." rows="3"
+                                        id="quickNote"></textarea>
+                                    <div class="notes-actions">
+                                        <button type="submit" class="btn-link">
+                                            <i class="fas fa-save"></i> Salvar
+                                        </button>
+                                        <button type="button" class="btn-link" id="clearNoteBtn">
+                                            <i class="fas fa-trash"></i> Limpar
+                                        </button>
+                                    </div>
+                                </form>
+                                <div class="recent-notes" id="recentNotes">
+                                    <h6>Últimas anotações</h6>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Comunicação Rápida -->
+                        <div class="status-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-comments"></i> Comunicação</h4>
+                            </div>
+                            <div class="card-body">
+                                <div class="communication-quick">
+                                    <div class="contact-item">
+                                        <i class="fas fa-user"></i>
+                                        <div>
+                                            <strong id="contactName">Familiar</strong>
+                                            <small id="contactInfo">Telefone: --</small>
+                                        </div>
+                                        <button class="btn-link" id="callBtn">
+                                            <i class="fas fa-phone"></i>
+                                        </button>
+                                    </div>
+                                    <form class="message-form" id="quickMessageForm">
+                                        <textarea placeholder="Mensagem rápida..." rows="2"></textarea>
+                                        <button type="submit" class="btn-link">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informações Adicionais -->
+                    <div class="additional-info-grid">
+                        <div class="info-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-info-circle"></i> Informações do Paciente</h4>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-item">
+                                    <span class="info-label">Condição Principal:</span>
+                                    <span class="info-value" id="patientConditionInfo">Carregando...</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Plano de Saúde:</span>
+                                    <span class="info-value" id="healthPlanInfo">Carregando...</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Alergias:</span>
+                                    <span class="info-value" id="patientAllergiesInfo">Nenhuma</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Restrições Alimentares:</span>
+                                    <span class="info-value" id="dietRestrictions">Nenhuma</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-calendar-check"></i> Próximas Atividades</h4>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-item">
+                                    <span class="info-label">Próxima Medicação:</span>
+                                    <span class="info-value" id="nextMedication">--:--</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Próxima Tarefa:</span>
+                                    <span class="info-value" id="nextTask">--:--</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Consultas Agendadas:</span>
+                                    <span class="info-value" id="scheduledAppointments">0</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Exames Pendentes:</span>
+                                    <span class="info-value" id="pendingExams">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="configuracoes_cuidador.html">Configurações</a>
+                <a href="perfil_cuidador.html">Meu Perfil</a>
+                <a href="#" id="logoutBtn">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Modal para Registrar Sinais Vitais -->
+    <div class="modal" id="vitalModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Registrar Sinais Vitais</h3>
+                <button class="modal-close" id="closeVitalModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="vitalForm">
+                    <div class="form-group">
+                        <label>Pressão Arterial</label>
+                        <div class="input-group">
+                            <input type="number" placeholder="Sistólica" id="sistolica">
+                            <span>/</span>
+                            <input type="number" placeholder="Diastólica" id="diastolica">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Glicemia (mg/dL)</label>
+                        <input type="number" id="glicemia" placeholder="Valor da glicemia">
+                    </div>
+                    <div class="form-group">
+                        <label>Temperatura (°C)</label>
+                        <input type="number" step="0.1" id="temperatura" placeholder="Temperatura">
+                    </div>
+                    <div class="form-group">
+                        <label>Batimentos (bpm)</label>
+                        <input type="number" id="batimentos" placeholder="Batimentos por minuto">
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn-link">Salvar</button>
+                        <button type="button" class="btn-link" id="cancelVitalBtn">Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/dashboard_cuidador.js"></script>
+    <script>
+        // Adicionar esta função para atualizar o nome do paciente no header também
+        document.addEventListener('DOMContentLoaded', function() {
+            // Observar mudanças no elemento patientName e atualizar o header
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    if (mutation.type === 'characterData' || mutation.type === 'childList') {
+                        const patientName = document.getElementById('patientName').textContent;
+                        const patientNameHeader = document.getElementById('patientNameHeader');
+                        if (patientNameHeader && patientName !== 'Carregando...') {
+                            patientNameHeader.textContent = patientName;
+                        }
+                    }
+                });
+            });
+            
+            const patientNameElement = document.getElementById('patientName');
+            if (patientNameElement) {
+                observer.observe(patientNameElement, {
+                    characterData: true,
+                    childList: true,
+                    subtree: true
+                });
+            }
+        });
+    </script>
+</body>
+
+</html>

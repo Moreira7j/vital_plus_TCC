@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Dashboard Supervisor</title>
+    <link rel="stylesheet" href="../styles/dashboard_supervisor.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Supervisor</span>
+            </div>
+
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientName"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">0</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_supervisor.html" class="nav-item active" data-section="overview">
+                        <i class="fas fa-home"></i>
+                        <span>Meu Dependente</span>
+                    </a>
+                    <a href="relatorios_supervisor.html" class="nav-item" data-section="reports">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="comunicacao_supervisor.html" class="nav-item" data-section="communication">
+                        <i class="fas fa-comments"></i>
+                        <span>Comunicação</span>
+                    </a>
+                    <a href="alertas_supervisor.html" class="nav-item" data-section="alerts">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Overview Section -->
+                <section id="overview" class="content-section active">
+                    <div class="section-header">
+                        <h2>Supervisão do Dependente</h2>
+                        <div class="last-update">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizado agora
+                        </div>
+                    </div>
+
+                    <div class="patient-profile-card">
+                        <div class="patient-basic-info">
+                            <div class="patient-avatar">
+                                <img id="dependenteFoto" src="../assets/default-avatar.png" alt="Paciente">
+                            </div>
+                            <div class="patient-details">
+                                <h3 id="dependenteNome">Carregando...</h3>
+                                <div class="patient-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-birthday-cake"></i>
+                                        <span id="dependenteIdade">-- anos</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-stethoscope"></i>
+                                        <span id="dependenteCondicao">Condição principal</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-user-md"></i>
+                                        <span>Familiar Supervisor</span>
+                                    </span>
+                                    <!-- INFORMAÇÕES DO CUIDADOR ADICIONADAS -->
+                                    <span class="meta-item">
+                                        <i class="fas fa-hands-helping"></i>
+                                        <span id="cuidadorNome">Carregando...</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span id="cuidadorContato">...</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Status Grid -->
+                    <div class="health-status-grid">
+                        <div class="status-card vital-card">
+                            <div class="card-header">
+                                <h4>Resumo de Saúde</h4>
+                                <span class="status-indicator stable"></span>
+                            </div>
+                            <div class="vital-stats">
+                                <div class="vital-item">
+                                    <div class="vital-icon pressure">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="pressaoMedia">--/--</span>
+                                        <span class="vital-label">Pressão Arterial</span>
+                                        <span class="vital-status" id="pressaoStatus">--</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon heart">
+                                        <i class="fas fa-tint"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="glicemiaMedia">--</span>
+                                        <span class="vital-label">Glicemia (mg/dL)</span>
+                                        <span class="vital-status" id="glicemiaStatus">--</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon temp">
+                                        <i class="fas fa-thermometer-half"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="temperaturaMedia">--°C</span>
+                                        <span class="vital-label">Temperatura</span>
+                                        <span class="vital-status" id="temperaturaStatus">--</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon meds">
+                                        <i class="fas fa-check-circle"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="medicamentosTaxa">--%</span>
+                                        <span class="vital-label">Adesão Medicamentos</span>
+                                        <span class="vital-status" id="medicamentosStatus">--</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card activities-card">
+                            <div class="card-header">
+                                <h4>Feed de Atividades</h4>
+                                <select id="periodoFilter" class="filter-select">
+                                    <option value="hoje">Hoje</option>
+                                    <option value="semana">Esta Semana</option>
+                                    <option value="mes">Este Mês</option>
+                                </select>
+                            </div>
+                            <div class="activities-list" id="activityFeed">
+                                <!-- Atividades serão carregadas aqui -->
+                                <div class="empty-state">
+                                    <i class="fas fa-clock"></i>
+                                    <p>Nenhuma atividade recente</p>
+                                    <small class="text-muted">As atividades aparecerão aqui quando forem
+                                        registradas</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card alerts-card">
+                            <div class="card-header">
+                                <h4>Alertas Recentes</h4>
+                                <a href="alertas_supervisor.html" class="btn-link">
+                                    <i class="fas fa-external-link-alt"></i> Ver todos
+                                </a>
+                            </div>
+                            <div class="alerts-list" id="alertsList">
+                                <!-- Alertas serão carregados aqui -->
+                                <div class="empty-state">
+                                    <i class="fas fa-bell-off"></i>
+                                    <p>Nenhum alerta no momento</p>
+                                    <small class="text-muted">Todos os indicadores estão dentro dos parâmetros
+                                        normais</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- CARD DE INFORMAÇÕES DO CUIDADOR -->
+                        <div class="status-card cuidador-card">
+                            <div class="card-header">
+                                <h4>Cuidador Responsável</h4>
+                                <a href="comunicacao_supervisor.html" class="btn-link">
+                                    <i class="fas fa-comments"></i> Comunicar
+                                </a>
+                            </div>
+                            <div class="cuidador-info-content">
+                                <div class="cuidador-avatar">
+                                    <i class="fas fa-user-nurse"></i>
+                                </div>
+                                <div class="cuidador-details">
+                                    <h5 id="cuidadorNomeCompleto">Carregando...</h5>
+                                    <div class="cuidador-contact">
+                                        <div class="contact-item">
+                                            <i class="fas fa-phone"></i>
+                                            <span id="cuidadorTelefone">...</span>
+                                        </div>
+                                        <div class="contact-item">
+                                            <i class="fas fa-envelope"></i>
+                                            <span id="cuidadorEmail">...</span>
+                                        </div>
+                                    </div>
+                                    <div class="cuidador-specialization">
+                                        <span class="specialization-badge" id="cuidadorEspecializacao">Cuidador
+                                            Profissional</span>
+                                        <span class="experience-badge" id="cuidadorExperiencia">5+ anos</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Informações Adicionais -->
+                    <div class="additional-info-grid">
+                        <div class="info-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-heartbeat"></i> Status de Saúde Detalhado</h4>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-item">
+                                    <span class="info-label">Status Geral:</span>
+                                    <span class="info-value" id="statusGeral">Estável</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Pressão Arterial:</span>
+                                    <span class="info-value" id="pressaoDetalhada">120/80 mmHg</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Glicemia:</span>
+                                    <span class="info-value" id="glicemiaDetalhada">110 mg/dL</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Temperatura:</span>
+                                    <span class="info-value" id="temperaturaDetalhada">36.5°C</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Adesão Medicamentosa:</span>
+                                    <span class="info-value" id="medicamentosDetalhado">95%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="card-header">
+                                <h4><i class="fas fa-calendar-check"></i> Informações do Acompanhamento</h4>
+                            </div>
+                            <div class="info-content">
+                                <div class="info-item">
+                                    <span class="info-label">Última Atualização:</span>
+                                    <span class="info-value" id="ultimaAtualizacao">24/10/2025, 20:19:10</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Familiar Responsável:</span>
+                                    <span class="info-value" id="familiarName">Gustavo de jesus moreira</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Condição Principal:</span>
+                                    <span class="info-value" id="dependenteCondicaoDetalhada">Hipertensão e
+                                        Diabetes</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Tempo de Acompanhamento:</span>
+                                    <span class="info-value" id="tempoAcompanhamento">6 meses</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Próxima Consulta:</span>
+                                    <span class="info-value" id="proximaConsulta">20/03/2024</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <h3>Ações Rápidas</h3>
+                        <div class="actions-grid">
+                            <button class="action-btn" onclick="exportarRelatorio()">
+                                <i class="fas fa-download"></i>
+                                <span>Exportar Relatório</span>
+                            </button>
+                            <button class="action-btn" onclick="verRelatorios()">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Ver Relatórios</span>
+                            </button>
+                            <button class="action-btn" onclick="comunicarCuidador()">
+                                <i class="fas fa-comment"></i>
+                                <span>Comunicar com Cuidador</span>
+                            </button>
+                            <button class="action-btn" onclick="configurarAlertas()">
+                                <i class="fas fa-cog"></i>
+                                <span>Configurar Alertas</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/dashboard_supervisor.js"></script>
+</body>
+
+</html>

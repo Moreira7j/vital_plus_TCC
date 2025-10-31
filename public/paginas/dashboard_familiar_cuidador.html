@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Dashboard Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/dashboard_familiar_cuidador.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Cuidador</span>
+            </div>
+
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientName"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar CORRIGIDA -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_familiar_cuidador.html" class="nav-item active" data-section="overview">
+                        <i class="fas fa-home"></i>
+                        <span>Visão Geral</span>
+                    </a>
+                    <a href="saude_familiar.html" class="nav-item" data-section="health">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Saúde</span>
+                    </a>
+                    <a href="medicamentos_familiar.html" class="nav-item" data-section="medications">
+                        <i class="fas fa-pills"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_familiar.html" class="nav-item" data-section="activities">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+                    <a href="relatorios_familiar.html" class="nav-item" data-section="reports">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="alertas_familiar.html" class="nav-item" data-section="alerts">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Overview Section -->
+                <section id="overview" class="content-section active">
+                    <div class="section-header">
+                        <h2>Visão Geral do Paciente</h2>
+                        <div class="last-update">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizado agora
+                        </div>
+                    </div>
+
+                    <div class="patient-profile-card">
+                        <div class="patient-basic-info">
+                            <div class="patient-avatar">
+                                <img id="patientAvatar" src="../assets/default-avatar.png" alt="Paciente">
+                            </div>
+                            <div class="patient-details">
+                                <h3 id="patientFullName">Carregando...</h3>
+                                <div class="patient-meta">
+                                    <span class="meta-item">
+                                        <i class="fas fa-birthday-cake"></i>
+                                        <span id="patientAge">-- anos</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-stethoscope"></i>
+                                        <span id="patientCondition">Condição principal</span>
+                                    </span>
+                                    <span class="meta-item">
+                                        <i class="fas fa-user-md"></i>
+                                        <span>Familiar Cuidador</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Health Status Grid -->
+                    <div class="health-status-grid">
+                        <div class="status-card vital-card">
+                            <div class="card-header">
+                                <h4>Sinais Vitais</h4>
+                                <span class="status-indicator stable"></span>
+                            </div>
+                            <div class="vital-stats">
+                                <div class="vital-item">
+                                    <div class="vital-icon heart">
+                                        <i class="fas fa-heart"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="heartRate">--</span>
+                                        <span class="vital-label">Batimentos</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon pressure">
+                                        <i class="fas fa-tachometer-alt"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="bloodPressure">--/--</span>
+                                        <span class="vital-label">Pressão</span>
+                                    </div>
+                                </div>
+                                <div class="vital-item">
+                                    <div class="vital-icon temp">
+                                        <i class="fas fa-thermometer-half"></i>
+                                    </div>
+                                    <div class="vital-info">
+                                        <span class="vital-value" id="temperature">--°C</span>
+                                        <span class="vital-label">Temperatura</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card meds-card">
+                            <div class="card-header">
+                                <h4>Medicamentos Hoje</h4>
+                                <span class="meds-count" id="medsCount">0</span>
+                            </div>
+                            <div class="meds-list" id="medsList">
+                                <!-- Medicamentos serão carregados aqui -->
+                                <div class="empty-state">
+                                    <i class="fas fa-pills"></i>
+                                    <p>Nenhum medicamento para hoje</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card activities-card">
+                            <div class="card-header">
+                                <h4>Atividades do Dia</h4>
+                                <span class="activities-count" id="activitiesCount">0/0</span>
+                            </div>
+                            <div class="activities-list" id="activitiesList">
+                                <!-- Atividades serão carregadas aqui -->
+                                <div class="empty-state">
+                                    <i class="fas fa-tasks"></i>
+                                    <p>Nenhuma atividade para hoje</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="status-card alerts-card">
+                            <div class="card-header">
+                                <h4>Alertas Recentes</h4>
+                                <span class="alerts-count" id="alertsCount">0</span>
+                            </div>
+                            <div class="alerts-list" id="alertsList">
+                                <!-- Alertas serão carregados aqui -->
+                                <div class="empty-state">
+                                    <i class="fas fa-check-circle"></i>
+                                    <p>Nenhum alerta recente</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="quick-actions">
+                        <h3>Ações Rápidas</h3>
+                        <div class="actions-grid">
+                            <button class="action-btn" onclick="registrarSinaisVitais()">
+                                <i class="fas fa-heartbeat"></i>
+                                <span>Registrar Sinais Vitais</span>
+                            </button>
+                            <button class="action-btn" onclick="registrarMedicamento()">
+                                <i class="fas fa-pills"></i>
+                                <span>Registrar Medicamento</span>
+                            </button>
+                            <button class="action-btn" onclick="adicionarAtividade()">
+                                <i class="fas fa-plus-circle"></i>
+                                <span>Nova Atividade</span>
+                            </button>
+                            <button class="action-btn" onclick="gerarRelatorio()">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Gerar Relatório</span>
+                            </button>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/dashboard_familiar_cuidador.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Ativar Conta</title>
+    <link rel="stylesheet" href="../styles/login.css"> <!-- Reutilizar estilos de login -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-box">
+            <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+            <h2>Ativar sua Conta</h2>
+            <p>Defina uma nova senha para sua conta de cuidador profissional.</p>
+            <form id="activateAccountForm">
+                <div class="input-group">
+                    <label for="newPassword">Nova Senha</label>
+                    <input type="password" id="newPassword" name="newPassword" placeholder="Sua nova senha" required>
+                </div>
+                <div class="input-group">
+                    <label for="confirmNewPassword">Confirmar Nova Senha</label>
+                    <input type="password" id="confirmNewPassword" name="confirmNewPassword" placeholder="Confirme sua nova senha" required>
+                </div>
+                <button type="submit" class="login-button">Ativar e Definir Senha</button>
+            </form>
+            <p class="error-message" id="errorMessage" style="display: none; color: red;"></p>
+        </div>
+    </div>
+    <script src="../js/ativarConta.js"></script>
+</body>
+</html>

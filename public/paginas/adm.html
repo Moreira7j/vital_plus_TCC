@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Painel Administrativo</title>
+    <link rel="stylesheet" href="../styles/adm.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="admin-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                <span class="user-type">Painel Administrativo</span>
+            </div>
+
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="adminName">Carregando...</span>
+                    <small>Administrador</small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications" id="notificationsBtn">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge" id="notificationCount">0</span>
+                    </button>
+                    <button class="btn-logout" onclick="sair()">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sair
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="admin-main">
+        <div class="admin-container">
+            <!-- Sidebar -->
+            <aside class="admin-sidebar">
+                <nav class="sidebar-nav">
+                    <a href="#dashboard" class="nav-item active" data-section="dashboard">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                    <a href="#usuarios" class="nav-item" data-section="usuarios">
+                        <i class="fas fa-users"></i>
+                        <span>Usuários</span>
+                    </a>
+                    <a href="#cuidadores" class="nav-item" data-section="cuidadores">
+                        <i class="fas fa-user-nurse"></i>
+                        <span>Cuidadores</span>
+                    </a>
+                    <a href="#pacientes" class="nav-item" data-section="pacientes">
+                        <i class="fas fa-user-injured"></i>
+                        <span>Pacientes</span>
+                    </a>
+                    <a href="#relatorios" class="nav-item" data-section="relatorios">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="#configuracoes" class="nav-item" data-section="configuracoes">
+                        <i class="fas fa-cog"></i>
+                        <span>Configurações</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="admin-content">
+                <!-- Dashboard Section -->
+                <section id="dashboard" class="content-section active">
+                    <div class="section-header">
+                        <h2>Visão Geral do Sistema</h2>
+                        <div class="last-update">
+                            <i class="fas fa-sync-alt"></i>
+                            Atualizado agora
+                        </div>
+                    </div>
+
+                    <!-- Stats Grid -->
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-icon users">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalUsuarios">0</h3>
+                                <span>Total de Usuários</span>
+                                <div class="stat-trend up">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span id="usuariosVariacao">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon nurses">
+                                <i class="fas fa-user-nurse"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalCuidadores">0</h3>
+                                <span>Cuidadores Ativos</span>
+                                <div class="stat-trend up">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span id="cuidadoresVariacao">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon patients">
+                                <i class="fas fa-user-injured"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalPacientes">0</h3>
+                                <span>Pacientes Ativos</span>
+                                <div class="stat-trend up">
+                                    <i class="fas fa-arrow-up"></i>
+                                    <span id="pacientesVariacao">0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card">
+                            <div class="stat-icon alerts">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="stat-info">
+                                <h3 id="totalAlertas">0</h3>
+                                <span>Alertas Hoje</span>
+                                <div class="stat-trend down">
+                                    <i class="fas fa-arrow-down"></i>
+                                    <span id="alertasVariacao">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Charts Row -->
+                    <div class="charts-row">
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h4>Atividade do Sistema</h4>
+                                <select id="activityPeriod" class="filter-select">
+                                    <option value="7d">Últimos 7 dias</option>
+                                    <option value="30d">Últimos 30 dias</option>
+                                    <option value="90d">Últimos 90 dias</option>
+                                </select>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="activityChart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="chart-card">
+                            <div class="card-header">
+                                <h4>Distribuição de Usuários</h4>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="usersChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Activity -->
+                    <div class="activity-section">
+                        <div class="section-header">
+                            <h3>Atividade Recente</h3>
+                            <a href="#relatorios" class="btn-link">Ver todos</a>
+                        </div>
+                        <div class="activity-list" id="recentActivity">
+                            <!-- Atividades serão carregadas aqui -->
+                            <div class="empty-state">
+                                <i class="fas fa-clock"></i>
+                                <p>Nenhuma atividade recente</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Usuários Section -->
+                <section id="usuarios" class="content-section">
+                    <div class="section-header">
+                        <h2>Gerenciar Usuários</h2>
+                        <button class="btn-primary" id="addUserBtn">
+                            <i class="fas fa-plus"></i>
+                            Novo Usuário
+                        </button>
+                    </div>
+
+                    <div class="filters-bar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="userSearch" placeholder="Buscar usuários...">
+                        </div>
+                        <select id="userTypeFilter" class="filter-select">
+                            <option value="">Todos os tipos</option>
+                            <option value="familiar_contratante">Familiar Contratante</option>
+                            <option value="familiar_cuidador">Familiar Cuidador</option>
+                            <option value="cuidador_profissional">Cuidador Profissional</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                        <select id="userStatusFilter" class="filter-select">
+                            <option value="">Todos os status</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                            <option value="pendente">Pendente</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table" id="usersTable">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Email</th>
+                                    <th>Tipo</th>
+                                    <th>Status</th>
+                                    <th>Data Cadastro</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usersTableBody">
+                                <!-- Dados serão carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="pagination" id="usersPagination">
+                        <!-- Paginação será gerada aqui -->
+                    </div>
+                </section>
+
+                <!-- Cuidadores Section -->
+                <section id="cuidadores" class="content-section">
+                    <div class="section-header">
+                        <h2>Gerenciar Cuidadores</h2>
+                        <button class="btn-primary" id="addCuidadorBtn">
+                            <i class="fas fa-plus"></i>
+                            Novo Cuidador
+                        </button>
+                    </div>
+
+                    <div class="filters-bar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="cuidadorSearch" placeholder="Buscar cuidadores...">
+                        </div>
+                        <select id="cuidadorStatusFilter" class="filter-select">
+                            <option value="">Todos os status</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                            <option value="disponivel">Disponível</option>
+                            <option value="ocupado">Ocupado</option>
+                        </select>
+                    </div>
+
+                    <div class="cards-grid" id="cuidadoresGrid">
+                        <!-- Cards de cuidadores serão carregados aqui -->
+                        <div class="empty-state">
+                            <i class="fas fa-user-nurse"></i>
+                            <p>Nenhum cuidador cadastrado</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Pacientes Section -->
+                <section id="pacientes" class="content-section">
+                    <div class="section-header">
+                        <h2>Gerenciar Pacientes</h2>
+                        <button class="btn-primary" id="addPacienteBtn">
+                            <i class="fas fa-plus"></i>
+                            Novo Paciente
+                        </button>
+                    </div>
+
+                    <div class="filters-bar">
+                        <div class="search-box">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="pacienteSearch" placeholder="Buscar pacientes...">
+                        </div>
+                        <select id="pacienteStatusFilter" class="filter-select">
+                            <option value="">Todos os status</option>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                            <option value="critico">Crítico</option>
+                            <option value="estavel">Estável</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="data-table" id="pacientesTable">
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Idade</th>
+                                    <th>Condição</th>
+                                    <th>Cuidador</th>
+                                    <th>Status</th>
+                                    <th>Última Atualização</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pacientesTableBody">
+                                <!-- Dados serão carregados aqui -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Relatórios Section -->
+                <section id="relatorios" class="content-section">
+                    <div class="section-header">
+                        <h2>Relatórios do Sistema</h2>
+                        <button class="btn-primary" id="generateReportBtn">
+                            <i class="fas fa-download"></i>
+                            Gerar Relatório
+                        </button>
+                    </div>
+
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <div class="report-icon">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <div class="report-content">
+                                <h4>Relatório de Usuários</h4>
+                                <p>Relatório completo de todos os usuários do sistema</p>
+                                <button class="btn-secondary" onclick="gerarRelatorio('usuarios')">
+                                    Gerar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="report-icon">
+                                <i class="fas fa-heartbeat"></i>
+                            </div>
+                            <div class="report-content">
+                                <h4>Relatório de Saúde</h4>
+                                <p>Dados de saúde e monitoramento dos pacientes</p>
+                                <button class="btn-secondary" onclick="gerarRelatorio('saude')">
+                                    Gerar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="report-icon">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div class="report-content">
+                                <h4>Relatório de Atividade</h4>
+                                <p>Atividade do sistema e uso da plataforma</p>
+                                <button class="btn-secondary" onclick="gerarRelatorio('atividade')">
+                                    Gerar PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="report-card">
+                            <div class="report-icon">
+                                <i class="fas fa-bell"></i>
+                            </div>
+                            <div class="report-content">
+                                <h4>Relatório de Alertas</h4>
+                                <p>Histórico completo de alertas e notificações</p>
+                                <button class="btn-secondary" onclick="gerarRelatorio('alertas')">
+                                    Gerar PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="charts-row">
+                        <div class="chart-card large">
+                            <div class="card-header">
+                                <h4>Métricas do Sistema</h4>
+                                <select id="metricsPeriod" class="filter-select">
+                                    <option value="30d">Últimos 30 dias</option>
+                                    <option value="90d">Últimos 90 dias</option>
+                                    <option value="1y">Último ano</option>
+                                </select>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="metricsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Configurações Section -->
+                <section id="configuracoes" class="content-section">
+                    <div class="section-header">
+                        <h2>Configurações do Sistema</h2>
+                    </div>
+
+                    <div class="settings-grid">
+                        <div class="settings-card">
+                            <h4><i class="fas fa-bell"></i> Configurações de Notificação</h4>
+                            <div class="settings-options">
+                                <div class="setting-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="emailNotifications" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Notificações por Email</span>
+                                </div>
+                                <div class="setting-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="pushNotifications" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Notificações Push</span>
+                                </div>
+                                <div class="setting-item">
+                                    <label class="switch">
+                                        <input type="checkbox" id="alertNotifications" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Alertas de Emergência</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card">
+                            <h4><i class="fas fa-shield-alt"></i> Segurança</h4>
+                            <div class="settings-options">
+                                <div class="setting-item">
+                                    <button class="btn-secondary" onclick="alterarSenha()">
+                                        Alterar Senha
+                                    </button>
+                                </div>
+                                <div class="setting-item">
+                                    <button class="btn-secondary" onclick="gerarBackup()">
+                                        Gerar Backup
+                                    </button>
+                                </div>
+                                <div class="setting-item">
+                                    <button class="btn-secondary" onclick="verLogs()">
+                                        Ver Logs do Sistema
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="settings-card">
+                            <h4><i class="fas fa-paint-brush"></i> Aparência</h4>
+                            <div class="theme-options">
+                                <div class="theme-option" data-theme="light">
+                                    <div class="theme-preview light"></div>
+                                    <span>Claro</span>
+                                </div>
+                                <div class="theme-option active" data-theme="dark">
+                                    <div class="theme-preview dark"></div>
+                                    <span>Escuro</span>
+                                </div>
+                                <div class="theme-option" data-theme="auto">
+                                    <div class="theme-preview auto"></div>
+                                    <span>Automático</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modais -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="userModalTitle">Novo Usuário</h3>
+                <span class="close">&times;</span>
+            </div>
+            <form id="userForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="userNome">Nome Completo</label>
+                        <input type="text" id="userNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="userEmail">Email</label>
+                        <input type="email" id="userEmail" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="userTipo">Tipo de Usuário</label>
+                        <select id="userTipo" required>
+                            <option value="">Selecione...</option>
+                            <option value="familiar_contratante">Familiar Contratante</option>
+                            <option value="familiar_cuidador">Familiar Cuidador</option>
+                            <option value="cuidador_profissional">Cuidador Profissional</option>
+                            <option value="admin">Administrador</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="userStatus">Status</label>
+                        <select id="userStatus" required>
+                            <option value="ativo">Ativo</option>
+                            <option value="inativo">Inativo</option>
+                            <option value="pendente">Pendente</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn-secondary" onclick="fecharModal('userModal')">Cancelar</button>
+                    <button type="submit" class="btn-primary">Salvar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="admin-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <span id="systemStatus" class="status-online">
+                    <i class="fas fa-circle"></i>
+                    Sistema Online
+                </span>
+                <span id="serverTime">Carregando...</span>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/adm.js"></script>
+</body>
+
+</html>

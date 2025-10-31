@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Tipo de Usuário</title>
+    <link rel="stylesheet" href="../styles/selecaoTipoUsuario.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="LandingPage.html" class="logo">
+                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                </a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="LandingPage.html#hero" class="nav-link">Início</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#about" class="nav-link">Sobre</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#mobile-app" class="nav-link">App Mobile</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#web-platform" class="nav-link">Plataforma Web</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#login" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#contact" class="nav-link">Contato</a></li>
+                </ul>
+                <button class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Área de Seleção de Tipo de Usuário -->
+    <section id="user-type-selection" class="selection-section">
+        <div class="container">
+            <div class="selection-container">
+                <div class="selection-header">
+                    <h2>Como você pretende usar o Vital+?</h2>
+                    <p>Selecione a opção que melhor descreve sua situação para personalizar sua experiência.</p>
+                </div>
+
+                <div class="user-type-cards">
+                    <div class="user-type-card" data-type="familiar-contratante">
+                        <div class="card-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>Sou Familiar e Vou Contratar</h3>
+                        <p>Sou familiar e vou contratar um cuidador profissional, mas quero acompanhar as informações de saúde.</p>
+                        <ul class="card-features">
+                            <li><i class="fas fa-check"></i> Supervisão remota</li>
+                            <li><i class="fas fa-check"></i> Relatórios detalhados</li>
+                            <li><i class="fas fa-check"></i> Comunicação com cuidador</li>
+                            <li><i class="fas fa-check"></i> Alertas inteligentes</li>
+                            <li><i class="fas fa-check"></i> Acesso multi-usuário</li>
+                        </ul>
+                        <a href="/criarContaFamiliarContratante" class="btn btn-primary">
+                            <i class="fas fa-arrow-right"></i>
+                            Continuar como Familiar Supervisor
+                        </a>
+                    </div>
+
+                    <div class="user-type-card" data-type="familiar-cuidador">
+                        <div class="card-icon">
+                            <i class="fas fa-heart"></i>
+                        </div>
+                        <h3>Sou Familiar e Vou Cuidar</h3>
+                        <p>Sou familiar e vou cuidar pessoalmente do meu ente querido, registrando as informações de saúde.</p>
+                        <ul class="card-features">
+                            <li><i class="fas fa-check"></i> Acompanhamento familiar</li>
+                            <li><i class="fas fa-check"></i> Registro simplificado</li>
+                            <li><i class="fas fa-check"></i> Alertas personalizados</li>
+                            <li><i class="fas fa-check"></i> Controle de medicamentos</li>
+                            <li><i class="fas fa-check"></i> Histórico completo</li>
+                        </ul>
+                        <a href="/criarContaFamiliarCuidador" class="btn btn-primary">
+                            <i class="fas fa-arrow-right"></i>
+                            Continuar como Familiar Cuidador
+                        </a>
+                    </div>
+                </div>
+
+                <div class="back-link">
+                    <a href="/">
+                        <i class="fas fa-arrow-left"></i> Voltar à Página Inicial
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo-footer">
+                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                    </div>
+                    <p>Simplificando o cuidado com quem mais importa.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contato@vitalmais.com.br</li>
+                        <li><i class="fas fa-phone"></i> (11) 99999-9999</li>
+                        <li><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Links Rápidos</h4>
+                    <ul>
+                        <li><a href="LandingPage.html#hero">Início</a></li>
+                        <li><a href="LandingPage.html#about">Sobre</a></li>
+                        <li><a href="LandingPage.html#mobile-app">App Mobile</a></li>
+                        <li><a href="LandingPage.html#web-platform">Plataforma Web</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Tutoriais</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2023 Vital+ - Todos os direitos reservados. Desenvolvido como projeto de TCC.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Menu Mobile
+        const hamburger = document.querySelector('.hamburger');
+        const navMenu = document.querySelector('.nav-menu');
+
+        hamburger.addEventListener('click', () => {
+            hamburger.classList.toggle('active');
+            navMenu.classList.toggle('active');
+        });
+
+        // Fechar menu ao clicar em um link
+        document.querySelectorAll('.nav-link').forEach(n => n.addEventListener('click', () => {
+            hamburger.classList.remove('active');
+            navMenu.classList.remove('active');
+        }));
+
+        // Efeito de scroll na navbar
+        window.addEventListener('scroll', () => {
+            const navbar = document.querySelector('.navbar');
+            if (window.scrollY > 100) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        });
+
+        // Efeito de hover nos cards
+        document.querySelectorAll('.user-type-card').forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                card.style.transform = 'translateY(-10px)';
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'translateY(0)';
+            });
+        });
+    </script>
+</body>
+</html>

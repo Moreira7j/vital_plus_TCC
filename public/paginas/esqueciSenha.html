@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Recuperar Senha</title>
+    <link rel="stylesheet" href="../styles/esqueciSenha.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+     <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+
+<body>
+    <!-- Cabeçalho -->
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="LandingPage.html" class="logo">
+                    <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                </a>
+                <ul class="nav-menu">
+                    <li class="nav-item"><a href="LandingPage.html#hero" class="nav-link">Início</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#about" class="nav-link">Sobre</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#mobile-app" class="nav-link">App Mobile</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#web-platform" class="nav-link">Plataforma Web</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#login" class="nav-link">Login</a></li>
+                    <li class="nav-item"><a href="LandingPage.html#contact" class="nav-link">Contato</a></li>
+                </ul>
+                <button class="hamburger">
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                    <span class="bar"></span>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Área de Recuperação de Senha -->
+    <section id="password-recovery" class="recovery-section">
+        <div class="container">
+            <div class="recovery-container">
+                <div class="recovery-header">
+                    <h2>Recuperar Senha</h2>
+                    <p>Digite seu e-mail para receber as instruções de recuperação</p>
+                </div>
+
+                <!-- Formulário de Recuperação -->
+                <form id="recoveryForm" class="recovery-form">
+                    <div class="form-step active" id="step1">
+                        <div class="form-group">
+                            <label for="email">E-mail Cadastrado</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-envelope"></i>
+                                <input type="email" id="email" name="email" required placeholder="seu@email.com">
+                            </div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                                Enviar Código
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-step" id="step2">
+                        <div class="verification-info">
+                            <i class="fas fa-envelope-open-text"></i>
+                            <h4>Verifique seu e-mail</h4>
+                            <p>Enviamos um código de 6 dígitos para: <strong id="userEmail"></strong></p>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="verificationCode">Código de Verificação</label>
+                            <div class="code-input-container">
+                                <input type="text" id="verificationCode" name="verificationCode" maxlength="6" placeholder="000000">
+                                <button type="button" class="btn-resend" id="resendCode">
+                                    Reenviar Código
+                                </button>
+                            </div>
+                            <small class="timer" id="resendTimer">Reenviar em: <span id="timer">60</span>s</small>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="backToEmail">
+                                <i class="fas fa-arrow-left"></i>
+                                Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary" id="verifyCode">
+                                <i class="fas fa-check"></i>
+                                Verificar Código
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-step" id="step3">
+                        <div class="form-group">
+                            <label for="newPassword">Nova Senha</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="newPassword" name="newPassword" placeholder="Digite sua nova senha">
+                                <button type="button" class="password-toggle" id="toggleNewPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength" id="passwordStrength">
+                                <div class="strength-bar">
+                                    <div class="strength-fill" id="strengthFill"></div>
+                                </div>
+                                <small id="strengthText">Força da senha</small>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="confirmPassword">Confirmar Nova Senha</label>
+                            <div class="input-with-icon">
+                                <i class="fas fa-lock"></i>
+                                <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirme sua nova senha">
+                                <button type="button" class="password-toggle" id="toggleConfirmPassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <small class="error-message" id="passwordMatchError"></small>
+                        </div>
+
+                        <div class="password-requirements">
+                            <h5>Sua senha deve conter:</h5>
+                            <ul>
+                                <li id="reqLength"><i class="fas fa-circle"></i> Pelo menos 8 caracteres</li>
+                                <li id="reqUppercase"><i class="fas fa-circle"></i> Pelo menos 1 letra maiúscula</li>
+                                <li id="reqLowercase"><i class="fas fa-circle"></i> Pelo menos 1 letra minúscula</li>
+                                <li id="reqNumber"><i class="fas fa-circle"></i> Pelo menos 1 número</li>
+                                <li id="reqSpecial"><i class="fas fa-circle"></i> Pelo menos 1 caractere especial</li>
+                            </ul>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" id="backToCode">
+                                <i class="fas fa-arrow-left"></i>
+                                Voltar
+                            </button>
+                            <button type="button" class="btn btn-primary" id="resetPassword">
+                                <i class="fas fa-key"></i>
+                                Redefinir Senha
+                            </button>
+                        </div>
+                    </div>
+                </form>
+
+                <!-- Mensagens de Status -->
+                <div class="status-message" id="statusMessage"></div>
+
+                <!-- Links de Ajuda -->
+                <div class="recovery-links">
+                    <a href="LandingPage.html#login" class="back-link">
+                        <i class="fas fa-arrow-left"></i> Voltar para o Login
+                    </a>
+                    <a href="#" class="help-link">
+                        <i class="fas fa-question-circle"></i> Precisa de ajuda?
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Rodapé -->
+    <footer id="contact">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="logo-footer">
+                        <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img">
+                    </div>
+                    <p>Simplificando o cuidado com quem mais importa.</p>
+                    <div class="social-links">
+                        <a href="#"><i class="fab fa-facebook-f"></i></a>
+                        <a href="#"><i class="fab fa-instagram"></i></a>
+                        <a href="#"><i class="fab fa-twitter"></i></a>
+                        <a href="#"><i class="fab fa-linkedin-in"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <ul>
+                        <li><i class="fas fa-envelope"></i> contato@vitalmais.com.br</li>
+                        <li><i class="fas fa-phone"></i> (11) 99999-9999</li>
+                        <li><i class="fas fa-map-marker-alt"></i> São Paulo, Brasil</li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Links Rápidos</h4>
+                    <ul>
+                        <li><a href="LandingPage.html#hero">Início</a></li>
+                        <li><a href="LandingPage.html#about">Sobre</a></li>
+                        <li><a href="LandingPage.html#mobile-app">App Mobile</a></li>
+                        <li><a href="LandingPage.html#web-platform">Plataforma Web</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Suporte</h4>
+                    <ul>
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Tutoriais</a></li>
+                        <li><a href="#">Política de Privacidade</a></li>
+                        <li><a href="#">Termos de Uso</a></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2023 Vital+ - Todos os direitos reservados. Desenvolvido como projeto de TCC.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/esqueciSenha.js"></script>
+</body>
+</html>

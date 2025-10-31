@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Gerenciamento de Alertas</title>
+    <link rel="stylesheet" href="../styles/alertas.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <nav class="sidebar">
+            <div class="sidebar-content">
+                <div class="sidebar-header">
+                    <img src="../assets/logo minimalista.png" alt="Logo Vital+" class="sidebar-logo" style="width: 80px; height: 80px;">
+                    <div class="sidebar-brand">
+                        <h1>Vital+</h1>
+                        <span>Acesso Familiar</span>
+                    </div>
+                </div>
+
+                <ul class="sidebar-nav">
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="index.html">
+                            <i data-feather="home"></i>
+                            <span>Visão Geral</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="relatorios.html">
+                            <i data-feather="file-text"></i>
+                            <span>Relatórios</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="medicamentos.html">
+                            <i data-feather="plus-square"></i>
+                            <span>Medicamentos</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item">
+                        <a class="sidebar-link" href="historico.html">
+                            <i data-feather="activity"></i>
+                            <span>Histórico</span>
+                        </a>
+                    </li>
+                    <li class="sidebar-item active">
+                        <a class="sidebar-link" href="alertas.html">
+                            <i data-feather="bell"></i>
+                            <span>Alertas</span>
+                        </a>
+                    </li>
+                </ul>
+
+                <div class="sidebar-footer">
+                    <small>Vital+ &copy; 2025</small>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <div class="main-content">
+            <!-- Header -->
+            <header class="header">
+                <div class="header-title">
+                    <h1>Gerenciamento de Alertas</h1>
+                    <p>Monitore e gerencie os alertas do paciente</p>
+                </div>
+
+                <div class="header-actions">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">
+                                <i data-feather="user"></i>
+                                <span>Maria Oliveira</span>
+                            </a>
+                            <div class="dropdown-menu">
+                                <a class="dropdown-item" href="#">
+                                    <i data-feather="settings"></i> Configurações
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item" href="#">
+                                    <i data-feather="log-out"></i> Sair
+                                </a>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </header>
+
+            <!-- Dashboard -->
+            <div class="dashboard">
+                <!-- Filtros -->
+                <div class="card mb-3">
+                    <div class="card-header">
+                        <h3><i data-feather="filter"></i> Filtros de Alertas</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="filter-row">
+                            <div class="filter-group">
+                                <label for="filtroStatus">Status</label>
+                                <select id="filtroStatus">
+                                    <option value="todos">Todos</option>
+                                    <option value="ativo">Ativos</option>
+                                    <option value="resolvido">Resolvidos</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroPrioridade">Prioridade</label>
+                                <select id="filtroPrioridade">
+                                    <option value="todos">Todas</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="media">Média</option>
+                                    <option value="baixa">Baixa</option>
+                                </select>
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroData">Data</label>
+                                <input type="date" id="filtroData">
+                            </div>
+                            <div class="filter-group">
+                                <label for="filtroBusca">Buscar</label>
+                                <div class="search-input">
+                                    <i data-feather="search"></i>
+                                    <input type="text" id="filtroBusca" placeholder="Buscar alertas...">
+                                </div>
+                            </div>
+                            <div class="filter-group filter-button">
+                                <label class="hidden-label">&nbsp;</label>
+                                <button type="button" class="btn btn-primary" id="aplicarFiltros">
+                                    <i data-feather="filter"></i>
+                                    Aplicar Filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Estatísticas Rápidas -->
+                <div class="dashboard-grid mb-3">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="alert-triangle"></i> Resumo de Alertas</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="vitals-grid">
+                                <div class="vital-card">
+                                    <i data-feather="alert-circle"></i>
+                                    <h4>12</h4>
+                                    <small>Alertas Ativos</small>
+                                    <span class="badge bg-danger">+3</span>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="check-circle"></i>
+                                    <h4>8</h4>
+                                    <small>Resolvidos</small>
+                                    <span class="badge bg-success">+5</span>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="clock"></i>
+                                    <h4>4</h4>
+                                    <small>Pendentes</small>
+                                    <span class="badge bg-warning">+2</span>
+                                </div>
+                                <div class="vital-card">
+                                    <i data-feather="bar-chart-2"></i>
+                                    <h4>75%</h4>
+                                    <small>Taxa de Resolução</small>
+                                    <span class="badge bg-primary">+10%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i data-feather="bar-chart-2"></i> Distribuição por Tipo</h3>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="alertasChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Lista de Alertas -->
+                <div class="card">
+                    <div class="card-header">
+                        <h3><i data-feather="list"></i> Lista de Alertas</h3>
+                        <button class="btn btn-primary" id="novoAlertaBtn">
+                            <i data-feather="plus"></i> Novo Alerta
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="alertas-container">
+                            <!-- Alerta de Alta Prioridade -->
+                            <div class="alerta-card alta">
+                                <div class="alerta-header">
+                                    <div class="alerta-titulo">
+                                        <span class="prioridade-badge alta">Alta Prioridade</span>
+                                        <h3>Glicemia Elevada</h3>
+                                    </div>
+                                    <div class="alerta-acoes">
+                                        <button class="btn-icon" title="Editar">
+                                            <i data-feather="edit"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Marcar como Resolvido">
+                                            <i data-feather="check-circle"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Excluir">
+                                            <i data-feather="trash-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="alerta-body">
+                                    <p>Nível de glicemia atingiu 250 mg/dL às 14:30. Fora dos parâmetros seguros.</p>
+                                    <div class="alerta-metadata">
+                                        <span><i data-feather="clock"></i> Criado em: 15/11/2023 14:35</span>
+                                        <span><i data-feather="user"></i> Para: Maria Oliveira</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alerta de Média Prioridade -->
+                            <div class="alerta-card media">
+                                <div class="alerta-header">
+                                    <div class="alerta-titulo">
+                                        <span class="prioridade-badge media">Média Prioridade</span>
+                                        <h3>Medicação Pendente</h3>
+                                    </div>
+                                    <div class="alerta-acoes">
+                                        <button class="btn-icon" title="Editar">
+                                            <i data-feather="edit"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Marcar como Resolvido">
+                                            <i data-feather="check-circle"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Excluir">
+                                            <i data-feather="trash-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="alerta-body">
+                                    <p>Metformina 850mg não foi administrada no horário previsto (08:00).</p>
+                                    <div class="alerta-metadata">
+                                        <span><i data-feather="clock"></i> Criado em: 15/11/2023 08:15</span>
+                                        <span><i data-feather="user"></i> Para: Maria Oliveira</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alerta de Baixa Prioridade -->
+                            <div class="alerta-card baixa">
+                                <div class="alerta-header">
+                                    <div class="alerta-titulo">
+                                        <span class="prioridade-badge baixa">Baixa Prioridade</span>
+                                        <h3>Consulta Próxima</h3>
+                                    </div>
+                                    <div class="alerta-acoes">
+                                        <button class="btn-icon" title="Editar">
+                                            <i data-feather="edit"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Marcar como Resolvido">
+                                            <i data-feather="check-circle"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Excluir">
+                                            <i data-feather="trash-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="alerta-body">
+                                    <p>Consulta com cardiologista agendada para 20/11/2023 às 14:30.</p>
+                                    <div class="alerta-metadata">
+                                        <span><i data-feather="clock"></i> Criado em: 10/11/2023 09:00</span>
+                                        <span><i data-feather="user"></i> Para: Maria Oliveira</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Alerta Resolvido -->
+                            <div class="alerta-card resolvido">
+                                <div class="alerta-header">
+                                    <div class="alerta-titulo">
+                                        <span class="prioridade-badge resolvido">Resolvido</span>
+                                        <h3>Pressão Arterial Elevada</h3>
+                                    </div>
+                                    <div class="alerta-acoes">
+                                        <button class="btn-icon" title="Editar">
+                                            <i data-feather="edit"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Reabrir Alerta">
+                                            <i data-feather="rotate-ccw"></i>
+                                        </button>
+                                        <button class="btn-icon" title="Excluir">
+                                            <i data-feather="trash-2"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="alerta-body">
+                                    <p>Pressão arterial medida em 145/90 mmHg. Medicação administrada às 09:15.</p>
+                                    <div class="alerta-metadata">
+                                        <span><i data-feather="clock"></i> Criado em: 14/11/2023 09:05</span>
+                                        <span><i data-feather="check-circle"></i> Resolvido em: 14/11/2023 09:20</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para Novo/Editar Alerta -->
+        <div class="modal" id="alertaModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 id="modalTitulo">Novo Alerta</h2>
+                    <button class="btn-icon" id="fecharModal">
+                        <i data-feather="x"></i>
+                    </button>
+                </div>
+                <form id="alertaForm">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="alertaTitulo">Título do Alerta *</label>
+                            <input type="text" id="alertaTitulo" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="alertaDescricao">Descrição *</label>
+                            <textarea id="alertaDescricao" rows="3" required></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="alertaPrioridade">Prioridade *</label>
+                                <select id="alertaPrioridade" required>
+                                    <option value="alta">Alta</option>
+                                    <option value="media">Média</option>
+                                    <option value="baixa">Baixa</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="alertaDependente">Para *</label>
+                                <select id="alertaDependente" required>
+                                    <option value="1">João Silva</option>
+                                    <option value="2">Ana Santos</option>
+                                    <option value="3" selected>Maria Oliveira</option>
+                                    <option value="4">Carlos Oliveira</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="alertaData">Data e Hora</label>
+                            <input type="datetime-local" id="alertaData">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline" id="cancelarBtn">Cancelar</button>
+                        <button type="submit" class="btn btn-primary">Salvar Alerta</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/alertas.js"></script>
+</body>
+</html>

@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Medicamentos - Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/dashboard_familiar_cuidador.css">
+    <link rel="stylesheet" href="../styles/medicamentos_familiar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Cuidador</span>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientName"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_familiar_cuidador.html" class="nav-item">
+                        <i class="fas fa-home"></i>
+                        <span>Visão Geral</span>
+                    </a>
+                    <a href="saude_familiar.html" class="nav-item">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Saúde</span>
+                    </a>
+                    <a href="medicamentos_familiar.html" class="nav-item active">
+                        <i class="fas fa-pills"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_familiar.html" class="nav-item">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+                    <a href="relatorios_familiar.html" class="nav-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="alertas_familiar.html" class="nav-item">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Medications Section -->
+                <section id="medications" class="content-section active">
+                    <div class="section-header">
+                        <h2>Gestão de Medicamentos</h2>
+                        <button class="btn-primary" onclick="adicionarMedicamento()">
+                            <i class="fas fa-plus"></i>
+                            Novo Medicamento
+                        </button>
+                    </div>
+
+                    <!-- Estatísticas Rápidas -->
+                    <div class="medications-overview">
+                        <div class="meds-stats-grid">
+                            <div class="stat-card total">
+                                <div class="stat-icon">
+                                    <i class="fas fa-pills"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="totalMedsCount">--</h3>
+                                    <p>Total de Medicamentos</p>
+                                </div>
+                            </div>
+                            <div class="stat-card active">
+                                <div class="stat-icon">
+                                    <i class="fas fa-check-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="activeMedsCount">--</h3>
+                                    <p>Ativos</p>
+                                </div>
+                            </div>
+                            <div class="stat-card pending">
+                                <div class="stat-icon">
+                                    <i class="fas fa-clock"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="pendingMedsCount">--</h3>
+                                    <p>Para Hoje</p>
+                                </div>
+                            </div>
+                            <div class="stat-card critical">
+                                <div class="stat-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="criticalMedsCount">--</h3>
+                                    <p>Em Alerta</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="medications-filters">
+                        <div class="filter-group">
+                            <label>Filtrar por:</label>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">Todos os Status</option>
+                                <option value="active">Ativos</option>
+                                <option value="inactive">Inativos</option>
+                                <option value="pending">Pendentes</option>
+                            </select>
+                            <select id="timeFilter" class="filter-select">
+                                <option value="all">Todos os Horários</option>
+                                <option value="morning">Manhã</option>
+                                <option value="afternoon">Tarde</option>
+                                <option value="evening">Noite</option>
+                                <option value="night">Madrugada</option>
+                            </select>
+                            <select id="typeFilter" class="filter-select">
+                                <option value="all">Todos os Tipos</option>
+                                <option value="oral">Oral</option>
+                                <option value="injectable">Injetável</option>
+                                <option value="topical">Tópico</option>
+                                <option value="inhalation">Inalação</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-secondary" onclick="limparFiltros()">
+                                <i class="fas fa-times"></i>
+                                Limpar Filtros
+                            </button>
+                            <button class="btn-primary" onclick="exportarMedicamentos()">
+                                <i class="fas fa-file-export"></i>
+                                Exportar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Medicamentos -->
+                    <div class="medications-container">
+                        <div class="medications-list" id="medicationsList">
+                            <!-- Medicamentos serão carregados dinamicamente -->
+                        </div>
+                    </div>
+
+                    <!-- Agenda de Medicamentos -->
+                    <div class="medication-schedule">
+                        <div class="section-header">
+                            <h3>Agenda de Hoje</h3>
+                            <div class="schedule-actions">
+                                <button class="btn-secondary" onclick="vistaDia()">
+                                    <i class="fas fa-calendar-day"></i>
+                                    Dia
+                                </button>
+                                <button class="btn-secondary" onclick="vistaSemana()">
+                                    <i class="fas fa-calendar-week"></i>
+                                    Semana
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="schedule-grid">
+                            <div class="time-slot morning">
+                                <div class="time-header">
+                                    <h4><i class="fas fa-sun"></i> Manhã</h4>
+                                    <span class="time-range">06:00 - 12:00</span>
+                                </div>
+                                <div class="meds-time-list" id="morningMeds">
+                                    <!-- Medicamentos da manhã -->
+                                </div>
+                            </div>
+
+                            <div class="time-slot afternoon">
+                                <div class="time-header">
+                                    <h4><i class="fas fa-cloud-sun"></i> Tarde</h4>
+                                    <span class="time-range">12:00 - 18:00</span>
+                                </div>
+                                <div class="meds-time-list" id="afternoonMeds">
+                                    <!-- Medicamentos da tarde -->
+                                </div>
+                            </div>
+
+                            <div class="time-slot evening">
+                                <div class="time-header">
+                                    <h4><i class="fas fa-moon"></i> Noite</h4>
+                                    <span class="time-range">18:00 - 00:00</span>
+                                </div>
+                                <div class="meds-time-list" id="eveningMeds">
+                                    <!-- Medicamentos da noite -->
+                                </div>
+                            </div>
+
+                            <div class="time-slot night">
+                                <div class="time-header">
+                                    <h4><i class="fas fa-star"></i> Madrugada</h4>
+                                    <span class="time-range">00:00 - 06:00</span>
+                                </div>
+                                <div class="meds-time-list" id="nightMeds">
+                                    <!-- Medicamentos da madrugada -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Histórico de Administração -->
+                    <div class="administration-history">
+                        <div class="section-header">
+                            <h3>Histórico de Administração</h3>
+                            <button class="btn-secondary" onclick="carregarHistorico()">
+                                <i class="fas fa-sync-alt"></i>
+                                Atualizar
+                            </button>
+                        </div>
+
+                        <div class="history-table-container">
+                            <table class="history-table">
+                                <thead>
+                                    <tr>
+                                        <th>Data/Hora</th>
+                                        <th>Medicamento</th>
+                                        <th>Dose</th>
+                                        <th>Status</th>
+                                        <th>Administrado por</th>
+                                        <th>Observações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="administrationHistoryTable">
+                                    <!-- Histórico será carregado dinamicamente -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/medicamentos_familiar.js"></script>
+</body>
+</html>

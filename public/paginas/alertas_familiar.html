@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vital+ | Alertas - Familiar Cuidador</title>
+    <link rel="stylesheet" href="../styles/dashboard_familiar_cuidador.css">
+    <link rel="stylesheet" href="../styles/alertas_familiar.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+     <link rel="icon" href="../assets/logo minimalista.png">
+</head>
+
+<body>
+    <!-- Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <div class="logo-section">
+                <img src="../assets/logo3.png" alt="Vital+ Logo" class="logo-img" style="height: 80px; width: auto;">
+                <span class="user-type">Familiar Cuidador</span>
+            </div>
+            
+            <div class="user-info">
+                <div class="user-welcome">
+                    <span id="userName">Carregando...</span>
+                    <small id="patientName"></small>
+                </div>
+                <div class="header-actions">
+                    <button class="btn-notifications">
+                        <i class="fas fa-bell"></i>
+                        <span class="notification-badge">3</span>
+                    </button>
+                    <button class="btn-profile" onclick="voltarParaDependentes()">
+                        <i class="fas fa-exchange-alt"></i>
+                        Trocar Paciente
+                    </button>
+                    <!-- BOTÃO VOLTAR PARA LANDING PAGE -->
+                    <button class="btn-landing" onclick="voltarParaLanding()">
+                        <i class="fas fa-home"></i>
+                        Início
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <nav class="sidebar-nav">
+                    <a href="dashboard_familiar_cuidador.html" class="nav-item">
+                        <i class="fas fa-home"></i>
+                        <span>Visão Geral</span>
+                    </a>
+                    <a href="saude_familiar.html" class="nav-item">
+                        <i class="fas fa-heartbeat"></i>
+                        <span>Saúde</span>
+                    </a>
+                    <a href="medicamentos_familiar.html" class="nav-item">
+                        <i class="fas fa-pills"></i>
+                        <span>Medicamentos</span>
+                    </a>
+                    <a href="atividades_familiar.html" class="nav-item">
+                        <i class="fas fa-tasks"></i>
+                        <span>Atividades</span>
+                    </a>
+                    <a href="relatorios_familiar.html" class="nav-item">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Relatórios</span>
+                    </a>
+                    <a href="alertas_familiar.html" class="nav-item active">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>Alertas</span>
+                    </a>
+                </nav>
+            </aside>
+
+            <!-- Content Area -->
+            <div class="content-area">
+                <!-- Alerts Section -->
+                <section id="alerts" class="content-section active">
+                    <div class="section-header">
+                        <h2>Alertas e Notificações</h2>
+                        <div class="header-actions">
+                            <button class="btn-primary" onclick="marcarTodosComoLidos()">
+                                <i class="fas fa-check-double"></i>
+                                Marcar Todos como Lidos
+                            </button>
+                            <button class="btn-primary" onclick="configurarAlertas()">
+                                <i class="fas fa-cog"></i>
+                                Configurar Alertas
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Filtros e Estatísticas -->
+                    <div class="alerts-overview">
+                        <div class="alert-stats-grid">
+                            <div class="stat-card critical">
+                                <div class="stat-icon">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="criticalCount">2</h3>
+                                    <p>Críticos</p>
+                                </div>
+                            </div>
+                            <div class="stat-card warning">
+                                <div class="stat-icon">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="warningCount">5</h3>
+                                    <p>Atenção</p>
+                                </div>
+                            </div>
+                            <div class="stat-card info">
+                                <div class="stat-icon">
+                                    <i class="fas fa-info-circle"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="infoCount">12</h3>
+                                    <p>Informativos</p>
+                                </div>
+                            </div>
+                            <div class="stat-card total">
+                                <div class="stat-icon">
+                                    <i class="fas fa-bell"></i>
+                                </div>
+                                <div class="stat-content">
+                                    <h3 id="totalCount">19</h3>
+                                    <p>Total</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="alerts-filters">
+                        <div class="filter-group">
+                            <label>Filtrar por:</label>
+                            <select id="severityFilter" class="filter-select">
+                                <option value="all">Todas as Severidades</option>
+                                <option value="critical">Crítico</option>
+                                <option value="warning">Atenção</option>
+                                <option value="info">Informativo</option>
+                            </select>
+                            <select id="statusFilter" class="filter-select">
+                                <option value="all">Todos os Status</option>
+                                <option value="unread">Não Lidos</option>
+                                <option value="read">Lidos</option>
+                                <option value="resolved">Resolvidos</option>
+                            </select>
+                            <select id="typeFilter" class="filter-select">
+                                <option value="all">Todos os Tipos</option>
+                                <option value="health">Saúde</option>
+                                <option value="medication">Medicamento</option>
+                                <option value="activity">Atividade</option>
+                                <option value="system">Sistema</option>
+                            </select>
+                        </div>
+                        <div class="filter-actions">
+                            <button class="btn-secondary" onclick="limparFiltros()">
+                                <i class="fas fa-times"></i>
+                                Limpar Filtros
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Alertas -->
+                    <div class="alerts-container">
+                        <div class="alerts-list" id="alertsList">
+                            <!-- Alertas serão carregados aqui -->
+                        </div>
+                    </div>
+
+                    <!-- Alertas Configuráveis -->
+                    <div class="configurable-alerts">
+                        <div class="section-header">
+                            <h3>Alertas Configuráveis</h3>
+                            <button class="btn-primary" onclick="adicionarAlertaConfiguravel()">
+                                <i class="fas fa-plus"></i>
+                                Nova Configuração
+                            </button>
+                        </div>
+
+                        <div class="alerts-config-grid">
+                            <div class="config-card">
+                                <div class="config-header">
+                                    <h4><i class="fas fa-heartbeat"></i> Frequência Cardíaca</h4>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-body">
+                                    <p>Alertar quando a frequência cardíaca estiver fora dos limites</p>
+                                    <div class="config-limits">
+                                        <div class="limit-item">
+                                            <label>Mínimo:</label>
+                                            <span>60 bpm</span>
+                                        </div>
+                                        <div class="limit-item">
+                                            <label>Máximo:</label>
+                                            <span>100 bpm</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="config-card">
+                                <div class="config-header">
+                                    <h4><i class="fas fa-tachometer-alt"></i> Pressão Arterial</h4>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-body">
+                                    <p>Alertar quando a pressão arterial estiver elevada</p>
+                                    <div class="config-limits">
+                                        <div class="limit-item">
+                                            <label>Sistólica:</label>
+                                            <span>> 140 mmHg</span>
+                                        </div>
+                                        <div class="limit-item">
+                                            <label>Diastólica:</label>
+                                            <span>> 90 mmHg</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="config-card">
+                                <div class="config-header">
+                                    <h4><i class="fas fa-pills"></i> Medicamentos</h4>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-body">
+                                    <p>Alertar sobre horários de medicamentos e doses em atraso</p>
+                                    <div class="config-options">
+                                        <div class="option-item">
+                                            <i class="fas fa-clock"></i>
+                                            <span>Lembretes de horário</span>
+                                        </div>
+                                        <div class="option-item">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            <span>Doses em atraso</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="config-card">
+                                <div class="config-header">
+                                    <h4><i class="fas fa-tasks"></i> Atividades</h4>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div class="config-body">
+                                    <p>Alertar sobre atividades pendentes e importantes</p>
+                                    <div class="config-options">
+                                        <div class="option-item">
+                                            <i class="fas fa-calendar"></i>
+                                            <span>Atividades do dia</span>
+                                        </div>
+                                        <div class="option-item">
+                                            <i class="fas fa-exclamation-circle"></i>
+                                            <span>Atividades críticas</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="dashboard-footer">
+        <div class="footer-content">
+            <p>&copy; 2023 Vital+ - Sistema de Acompanhamento para Cuidadores</p>
+            <div class="footer-links">
+                <a href="#">Suporte</a>
+                <a href="#">Privacidade</a>
+                <a href="#" onclick="sair()">Sair</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="../js/alertas_familiar.js"></script>
+</body>
+</html>

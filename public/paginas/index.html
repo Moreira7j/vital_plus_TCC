@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vital+ | Acompanhamento Familiar</title>
+  <link rel="stylesheet" href="../styles/index.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+</head>
+
+<body>
+  <div class="app-container">
+    <!-- Sidebar Atualizada -->
+    <nav class="sidebar">
+      <div class="sidebar-content">
+        <div class="sidebar-header">
+          <img src="../assets/b5da1dd6-796b-41f9-a6d2-19936f1205ac.png" alt="Logo Vital+" class="sidebar-logo" style="width: 80px; height: 80px;" />
+          <div class="sidebar-brand">
+            <h1>Vital+</h1>
+            <span>Acesso Familiar</span>
+          </div>
+        </div>
+
+        <ul class="sidebar-nav">
+          <li class="sidebar-item active">
+            <a class="sidebar-link" href="index.html">
+              <i data-feather="home"></i>
+              <span>Visão Geral</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="relatorios.html">
+              <i data-feather="file-text"></i>
+              <span>Relatórios</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="medicamentos.html">
+              <!-- MUDANÇA AQUI - Ícone para Medicamentos -->
+              <i data-feather="plus-square"></i>
+              <span>Medicamentos</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="historico.html">
+              <i data-feather="activity"></i>
+              <span>Histórico</span>
+            </a>
+          </li>
+          <li class="sidebar-item">
+            <a class="sidebar-link" href="alertas.html">
+              <i data-feather="bell"></i>
+              <span>Alertas</span>
+            </a>
+          </li>
+        </ul>
+
+        <div class="sidebar-footer">
+          <small>Vital+ &copy; 2025</small>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+      <!-- Header Atualizado -->
+      <header class="header">
+        <div class="header-title">
+          <h1>Acompanhamento do Dependente</h1>
+          <p>Monitoramento em tempo real da saúde</p>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-primary" id="exportBtn">
+            <i data-feather="download"></i> Exportar Relatório
+          </button>
+
+          <div class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#">
+              <i data-feather="user"></i>
+              <span>Familiar</span>
+            </a>
+            <div class="dropdown-menu">
+              <a class="dropdown-item" href="#">
+                <i data-feather="settings"></i> Configurações
+              </a>
+              <div class="dropdown-divider"></div>
+              <a class="dropdown-item" href="#">
+                <i data-feather="log-out"></i> Sair
+              </a>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Área de Conteúdo -->
+      <main class="dashboard">
+        <!-- Perfil do Paciente -->
+        <div class="card patient-profile">
+          <div class="patient-avatar">
+            <img src="../assets/velha.png" alt="Foto do Dependente" />
+            <h4>Maria Oliveira</h4>
+            <span class="badge bg-info">78 anos</span>
+          </div>
+
+          <div class="patient-status">
+            <div class="health-status">
+              <i data-feather="heart"></i>
+              <div>
+                <h5>Estável</h5>
+                <p class="text-muted">Todas as métricas normais</p>
+              </div>
+            </div>
+
+            <div class="patient-info">
+              <div class="info-item">
+                <small>Condição Principal</small>
+                <p>Diabetes Tipo 2</p>
+              </div>
+              <div class="info-item">
+                <small>Cuidador</small>
+                <p>Ana Souza</p>
+              </div>
+              <div class="info-item">
+                <small>Última Atualização</small>
+                <p>10/11/2023 09:15</p>
+              </div>
+              <div class="info-item">
+                <small>Plano de Saúde</small>
+                <p>Unimed</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grid Principal -->
+        <div class="dashboard-grid">
+          <!-- Sinais Vitais -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="activity"></i> Sinais Vitais</h3>
+            </div>
+            <div class="card-body">
+              <div class="vitals-grid">
+                <div class="vital-card">
+                  <i data-feather="activity"></i>
+                  <div>
+                    <h4>126/82</h4>
+                    <small>Pressão Arterial</small>
+                  </div>
+                  <span class="badge bg-success">Normal</span>
+                </div>
+
+                <div class="vital-card">
+                  <i data-feather="droplet"></i>
+                  <div>
+                    <h4>98</h4>
+                    <small>Glicemia (mg/dL)</small>
+                  </div>
+                  <span class="badge bg-warning">Monitorar</span>
+                </div>
+
+                <div class="vital-card">
+                  <i data-feather="thermometer"></i>
+                  <div>
+                    <h4>36.7</h4>
+                    <small>Temperatura (°C)</small>
+                  </div>
+                  <span class="badge bg-success">Normal</span>
+                </div>
+
+                <div class="vital-card">
+                  <i data-feather="heart"></i>
+                  <div>
+                    <h4>72</h4>
+                    <small>Batimentos (bpm)</small>
+                  </div>
+                  <span class="badge bg-success">Normal</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Medicamentos -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="pill"></i> Medicamentos</h3>
+              <a href="#" class="btn btn-sm btn-outline">Ver todos</a>
+            </div>
+            <div class="card-body">
+              <ul class="medication-list">
+                <li class="medication-item">
+                  <div class="medication-icon">
+                    <i data-feather="check-circle"></i>
+                  </div>
+                  <div class="medication-info">
+                    <h5>Metformina 850mg</h5>
+                    <small>08:00 - Administrado</small>
+                  </div>
+                  <span class="badge bg-success">Concluído</span>
+                </li>
+
+                <li class="medication-item">
+                  <div class="medication-icon">
+                    <i data-feather="clock"></i>
+                  </div>
+                  <div class="medication-info">
+                    <h5>Insulina NPH</h5>
+                    <small>13:30 - Pendente</small>
+                  </div>
+                  <span class="badge bg-warning">Aguardando</span>
+                </li>
+
+                <li class="medication-item">
+                  <div class="medication-icon">
+                    <i data-feather="clock"></i>
+                  </div>
+                  <div class="medication-info">
+                    <h5>Losartana 50mg</h5>
+                    <small>20:00 - Pendente</small>
+                  </div>
+                  <span class="badge bg-secondary">Próximo</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Alertas -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="alert-triangle"></i> Alertas</h3>
+            </div>
+            <div class="card-body">
+              <div class="alert alert-warning">
+                <i data-feather="alert-triangle"></i>
+                <div class="alert-content">
+                  <h5>Glicemia elevada</h5>
+                  <p>156 mg/dL registrado às 10:45</p>
+                </div>
+              </div>
+
+              <div class="alert alert-success">
+                <i data-feather="check-circle"></i>
+                <div class="alert-content">
+                  <h5>Medicação administrada</h5>
+                  <p>Metformina às 08:15</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Compromissos -->
+          <div class="card">
+            <div class="card-header">
+              <h3><i data-feather="calendar"></i> Compromissos</h3>
+            </div>
+            <div class="card-body">
+              <ul class="appointments-list">
+                <li class="appointment-item">
+                  <div class="appointment-icon">
+                    <i data-feather="calendar"></i>
+                  </div>
+                  <div class="appointment-info">
+                    <h5>Consulta Cardiológica</h5>
+                    <small>15/11/2023 - 14:30</small>
+                  </div>
+                  <span class="badge bg-primary">Confirmado</span>
+                </li>
+
+                <li class="appointment-item">
+                  <div class="appointment-icon">
+                    <i data-feather="clipboard"></i>
+                  </div>
+                  <div class="appointment-info">
+                    <h5>Exames de Rotina</h5>
+                    <small>20/11/2023 - 09:00</small>
+                  </div>
+                  <span class="badge bg-secondary">Agendado</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      feather.replace();
+      const { jsPDF } = window.jspdf;
+      const exportBtn = document.getElementById("exportBtn");
+
+      // Recuperar usuário logado e dependente
+      const usuarioNome = localStorage.getItem("usuarioNome") || "Usuário";
+      const dependente = JSON.parse(localStorage.getItem("dependenteSelecionado"));
+
+      if (!dependente) {
+        alert("Selecione um dependente primeiro.");
+        window.location.href = "dependentes.html";
+        return;
+      }
+
+      // Atualizar perfil do paciente na tela
+      const patientNameEl = document.querySelector(".patient-profile h4");
+      const patientAgeEl = document.querySelector(".patient-profile .badge");
+      if (patientNameEl) patientNameEl.innerText = dependente.nome;
+      if (patientAgeEl) patientAgeEl.innerText = `${dependente.idade || "N/A"} anos`; // se tiver idade
+
+      // Atualizar saudação do familiar
+      const dropdownLabel = document.querySelector(".nav-link span");
+      if (dropdownLabel) dropdownLabel.innerText = usuarioNome;
+
+      // Função auxiliar para setar sinais vitais
+      function setVitalByLabel(labelFragment, valueText) {
+        const smalls = Array.from(document.querySelectorAll('small'));
+        for (const s of smalls) {
+          if (s.textContent && s.textContent.toLowerCase().includes(labelFragment.toLowerCase())) {
+            const h4 = s.previousElementSibling;
+            if (h4 && h4.tagName === 'H4') {
+              h4.innerText = valueText;
+              return true;
+            }
+          }
+        }
+        console.warn(`Label não encontrado no DOM para: ${labelFragment}`);
+        return false;
+      }
+
+      function normalizeTipo(t) {
+        if (!t) return '';
+        return String(t).toLowerCase().replace(/[_\s-]/g, '');
+      }
+
+      // =========================
+      // Carregar sinais vitais do dependente selecionado
+      // =========================
+      async function carregarSinaisVitais() {
+        try {
+          const res = await fetch("http://localhost:3000/api/sinais-vitais");
+          const dados = await res.json();
+
+          // Filtrar sinais do dependente selecionado
+          const sinaisDependente = dados.filter(v => v.paciente_id == dependente.id);
+          if (sinaisDependente.length === 0) return;
+
+          // Mapear e atualizar sinais vitais
+          const sistolicaExp = sinaisDependente.find(v => v.tipo && v.tipo.toLowerCase().includes('sistol'));
+          const diastolicaExp = sinaisDependente.find(v => v.tipo && v.tipo.toLowerCase().includes('diastol'));
+          const glicemiaExp = sinaisDependente.find(v => v.tipo && v.tipo.toLowerCase().includes('glicemia'));
+          const temperaturaExp = sinaisDependente.find(v => v.tipo && v.tipo.toLowerCase().includes('temperatura'));
+          const batimentosExp = sinaisDependente.find(v => v.tipo && (v.tipo.toLowerCase().includes('bat') || v.tipo.toLowerCase().includes('batimentos')));
+          const pressaoComposite = sinaisDependente.find(v => normalizeTipo(v.tipo).includes('pressao'));
+
+          if (sistolicaExp && diastolicaExp) {
+            const sVal = sistolicaExp.valor_principal ?? sistolicaExp.valor;
+            const dVal = diastolicaExp.valor_principal ?? diastolicaExp.valor;
+            const unit = sistolicaExp.unidade_medida || diastolicaExp.unidade_medida || 'mmHg';
+            setVitalByLabel('Pressão Arterial', `${sVal}/${dVal} ${unit}`);
+          } else if (pressaoComposite) {
+            const sVal = pressaoComposite.valor_principal ?? pressaoComposite.valor;
+            const dVal = pressaoComposite.valor_secundario ?? null;
+            const unit = pressaoComposite.unidade_medida || 'mmHg';
+            if (dVal !== null) setVitalByLabel('Pressão Arterial', `${sVal}/${dVal} ${unit}`);
+            else setVitalByLabel('Pressão Arterial', `${sVal} ${unit}`);
+          }
+
+          if (glicemiaExp) {
+            const v = glicemiaExp.valor_principal ?? glicemiaExp.valor;
+            const unit = glicemiaExp.unidade_medida || 'mg/dL';
+            setVitalByLabel('Glicemia', `${v} ${unit}`);
+          }
+          if (temperaturaExp) {
+            const v = temperaturaExp.valor_principal ?? temperaturaExp.valor;
+            const unit = temperaturaExp.unidade_medida || '°C';
+            setVitalByLabel('Temperatura', `${v} ${unit}`);
+          }
+          if (batimentosExp) {
+            const v = batimentosExp.valor_principal ?? batimentosExp.valor;
+            const unit = batimentosExp.unidade_medida || 'bpm';
+            setVitalByLabel('Batimentos', `${v} ${unit}`);
+          }
+
+        } catch (err) {
+          console.error("Erro ao carregar sinais vitais:", err);
+        }
+      }
+
+      carregarSinaisVitais();
+
+      // =========================
+      // Exportar PDF
+      // =========================
+      if (exportBtn) {
+        exportBtn.addEventListener("click", async function () {
+          const btn = this;
+          const originalText = btn.innerHTML;
+          btn.innerHTML = '<i data-feather="loader" class="spinner"></i> Gerando...';
+          feather.replace();
+          btn.disabled = true;
+
+          try {
+            const container = document.createElement("div");
+            container.style.background = "white";
+            container.style.padding = "20px";
+            container.style.width = "800px";
+            container.style.position = "fixed";
+            container.style.left = "-9999px";
+            container.style.top = "0";
+            container.style.zIndex = "-1000";
+
+            const header = document.querySelector(".header-title").cloneNode(true);
+            const profile = document.querySelector(".patient-profile").cloneNode(true);
+            const grid = document.querySelector(".dashboard-grid").cloneNode(true);
+
+            const reportTitle = document.createElement("div");
+            reportTitle.innerHTML = `
+                    <h2 style="text-align: center; color: #4B0082; margin-bottom: 20px;">
+                        Relatório de Saúde - ${new Date().toLocaleDateString('pt-BR')}
+                    </h2>
+                `;
+
+            container.appendChild(reportTitle);
+            container.appendChild(header);
+            container.appendChild(profile);
+            container.appendChild(grid);
+            document.body.appendChild(container);
+
+            const canvas = await html2canvas(container, { scale: 3, useCORS: true, backgroundColor: "#ffffff" });
+            const pdf = new jsPDF("p", "mm", "a4");
+            const imgData = canvas.toDataURL("image/png");
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+            pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
+            pdf.save(`relatorio_saude_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.pdf`);
+            document.body.removeChild(container);
+          } catch (error) {
+            console.error("Erro ao gerar PDF:", error);
+            alert("Erro ao gerar o relatório. Por favor, tente novamente.");
+          } finally {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            feather.replace();
+          }
+        });
+      }
+
+      // Dropdown do usuário
+      const dropdownToggle = document.querySelector('.dropdown-toggle');
+      const dropdownMenu = document.querySelector('.dropdown-menu');
+      if (dropdownToggle && dropdownMenu) {
+        dropdownToggle.addEventListener('click', function (e) {
+          e.preventDefault();
+          dropdownMenu.style.display = dropdownMenu.style.display === 'block' ? 'none' : 'block';
+        });
+        document.addEventListener('click', function (e) {
+          if (!e.target.closest('.nav-item')) {
+            dropdownMenu.style.display = 'none';
+          }
+        });
+      }
+    });
+  </script>
+
+
+
+</body>
+
+</html>
