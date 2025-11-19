@@ -1586,3 +1586,105 @@ body {
     overflow-y: visible !important;
 }
 
+/* ===== NOVAS CLASSES - SEM CONFLITOS ===== */
+.patient-activity-cards {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    width: 100%;
+    margin: 0 0 2rem 0;
+    padding: 0;
+}
+
+.patient-info-card,
+.activity-info-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-top: 3px solid #3498db;
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 280px;
+    transition: all 0.3s ease;
+}
+
+.patient-info-card:hover,
+.activity-info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
+}
+
+.patient-info-card .card-top,
+.activity-info-card .card-top {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #E5E7EB;
+    background: linear-gradient(to right, #ffffff, #fafbfc);
+    flex-shrink: 0;
+}
+
+.patient-info-card .card-top h4,
+.activity-info-card .card-top h4 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #2D2D2D;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.patient-info-card .card-body,
+.activity-info-card .card-body {
+    padding: 1.5rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.data-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #F3F4F6;
+    min-height: 45px;
+}
+
+.data-row:last-child {
+    border-bottom: none;
+}
+
+.data-label {
+    font-weight: 500;
+    color: #6C757D;
+    font-size: 0.9rem;
+    flex: 1;
+}
+
+.data-value {
+    font-weight: 600;
+    color: #2D2D2D;
+    font-size: 0.95rem;
+    flex: 1;
+    text-align: right;
+}
+
+/* RESPONSIVIDADE */
+@media (max-width: 768px) {
+    .patient-activity-cards {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+    
+    .patient-info-card,
+    .activity-info-card {
+        min-height: auto;
+    }
+    
+    .data-row {
+        min-height: auto;
+        padding: 0.5rem 0;
+    }
+}
