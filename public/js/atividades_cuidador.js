@@ -7,9 +7,14 @@ let filtrosAtivos = {
     tipo: 'todos'
 };
 
+// Variáveis globais para controle
+let atividadeEditando = null;
+let atividadeParaExcluir = null;
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     feather.replace();
+    verificarDadosUsuario();
     inicializarEventListeners();
     carregarAtividades();
     inicializarGraficoAtividades();
@@ -29,225 +34,286 @@ function inicializarEventListeners() {
     document.getElementById('cancelarBtn').addEventListener('click', fecharModal);
     document.getElementById('atividadeForm').addEventListener('submit', salvarAtividade);
 
-    // Fechar modal ao clicar fora
+    // Modal de Confirmação - EXCLUSÃO
+    document.getElementById('confirmarExclusaoBtn').addEventListener('click', confirmarExclusaoAtividade);
+    document.getElementById('cancelarExclusaoBtn').addEventListener('click', fecharModalConfirmacaoAtividade);
+    document.getElementById('fecharModalConfirmacaoAtividade').addEventListener('click', fecharModalConfirmacaoAtividade);
+
+    // Fechar modais ao clicar fora
     document.getElementById('atividadeModal').addEventListener('click', function(e) {
         if (e.target === this) fecharModal();
     });
+    
+    document.getElementById('confirmacaoExclusaoAtividadeModal').addEventListener('click', function(e) {
+        if (e.target === this) fecharModalConfirmacaoAtividade();
+    });
 
-    // Logout
-    const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            localStorage.clear();
-            sessionStorage.clear();
-            window.location.href = '../paginas/index.html';
-        });
-    }
+    console.log('✅ Event listeners inicializados');
 }
 
-// API Functions
-async function carregarAtividades() {
+// Modal de Confirmação Personalizado para Atividades
+function abrirModalConfirmacaoExclusaoAtividade(id) {
+    atividadeParaExcluir = id;
+    
+    // Encontrar a descrição da atividade para mostrar na confirmação
+    const atividade = atividades.find(a => a.id === id);
+    const descricaoAtividade = atividade ? atividade.descricao : 'esta atividade';
+    
+    document.getElementById('textoConfirmacaoExclusaoAtividade').textContent = 
+        `Tem certeza que deseja excluir "${descricaoAtividade}"?`;
+    
+    document.getElementById('confirmacaoExclusaoAtividadeModal').style.display = 'flex';
+}
+
+function fecharModalConfirmacaoAtividade() {
+    document.getElementById('confirmacaoExclusaoAtividadeModal').style.display = 'none';
+    atividadeParaExcluir = null;
+}
+
+async function confirmarExclusaoAtividade() {
+    if (!atividadeParaExcluir) return;
+    
     try {
         mostrarLoading(true);
-        
-        // Obter cuidador logado
-        const usuarioLogado = obterUsuarioLogado();
-        if (!usuarioLogado) {
-            throw new Error('Usuário não logado');
-        }
-
-        console.log('Buscando atividades para cuidador ID:', usuarioLogado.id);
-
-        // Tentar primeiro o endpoint geral de atividades
-        let response;
-        try {
-            response = await fetch(`${API_BASE_URL}/atividades`);
-            if (response.ok) {
-                const todasAtividades = await response.json();
-                // Filtrar atividades do cuidador logado
-                atividades = todasAtividades.filter(ativ => ativ.cuidadorId === usuarioLogado.id);
-                console.log('Atividades carregadas via endpoint geral:', atividades);
-            } else {
-                throw new Error('Endpoint geral não disponível');
-            }
-        } catch (erroGeral) {
-            console.log('Tentando endpoint específico do cuidador:', erroGeral);
-            
-            // Tentar endpoint específico do cuidador
-            response = await fetch(`${API_BASE_URL}/cuidadores/${usuarioLogado.id}/atividades`);
-            
-            if (response.ok) {
-                atividades = await response.json();
-                console.log('Atividades carregadas via endpoint específico:', atividades);
-            } else {
-                throw new Error(`Erro HTTP: ${response.status}`);
-            }
-        }
-        
-        renderizarAtividades();
-        atualizarEstatisticas();
-        
+        await excluirAtividadeHandler(atividadeParaExcluir);
+        fecharModalConfirmacaoAtividade();
+        mostrarMensagem('Atividade excluída com sucesso!', 'success');
     } catch (error) {
-        console.error('Erro ao carregar atividades:', error);
-        // Usar dados de exemplo em caso de erro
-        atividades = obterAtividadesExemplo();
-        renderizarAtividades();
-        atualizarEstatisticas();
-        mostrarMensagem('API indisponível. Usando dados de demonstração.', 'info');
+        console.error('❌ Erro ao excluir atividade:', error);
+        mostrarMensagem('Erro ao excluir atividade', 'error');
     } finally {
         mostrarLoading(false);
     }
 }
 
-// Dados de exemplo (para quando a API não está disponível)
+// Função para debug - verificar dados do usuário
+function verificarDadosUsuario() {
+    const usuarioId = localStorage.getItem('usuarioId');
+    const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+    
+    console.log('🔍 DEBUG - Dados do localStorage:', {
+        usuarioId,
+        pacienteId,
+        usuarioTipo: localStorage.getItem('usuarioTipo'),
+        usuarioNome: localStorage.getItem('usuarioNome')
+    });
+    
+    return { usuarioId, pacienteId };
+}
+
+// Carregar atividades
+async function carregarAtividades() {
+    try {
+        mostrarLoading(true);
+        
+        const { usuarioId, pacienteId } = verificarDadosUsuario();
+        
+        if (!pacienteId) {
+            throw new Error('Nenhum paciente selecionado');
+        }
+
+        console.log(`📅 Buscando atividades para paciente: ${pacienteId}`);
+
+        const response = await fetch(`/api/pacientes/${pacienteId}/atividades/hoje`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar atividades da API');
+        }
+        
+        atividades = await response.json();
+        
+        // ✅ DEBUG: Verificar estrutura dos dados recebidos
+        console.log('🔍 ESTRUTURA DOS DADOS RECEBIDOS:');
+        if (atividades.length > 0) {
+            console.log('Primeira atividade:', atividades[0]);
+            console.log('Campos disponíveis:', Object.keys(atividades[0]));
+        }
+        
+        console.log('📦 Atividades carregadas:', atividades);
+        
+        renderizarAtividades();
+        atualizarEstatisticas();
+        inicializarGraficoAtividades();
+    } catch (error) {
+        console.error('Erro ao carregar atividades:', error);
+        atividades = obterAtividadesExemplo();
+        renderizarAtividades();
+        atualizarEstatisticas();
+        mostrarMensagem('Erro ao carregar atividades: ' + error.message, 'error');
+    } finally {
+        mostrarLoading(false);
+    }
+}
+
+// Dados de exemplo (fallback)
 function obterAtividadesExemplo() {
     const hoje = new Date().toISOString().split('T')[0];
     
     return [
         {
             id: 1,
-            titulo: "Caminhada Matinal",
-            tipo: "exercicio",
-            descricao: "Caminhada leve no parque por 30 minutos",
-            horario: "08:00",
+            tipo: "alimentacao",
+            descricao: "Café da manhã balanceado",
+            data_prevista: `${hoje} 08:00:00`,
             status: "concluida",
-            observacoes: "Paciente se sentiu bem durante a atividade",
-            data: hoje,
-            cuidadorId: obterUsuarioLogado()?.id || 13
+            observacoes: "Paciente com bom apetite"
         },
         {
             id: 2,
-            titulo: "Café da Manhã",
-            tipo: "alimentacao",
-            descricao: "Refeição balanceada com frutas e pão integral",
-            horario: "08:30",
-            status: "concluida",
-            observacoes: "Bom apetite",
-            data: hoje,
-            cuidadorId: obterUsuarioLogado()?.id || 13
+            tipo: "exercicio",
+            descricao: "Caminhada no parque",
+            data_prevista: `${hoje} 10:00:00`,
+            status: "pendente",
+            observacoes: "Leve, 30 minutos"
         },
         {
             id: 3,
-            titulo: "Banho e Higiene",
-            tipo: "higiene",
-            descricao: "Banho completo e cuidados de higiene pessoal",
-            horario: "10:00",
-            status: "pendente",
-            data: hoje,
-            cuidadorId: obterUsuarioLogado()?.id || 13
-        },
-        {
-            id: 4,
-            titulo: "Sessão de Fisioterapia",
-            tipo: "exercicio",
-            descricao: "Exercícios de fortalecimento muscular",
-            horario: "14:00",
-            status: "pendente",
-            data: hoje,
-            cuidadorId: obterUsuarioLogado()?.id || 13
-        },
-        {
-            id: 5,
-            titulo: "Lanche da Tarde",
-            tipo: "alimentacao",
-            descricao: "Iogurte natural com granola",
-            horario: "16:00",
-            status: "pendente",
-            data: hoje,
-            cuidadorId: obterUsuarioLogado()?.id || 13
-        },
-        {
-            id: 6,
-            titulo: "Medicação - Antibiótico",
             tipo: "medicacao",
-            descricao: "Tomar antibiótico conforme prescrição médica",
-            horario: "19:00",
+            descricao: "Administrar medicamentos",
+            data_prevista: `${hoje} 12:00:00`,
             status: "pendente",
-            data: hoje,
-            cuidadorId: obterUsuarioLogado()?.id || 13
+            observacoes: "Antibiótico e vitaminas"
         }
     ];
 }
 
+// Criar atividade
 async function criarAtividade(atividadeData) {
     try {
-        const usuarioLogado = obterUsuarioLogado();
-        if (!usuarioLogado) {
-            throw new Error('Usuário não logado');
+        console.log('📤 Iniciando criação de atividade...');
+        
+        const { usuarioId, pacienteId } = verificarDadosUsuario();
+
+        if (!pacienteId) {
+            throw new Error('Nenhum paciente selecionado');
         }
 
-        // Adicionar dados do cuidador
-        const dadosCompletos = {
-            ...atividadeData,
-            cuidadorId: usuarioLogado.id,
-            data: new Date().toISOString().split('T')[0],
-            id: Date.now() // ID temporário para dados locais
+        if (!usuarioId) {
+            throw new Error('Usuário não identificado');
+        }
+
+        // ✅ CORREÇÃO: Criar data corretamente para HOJE com o horário selecionado
+        const hoje = new Date();
+        const [horas, minutos] = atividadeData.horario.split(':');
+        
+        // Usar a data de HOJE com o horário selecionado
+        const dataAtividade = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), parseInt(horas), parseInt(minutos), 0);
+        
+        // Formatar para o formato MySQL
+        const dataPrevistaFormatada = dataAtividade.toISOString().slice(0, 19).replace('T', ' ');
+
+        console.log('📅 Data da atividade:', {
+            dataOriginal: dataAtividade,
+            dataFormatada: dataPrevistaFormatada,
+            horarioSelecionado: atividadeData.horario
+        });
+
+        const dadosParaAPI = {
+            paciente_id: parseInt(pacienteId),
+            usuario_id: parseInt(usuarioId),
+            tipo: atividadeData.tipo,
+            descricao: atividadeData.descricao,
+            data_prevista: dataPrevistaFormatada,
+            observacoes: atividadeData.observacoes || ''
         };
 
-        // Tentar salvar na API
-        try {
-            const response = await fetch(`${API_BASE_URL}/atividades/registrar`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(dadosCompletos)
-            });
+        console.log('💾 Dados que serão enviados para API:', dadosParaAPI);
 
-            if (response.ok) {
-                const novaAtividade = await response.json();
-                atividades.unshift(novaAtividade);
-                return novaAtividade;
-            } else {
-                throw new Error('API não disponível');
-            }
-        } catch (apiError) {
-            console.log('Salvando localmente (API indisponível):', apiError);
-            // Salvar localmente se a API falhar
-            atividades.unshift(dadosCompletos);
-            return dadosCompletos;
+        const response = await fetch('/api/atividades', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosParaAPI)
+        });
+
+        console.log('📥 Status da resposta:', response.status);
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('❌ Erro na resposta:', errorText);
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Atividade criada com sucesso:', data);
+        return data;
+
+    } catch (error) {
+        console.error('❌ Erro completo ao criar atividade:', error);
+        throw error;
+    }
+}
+
+// Atualizar atividade
+async function atualizarAtividade(id, atividadeData) {
+    try {
+        console.log('📤 Atualizando atividade:', { id, ...atividadeData });
+
+        // Formatar data_prevista
+        const dataAtividade = new Date();
+        const [horas, minutos] = atividadeData.horario.split(':');
+        dataAtividade.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+
+        const dadosParaAPI = {
+            tipo: atividadeData.tipo,
+            descricao: atividadeData.descricao,
+            data_prevista: dataAtividade.toISOString().slice(0, 19).replace('T', ' '),
+            observacoes: atividadeData.observacoes || ''
+        };
+
+        const response = await fetch(`/api/atividades/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosParaAPI)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('✅ Atividade atualizada com sucesso:', data);
+        return data;
+
+    } catch (error) {
+        console.error('❌ Erro ao atualizar atividade:', error);
+        throw error;
+    }
+}
+
+// Marcar como concluída
+async function marcarComoConcluidaHandler(id) {
+    try {
+        console.log(`🔄 Executando marcarComoConcluidaHandler para ID: ${id}`);
+        
+        const resultado = await concluirAtividade(id);
+        console.log('✅ Resultado da conclusão:', resultado);
+        
+        // Atualizar a lista local
+        const index = atividades.findIndex(a => a.id === id);
+        if (index !== -1) {
+            atividades[index].status = 'concluida';
+            renderizarAtividades();
+            atualizarEstatisticas();
+        }
+        
+        mostrarMensagem('Atividade marcada como concluída!', 'success');
+        
+        // Atualizar dashboard
+        if (typeof window.recarregarTarefasDashboard === 'function') {
+            window.recarregarTarefasDashboard();
         }
         
     } catch (error) {
-        console.error('Erro ao criar atividade:', error);
-        throw error;
+        console.error('❌ Erro no handler:', error);
+        mostrarMensagem('Erro ao concluir atividade: ' + error.message, 'error');
     }
 }
 
-async function atualizarStatusAtividade(id, status) {
-    try {
-        // Tentar atualizar na API
-        try {
-            const response = await fetch(`${API_BASE_URL}/atividades/${id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status })
-            });
-
-            if (response.ok) {
-                return await response.json();
-            } else {
-                throw new Error('API não disponível');
-            }
-        } catch (apiError) {
-            console.log('Atualizando localmente (API indisponível):', apiError);
-            // Atualizar localmente se a API falhar
-            const index = atividades.findIndex(a => a.id === id);
-            if (index !== -1) {
-                atividades[index].status = status;
-                return atividades[index];
-            }
-            throw new Error('Atividade não encontrada');
-        }
-    } catch (error) {
-        throw error;
-    }
-}
-
-// Renderização
 function renderizarAtividades() {
     const container = document.getElementById('atividadesContainer');
     const atividadesFiltradas = filtrarAtividades();
@@ -264,8 +330,13 @@ function renderizarAtividades() {
         return;
     }
 
-    container.innerHTML = atividadesFiltradas.map(atividade => `
-        <div class="atividade-card ${atividade.status}">
+    container.innerHTML = atividadesFiltradas.map(atividade => {
+        // Garantir valores padrão
+        const dataPrevista = new Date(atividade.data_prevista);
+        const horario = dataPrevista.toTimeString().slice(0, 5);
+        
+        return `
+        <div class="atividade-card ${atividade.status}" data-atividade-id="${atividade.id}">
             <div class="atividade-header">
                 <div class="atividade-info">
                     <span class="tipo-badge ${atividade.tipo}">
@@ -274,33 +345,39 @@ function renderizarAtividades() {
                     <span class="status-badge ${atividade.status}">
                         ${obterTextoStatus(atividade.status)}
                     </span>
-                    <h3>${atividade.titulo}</h3>
+                    <h3>${atividade.descricao}</h3>
                 </div>
                 <div class="atividade-acoes">
                     ${atividade.status !== 'concluida' ? `
-                        <button class="btn btn-primary btn-sm" onclick="marcarComoConcluida(${atividade.id})">
+                        <button class="btn btn-primary btn-sm" onclick="marcarComoConcluidaHandler(${atividade.id})">
                             <i data-feather="check"></i>
                             Concluir
                         </button>
-                    ` : ''}
-                    <button class="btn-icon" onclick="editarAtividade(${atividade.id})" title="Editar">
-                        <i data-feather="edit"></i>
+                    ` : `
+                        <button class="btn btn-success btn-sm" disabled>
+                            <i data-feather="check-circle"></i>
+                            Concluída
+                        </button>
+                    `}
+                    <button class="btn-icon btn-edit" onclick="editarAtividade(${atividade.id})" title="Editar">
+                        <i data-feather="edit-2"></i>
                     </button>
-                    <button class="btn-icon" onclick="excluirAtividadeConfirmacao(${atividade.id})" title="Excluir">
+                    <button class="btn-icon btn-danger" onclick="abrirModalConfirmacaoExclusaoAtividade(${atividade.id})" title="Excluir">
                         <i data-feather="trash-2"></i>
                     </button>
                 </div>
             </div>
             <div class="atividade-body">
-                <p>${atividade.descricao}</p>
+                <p><strong>Tipo:</strong> ${obterTextoTipo(atividade.tipo)}</p>
+                <p><strong>Horário:</strong> ${horario}</p>
                 ${atividade.observacoes ? `<p><strong>Observações:</strong> ${atividade.observacoes}</p>` : ''}
             </div>
             <div class="atividade-metadata">
-                <span><i data-feather="clock"></i> Horário: ${atividade.horario}</span>
-                <span><i data-feather="calendar"></i> ${formatarData(new Date(atividade.data || new Date()))}</span>
+                <span><i data-feather="clock"></i> Agendada para: ${horario}</span>
             </div>
         </div>
-    `).join('');
+        `;
+    }).join('');
 
     feather.replace();
 }
@@ -320,25 +397,31 @@ function atualizarFiltros() {
 }
 
 function filtrarAtividades() {
-    const dataFiltro = filtrosAtivos.data;
-    
     return atividades.filter(atividade => {
-        const matchData = !dataFiltro || atividade.data === dataFiltro;
         const matchStatus = filtrosAtivos.status === 'todos' || 
                            atividade.status === filtrosAtivos.status;
+        
         const matchTipo = filtrosAtivos.tipo === 'todos' || 
                          atividade.tipo === filtrosAtivos.tipo;
 
-        return matchData && matchStatus && matchTipo;
+        // Filtro por data
+        let matchData = true;
+        if (filtrosAtivos.data) {
+            const atividadeData = new Date(atividade.data_prevista).toISOString().split('T')[0];
+            matchData = atividadeData === filtrosAtivos.data;
+        }
+
+        return matchStatus && matchTipo && matchData;
     });
 }
 
 // Modal Functions
 function abrirModalNovaAtividade() {
     document.getElementById('modalTitulo').textContent = 'Nova Atividade';
+    atividadeEditando = null;
     document.getElementById('atividadeForm').reset();
     
-    // Definir horário padrão como próxima hora redonda
+    // Definir horário padrão como próxima hora
     const agora = new Date();
     const proximaHora = new Date(agora.getTime() + 60 * 60 * 1000);
     document.getElementById('atividadeHorario').value = 
@@ -349,92 +432,135 @@ function abrirModalNovaAtividade() {
 
 function fecharModal() {
     document.getElementById('atividadeModal').style.display = 'none';
+    atividadeEditando = null;
+    document.getElementById('atividadeForm').reset();
 }
 
+// Editar atividade
+function editarAtividade(id) {
+    console.log(`✏️ Editando atividade ID: ${id}`);
+    
+    const atividade = atividades.find(a => a.id === id);
+    if (!atividade) {
+        mostrarMensagem('Atividade não encontrada', 'error');
+        return;
+    }
+
+    atividadeEditando = id;
+    
+    // Preencher modal
+    document.getElementById('modalTitulo').textContent = 'Editar Atividade';
+    document.getElementById('atividadeTipo').value = atividade.tipo || 'alimentacao';
+    document.getElementById('atividadeDescricao').value = atividade.descricao || '';
+    document.getElementById('atividadeObservacoes').value = atividade.observacoes || '';
+    
+    // Formatar horário
+    const dataPrevista = new Date(atividade.data_prevista);
+    const horario = dataPrevista.toTimeString().slice(0, 5);
+    document.getElementById('atividadeHorario').value = horario;
+    
+    document.getElementById('atividadeModal').style.display = 'flex';
+}
+
+// Salvar atividade (criação e edição)
 async function salvarAtividade(e) {
     e.preventDefault();
     
-    const formData = new FormData(e.target);
     const atividadeData = {
-        titulo: document.getElementById('atividadeTitulo').value.trim(),
         tipo: document.getElementById('atividadeTipo').value,
-        horario: document.getElementById('atividadeHorario').value,
         descricao: document.getElementById('atividadeDescricao').value.trim(),
-        observacoes: document.getElementById('atividadeObservacoes').value.trim(),
-        status: 'pendente'
+        horario: document.getElementById('atividadeHorario').value,
+        observacoes: document.getElementById('atividadeObservacoes').value.trim()
     };
 
-    // Validação básica
-    if (!atividadeData.titulo || !atividadeData.descricao) {
-        mostrarMensagem('Preencha todos os campos obrigatórios', 'error');
+    // Validação
+    if (!atividadeData.descricao || !atividadeData.horario) {
+        mostrarMensagem('Preencha todos os campos obrigatórios!', 'error');
         return;
     }
 
     try {
         mostrarLoading(true);
-        await criarAtividade(atividadeData);
-        mostrarMensagem('Atividade criada com sucesso!', 'success');
+        
+        let resultado;
+        if (atividadeEditando) {
+            resultado = await atualizarAtividade(atividadeEditando, atividadeData);
+            mostrarMensagem('Atividade atualizada com sucesso!', 'success');
+        } else {
+            resultado = await criarAtividade(atividadeData);
+            mostrarMensagem('Atividade criada com sucesso!', 'success');
+        }
+        
         fecharModal();
-        carregarAtividades();
+        await carregarAtividades();
+        
+        // ⬇️ ATUALIZAR DASHBOARD
+        if (typeof window.recarregarTarefasDashboard === 'function') {
+            window.recarregarTarefasDashboard();
+        }
+        
     } catch (error) {
-        console.error('Erro ao criar atividade:', error);
-        mostrarMensagem('Erro ao criar atividade: ' + error.message, 'error');
+        mostrarMensagem('Erro ao salvar atividade: ' + error.message, 'error');
     } finally {
         mostrarLoading(false);
     }
 }
 
-// Ações das Atividades
-async function marcarComoConcluida(id) {
+// Concluir atividade
+async function concluirAtividade(id) {
     try {
-        await atualizarStatusAtividade(id, 'concluida');
-        mostrarMensagem('Atividade marcada como concluída!', 'success');
-        carregarAtividades();
+        console.log(`🎯 Concluindo atividade ID: ${id}`);
+        
+        const response = await fetch(`/api/atividades/${id}/concluir`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`Erro ${response.status}: ${errorText}`);
+        }
+
+        return await response.json();
     } catch (error) {
-        console.error('Erro ao atualizar atividade:', error);
-        mostrarMensagem('Erro ao atualizar atividade: ' + error.message, 'error');
+        console.error('❌ Erro na função concluirAtividade:', error);
+        throw error;
     }
 }
 
-function editarAtividade(id) {
-    // Implementar edição se necessário
-    mostrarMensagem('Funcionalidade de edição em desenvolvimento', 'info');
-}
-
+// Excluir atividade - MODIFICADA para usar modal personalizado
 function excluirAtividadeConfirmacao(id) {
-    if (confirm('Tem certeza que deseja excluir esta atividade?')) {
-        excluirAtividadeHandler(id);
-    }
+    abrirModalConfirmacaoExclusaoAtividade(id);
 }
 
 async function excluirAtividadeHandler(id) {
     try {
-        // Tentar excluir na API
-        try {
-            const response = await fetch(`${API_BASE_URL}/atividades/${id}`, {
-                method: 'DELETE'
-            });
+        const response = await fetch(`/api/atividades/${id}`, {
+            method: 'DELETE'
+        });
 
-            if (!response.ok) {
-                throw new Error('API não disponível');
-            }
-        } catch (apiError) {
-            console.log('Excluindo localmente (API indisponível):', apiError);
+        if (!response.ok) {
+            throw new Error('Erro ao excluir atividade');
         }
 
-        // Sempre excluir localmente
         atividades = atividades.filter(a => a.id !== id);
-        mostrarMensagem('Atividade excluída com sucesso!', 'success');
         renderizarAtividades();
         atualizarEstatisticas();
         
+        // ⬇️ ATUALIZAR DASHBOARD
+        if (typeof window.recarregarTarefasDashboard === 'function') {
+            window.recarregarTarefasDashboard();
+        }
+        
     } catch (error) {
-        console.error('Erro ao excluir atividade:', error);
-        mostrarMensagem('Erro ao excluir atividade', 'error');
+        console.error('❌ Erro ao excluir atividade:', error);
+        throw error; // Agora o erro é tratado no confirmarExclusaoAtividade
     }
 }
 
-// Estatísticas e Gráfico
+// Estatísticas
 function atualizarEstatisticas() {
     const atividadesFiltradas = filtrarAtividades();
     const total = atividadesFiltradas.length;
@@ -448,10 +574,11 @@ function atualizarEstatisticas() {
     document.getElementById('taxaConclusao').textContent = taxaConclusao + '%';
 }
 
+// Gráfico
 function inicializarGraficoAtividades() {
     const ctx = document.getElementById('atividadesChart').getContext('2d');
     
-    // Calcular dados reais das atividades
+    // Calcular dados reais
     const tipos = ['alimentacao', 'exercicio', 'higiene', 'medicacao', 'repouso', 'social'];
     const dados = tipos.map(tipo => 
         atividades.filter(ativ => ativ.tipo === tipo).length
@@ -521,133 +648,72 @@ function obterTextoTipo(tipo) {
     return textos[tipo] || tipo;
 }
 
-function formatarData(data) {
-    return data.toLocaleDateString('pt-BR');
-}
-
-function obterUsuarioLogado() {
-    // Tentar das chaves separadas primeiro
-    const usuarioTipo = localStorage.getItem('usuarioTipo');
-    const usuarioId = localStorage.getItem('usuarioId');
-    const usuarioNome = localStorage.getItem('usuarioNome');
-    
-    console.log('Dados do localStorage:', { usuarioTipo, usuarioId, usuarioNome });
-    
-    if (usuarioTipo && usuarioId) {
-        return {
-            tipo: usuarioTipo,
-            id: parseInt(usuarioId),
-            nome: usuarioNome || 'Cuidador'
-        };
-    }
-    
-    // Tentar do objeto único
-    const chaves = ['usuarioLogado', 'currentUser', 'userData', 'loginData'];
-    for (const chave of chaves) {
-        const dados = localStorage.getItem(chave);
-        if (dados) {
-            try {
-                const usuario = JSON.parse(dados);
-                console.log(`Usuário encontrado em ${chave}:`, usuario);
-                return usuario;
-            } catch (e) {
-                console.log(`Erro ao parsear ${chave}:`, e);
-            }
-        }
-    }
-    
-    console.log('Nenhum usuário logado encontrado, usando padrão');
-    // Retornar um usuário padrão para desenvolvimento
-    return {
-        tipo: 'cuidador',
-        id: 13,
-        nome: 'Cuidador Teste'
-    };
-}
-
 function mostrarMensagem(mensagem, tipo) {
-    // Sistema de notificações simples
-    const cores = {
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        info: '#17a2b8'
-    };
+    console.log(`${tipo}: ${mensagem}`);
     
-    console.log(`${tipo.toUpperCase()}: ${mensagem}`);
-    
-    // Criar notificação temporária
+    // Criar notificação mais amigável
     const notification = document.createElement('div');
     notification.style.cssText = `
         position: fixed;
         top: 20px;
         right: 20px;
         padding: 15px 20px;
-        background: ${cores[tipo] || '#333'};
+        background: ${tipo === 'success' ? '#28a745' : '#dc3545'};
         color: white;
-        border-radius: 5px;
+        border-radius: 8px;
         z-index: 10000;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         max-width: 300px;
+        font-family: 'Inter', sans-serif;
     `;
     notification.textContent = mensagem;
     
     document.body.appendChild(notification);
     
-    // Remover após 5 segundos
     setTimeout(() => {
         if (notification.parentNode) {
             notification.parentNode.removeChild(notification);
         }
-    }, 5000);
+    }, 4000);
 }
 
 function mostrarLoading(mostrar) {
-    const loader = document.getElementById('loadingOverlay') || criarLoadingOverlay();
-    
+    // Implementação básica de loading
     if (mostrar) {
-        loader.style.display = 'flex';
-        document.body.classList.add('loading');
+        document.body.style.cursor = 'wait';
+        document.body.style.opacity = '0.7';
     } else {
-        loader.style.display = 'none';
-        document.body.classList.remove('loading');
+        document.body.style.cursor = 'default';
+        document.body.style.opacity = '1';
     }
 }
 
-function criarLoadingOverlay() {
-    const overlay = document.createElement('div');
-    overlay.id = 'loadingOverlay';
-    overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255,255,255,0.8);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    `;
-    
-    overlay.innerHTML = `
-        <div style="text-align: center;">
-            <div style="border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 50px; height: 50px; animation: spin 2s linear infinite; margin: 0 auto;"></div>
-            <p style="margin-top: 15px; color: #333;">Carregando...</p>
-        </div>
-        <style>
-            @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-            }
-        </style>
-    `;
-    
-    document.body.appendChild(overlay);
-    return overlay;
-}
+// ====================== FUNÇÕES GLOBAIS ====================== //
+window.marcarComoConcluidaHandler = marcarComoConcluidaHandler;
+window.editarAtividade = editarAtividade;
+window.excluirAtividadeConfirmacao = excluirAtividadeConfirmacao;
+window.abrirModalConfirmacaoExclusaoAtividade = abrirModalConfirmacaoExclusaoAtividade;
 
-// FUNÇÃO PARA VOLTAR PARA A PÁGINA DE DEPENDENTES (CORRIGIDA)
+// Função para recarregar tarefas no dashboard
+window.recarregarTarefasDashboard = async function() {
+    try {
+        console.log('🔄 Recarregando tarefas no dashboard...');
+        if (typeof window.carregarTarefasDashboard === 'function') {
+            await window.carregarTarefasDashboard();
+        }
+    } catch (error) {
+        console.error('❌ Erro ao recarregar tarefas:', error);
+    }
+};
+
+// Atualizar ícones
+setInterval(() => {
+    feather.replace();
+}, 1000);
+
+// ====================== FUNÇÕES DE NAVEGAÇÃO ====================== //
+
+// FUNÇÃO PARA VOLTAR PARA A PÁGINA DE DEPENDENTES
 function voltarParaDependentes() {
     console.log('🔄 Voltando para página de dependentes...');
     
@@ -686,22 +752,11 @@ function voltarParaDependentes() {
     if (usuarioNome) localStorage.setItem('usuarioNome', usuarioNome);
     
     console.log('✅ Dados limpos. Redirecionando para dependentes.html');
-    
-    // ✅ CORREÇÃO: Redirecionar IMEDIATAMENTE sem mostrar erro
     window.location.href = 'dependentes.html';
 }
-// Atualizar ícones periodicamente
-setInterval(() => {
-    feather.replace();
-}, 1000);
 
-// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
+// FUNÇÃO VOLTAR PARA LANDING PAGE
 function voltarParaLanding() {
     console.log('🏠 Voltando para a landing page...');
     window.location.href = 'landingpage.html';
 }
-
-// Exportar funções globais para uso no HTML
-window.marcarComoConcluida = marcarComoConcluida;
-window.editarAtividade = editarAtividade;
-window.excluirAtividadeConfirmacao = excluirAtividadeConfirmacao;

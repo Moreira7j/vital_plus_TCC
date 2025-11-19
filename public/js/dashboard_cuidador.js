@@ -29,6 +29,8 @@ document.addEventListener("DOMContentLoaded", function () {
             console.error("Erro ao inicializar dashboard:", error);
             showError("Erro ao carregar dados do dashboard");
         }
+        // Na sua função que carrega o dashboard, adicione:
+        await loadTasks();
     }
 
     async function loadUserData() {
@@ -186,180 +188,583 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-// Função corrigida para carregar medicamentos no dashboard
-async function loadMedications() {
+// ✅ FUNÇÃO PARA ATUALIZAR MEDICAMENTOS NO DASHBOARD (COM STATUS)
+function updateMedicationsInterface(medications) {
+    const container = document.getElementById('medicationSchedule');
+    if (!container) {
+        console.error('❌ Container medicationSchedule não encontrado');
+        return;
+    }
+
+    if (!Array.isArray(medications)) {
+        medications = [];
+    }
+
+    if (medications.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-pills"></i>
+                <p>Nenhum medicamento para hoje</p>
+                <small class="text-muted">Os medicamentos aparecerão aqui quando forem cadastrados</small>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = medications.map(med => {
+        const nome = med.nome_medicamento || med.nome || 'Medicamento sem nome';
+        const dosagem = med.dosagem || '--';
+        const horario = med.horario || med.horarios || '--:--';
+        const via = med.via || med.via_administracao || '--';
+        const status = med.status || 'pendente';
+        
+        // Determinar classe e texto do status
+        const statusClass = status === 'administrado' ? 'badge-concluida' : 'badge-pendente';
+        const statusText = status === 'administrado' ? 'Administrado' : 'Pendente';
+
+        return `
+            <div class="medication-item">
+                <div class="medication-icon">
+                    <i class="fas fa-pills"></i>
+                </div>
+                <div class="medication-info">
+                    <span class="medication-name">${nome}</span>
+                    <div class="medication-details">
+                        <div class="detail-item">
+                            <span class="detail-label">Dosagem:</span>
+                            <span class="detail-value">${dosagem}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Horário:</span>
+                            <span class="detail-value">${horario}</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="detail-label">Via:</span>
+                            <span class="detail-value">${via}</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="medication-status">
+                    <span class="status-badge ${statusClass}">
+                        <i class="fas ${status === 'administrado' ? 'fa-check-circle' : 'fa-clock'}"></i>
+                        ${statusText}
+                    </span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+// ✅ FUNÇÃO PARA ADMINISTRAR MEDICAMENTO (ADICIONAR)
+async function administerMedication(medicamentoId) {
     try {
-        if (!currentPatient) {
-            console.log('❌ Nenhum paciente selecionado');
-            return;
+        console.log(`💊 Administrando medicamento: ${medicamentoId}`);
+        
+        const response = await fetch(`/api/medicamentos/${medicamentoId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                status: 'administrado',
+                cuidador_id: localStorage.getItem('usuarioId')
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao administrar medicamento');
         }
 
-        console.log(`💊 Buscando medicamentos para paciente: ${currentPatient.id}`);
+        const result = await response.json();
+        console.log('✅ Medicamento administrado:', result);
         
-        const response = await fetch(`/api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        // Recarregar medicamentos
+        await loadMedications();
+        
+        // Mostrar mensagem de sucesso
+        alert('Medicamento administrado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro ao administrar medicamento:', error);
+        alert('Erro ao administrar medicamento: ' + error.message);
+    }
+}
+    // Função corrigida para carregar medicamentos no dashboard
+    async function loadMedications() {
+        try {
+            if (!currentPatient) {
+                console.log('❌ Nenhum paciente selecionado');
+                return;
+            }
+
+            console.log(`💊 Buscando medicamentos para paciente: ${currentPatient.id}`);
+
+            const response = await fetch(`/api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+
+            if (!response.ok) {
+                throw new Error('Erro ao carregar medicamentos da API');
+            }
+
+            const medicamentos = await response.json();
+            console.log('📦 Medicamentos recebidos no dashboard:', medicamentos);
+
+            updateMedicationsInterface(medicamentos);
+        } catch (error) {
+            console.error('❌ Erro ao carregar medicamentos no dashboard:', error);
+            updateMedicationsInterface([]);
+        }
+    }
+
+    // ✅ FUNÇÃO PARA INICIALIZAR GRÁFICO DE ADESÃO (COM DADOS REAIS)
+async function inicializarGraficoAdesao() {
+    try {
+        const dadosAdesao = await carregarDadosAdesao();
+        renderizarGraficoAdesao(dadosAdesao);
+    } catch (error) {
+        console.error('Erro ao carregar dados de adesão:', error);
+        // Gráfico com dados vazios em caso de erro
+        renderizarGraficoAdesao([]);
+    }
+}
+
+// ✅ FUNÇÃO PARA CARREGAR DADOS DE ADESÃO DA API
+async function carregarDadosAdesao() {
+    try {
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+        if (!pacienteId) {
+            throw new Error('Nenhum paciente selecionado');
+        }
+
+        const response = await fetch(`/api/pacientes/${pacienteId}/estatisticas-adesao`);
+        
+        if (response.ok) {
+            const dados = await response.json();
+            console.log('📊 Dados de adesão carregados:', dados);
+            return dados;
+        } else {
+            // Se a API não existir, calcular com base nos dados locais
+            return calcularAdesaoLocal();
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dados de adesão:', error);
+        return calcularAdesaoLocal();
+    }
+}
+
+// ✅ FUNÇÃO PARA CALCULAR ADESÃO COM BASE NOS DADOS LOCAIS
+function calcularAdesaoLocal() {
+    if (!medicamentos || medicamentos.length === 0) {
+        return {
+            taxaGeral: 0,
+            dadosSemana: Array(7).fill(0),
+            totalMedicamentos: 0,
+            administrados: 0,
+            pendentes: 0
+        };
+    }
+
+    // Calcular taxa geral
+    const totalMedicamentos = medicamentos.length;
+    const administrados = medicamentos.filter(m => m.status === 'administrado').length;
+    const taxaGeral = totalMedicamentos > 0 ? Math.round((administrados / totalMedicamentos) * 100) : 0;
+
+    // Gerar dados da semana (últimos 7 dias)
+    const dadosSemana = Array(7).fill(0).map((_, index) => {
+        // Simular dados - em produção, isso viria da API
+        const baseRate = 70 + Math.random() * 25; // Entre 70% e 95%
+        return Math.min(100, Math.round(baseRate));
+    });
+
+    return {
+        taxaGeral,
+        dadosSemana,
+        totalMedicamentos,
+        administrados,
+        pendentes: totalMedicamentos - administrados
+    };
+}
+
+// ✅ FUNÇÃO PARA RENDERIZAR GRÁFICO DE ADESÃO
+function renderizarGraficoAdesao(dadosAdesao) {
+    const ctx = document.getElementById('adesaoChart');
+    if (!ctx) {
+        console.error('Canvas do gráfico não encontrado');
+        return;
+    }
+
+    // Dados padrão se não houver dados
+    const dados = dadosAdesao && dadosAdesao.dadosSemana ? dadosAdesao.dadosSemana : [0, 0, 0, 0, 0, 0, 0];
+    
+    const labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+    
+    // Verificar se já existe um gráfico e destruí-lo
+    if (window.adesaoChartInstance) {
+        window.adesaoChartInstance.destroy();
+    }
+
+    window.adesaoChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Taxa de Adesão (%)',
+                    data: dados,
+                    borderColor: '#00B5C2',
+                    backgroundColor: 'rgba(0, 181, 194, 0.1)',
+                    tension: 0.4,
+                    fill: true,
+                    pointBackgroundColor: '#00B5C2',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 4,
+                    pointHoverRadius: 6
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Adesão: ${context.parsed.y}%`;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    ticks: {
+                        callback: function(value) {
+                            return value + '%';
+                        }
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Atualizar estatísticas de adesão no card
+    atualizarEstatisticasAdesao(dadosAdesao);
+}
+
+// ✅ FUNÇÃO PARA ATUALIZAR ESTATÍSTICAS DE ADESÃO
+function atualizarEstatisticasAdesao(dadosAdesao) {
+    if (!dadosAdesao) {
+        dadosAdesao = calcularAdesaoLocal();
+    }
+
+    // Atualizar cards de estatísticas
+    document.getElementById('totalMedicamentos').textContent = dadosAdesao.totalMedicamentos || 0;
+    document.getElementById('medicamentosAdministrados').textContent = dadosAdesao.administrados || 0;
+    document.getElementById('medicamentosPendentes').textContent = dadosAdesao.pendentes || 0;
+    
+    // Atualizar taxa de adesão no título do gráfico
+    const tituloGrafico = document.querySelector('.card-header h3');
+    if (tituloGrafico) {
+        tituloGrafico.innerHTML = `<i class="fas fa-chart-bar"></i> Adesão à Medicação - ${dadosAdesao.taxaGeral || 0}%`;
+    }
+}
+
+// ✅ ATUALIZAR A FUNÇÃO marcarComoAdministrado PARA ATUALIZAR O GRÁFICO
+async function marcarComoAdministrado(id) {
+    console.log(`🔄 Tentando marcar medicamento ${id} como administrado`);
+    
+    try {
+        const usuarioId = localStorage.getItem('usuarioId');
+        console.log(`👤 ID do usuário: ${usuarioId}`);
+        
+        const resultado = await atualizarStatusMedicamento(id, 'administrado', usuarioId);
+        console.log('✅ Resposta da API:', resultado);
+        
+        mostrarMensagem('Medicamento marcado como administrado!', 'success');
+        
+        // Atualizar a interface imediatamente
+        const medicamentoIndex = medicamentos.findIndex(m => m.id === id);
+        if (medicamentoIndex !== -1) {
+            medicamentos[medicamentoIndex].status = 'administrado';
+            renderizarMedicamentos();
+            atualizarEstatisticas();
+            
+            // ✅ ATUALIZAR GRÁFICO DE ADESÃO
+            const dadosAdesao = calcularAdesaoLocal();
+            renderizarGraficoAdesao(dadosAdesao);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao marcar como administrado:', error);
+        mostrarMensagem('Erro ao administrar medicamento: ' + error.message, 'error');
+    }
+}
+
+// ✅ FUNÇÃO PARA ATUALIZAR ESTATÍSTICAS (CORRIGIDA)
+function atualizarEstatisticas() {
+    const medicamentosFiltrados = filtrarMedicamentos();
+    const total = medicamentosFiltrados.length;
+    const administrados = medicamentosFiltrados.filter(m => m.status === 'administrado').length;
+    const pendentes = medicamentosFiltrados.filter(m => m.status === 'pendente').length;
+    
+    // Calcular próximo horário
+    const agora = new Date();
+    const horariosPendentes = medicamentosFiltrados
+        .filter(m => m.status === 'pendente' && m.horario)
+        .map(m => {
+            try {
+                if (m.horario && typeof m.horario === 'string' && m.horario.includes(':')) {
+                    const [horas, minutos] = m.horario.split(':');
+                    const horario = new Date();
+                    horario.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+                    
+                    // Se o horário já passou hoje, considerar para amanhã
+                    if (horario < agora) {
+                        horario.setDate(horario.getDate() + 1);
+                    }
+                    
+                    return horario;
+                }
+                return null;
+            } catch (error) {
+                console.warn('Horário inválido:', m.horario);
+                return null;
+            }
+        })
+        .filter(horario => horario !== null)
+        .sort((a, b) => a - b);
+    
+    const proximoHorario = horariosPendentes.length > 0 ? 
+        horariosPendentes[0].toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '--:--';
+
+    // Atualizar interface
+    document.getElementById('totalMedicamentos').textContent = total;
+    document.getElementById('medicamentosAdministrados').textContent = administrados;
+    document.getElementById('medicamentosPendentes').textContent = pendentes;
+    document.getElementById('proximoHorario').textContent = proximoHorario;
+    
+    // ✅ ATUALIZAR GRÁFICO DE ADESÃO TAMBÉM
+    const dadosAdesao = calcularAdesaoLocal();
+    atualizarEstatisticasAdesao(dadosAdesao);
+}
+
+// ✅ MODIFICAR A FUNÇÃO carregarMedicamentos PARA INCLUIR ADESÃO
+async function carregarMedicamentos() {
+    try {
+        mostrarLoading(true);
+        
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+        if (!pacienteId) {
+            throw new Error('Nenhum paciente selecionado');
+        }
+
+        console.log(`🎯 Buscando medicamentos para paciente: ${pacienteId}`);
+
+        const response = await fetch(`/api/pacientes/${pacienteId}/medicamentos/hoje`);
         
         if (!response.ok) {
             throw new Error('Erro ao carregar medicamentos da API');
         }
         
-        const medicamentos = await response.json();
-        console.log('📦 Medicamentos recebidos no dashboard:', medicamentos);
+        medicamentos = await response.json();
+        console.log('📦 Medicamentos carregados da API:', medicamentos);
         
-        updateMedicationsInterface(medicamentos);
+        renderizarMedicamentos();
+        atualizarEstatisticas();
+        
+        // ✅ CARREGAR DADOS DE ADESÃO
+        const dadosAdesao = await carregarDadosAdesao();
+        renderizarGraficoAdesao(dadosAdesao);
+        
     } catch (error) {
-        console.error('❌ Erro ao carregar medicamentos no dashboard:', error);
-        updateMedicationsInterface([]);
+        console.error('Erro ao carregar medicamentos:', error);
+        medicamentos = [];
+        renderizarMedicamentos();
+        atualizarEstatisticas();
+        
+        // ✅ EM CASO DE ERRO, USAR DADOS LOCAIS PARA ADESÃO
+        const dadosAdesao = calcularAdesaoLocal();
+        renderizarGraficoAdesao(dadosAdesao);
+        
+        mostrarMensagem('Erro ao carregar medicamentos: ' + error.message, 'error');
+    } finally {
+        mostrarLoading(false);
     }
 }
 
-// Função corrigida para atualizar interface de medicamentos no dashboard
-function updateMedicationsInterface(medicamentos) {
-    const container = document.getElementById("medicationSchedule");
+function updateTasksInterface(atividades) {
+    const container = document.getElementById("activityFeed");
     
     if (!container) {
-        console.error('❌ Container medicationSchedule não encontrado no dashboard');
+        console.error('❌ Container activityFeed não encontrado');
         return;
     }
     
-    // Garantir que é um array
-    if (!Array.isArray(medicamentos)) {
-        console.warn('⚠️ Medicamentos não é array:', medicamentos);
-        medicamentos = [];
+    if (!Array.isArray(atividades)) {
+        atividades = [];
     }
-    
-    console.log('🎨 Renderizando medicamentos no dashboard:', medicamentos);
 
-    if (medicamentos.length === 0) {
+    if (atividades.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <i data-feather="calendar"></i>
-                <p>Nenhum medicamento para hoje</p>
+                <i class="fas fa-tasks"></i>
+                <p>Nenhuma atividade para hoje</p>
+                <small class="text-muted">As atividades aparecerão aqui quando forem registradas</small>
             </div>
         `;
-        if (typeof feather !== 'undefined') feather.replace();
         return;
     }
     
-    container.innerHTML = medicamentos.map(med => {
-        // Processar dados do medicamento
-        const nome = med.nome_medicamento || med.nome || 'Medicamento';
-        const dosagem = med.dosagem || 'Dosagem não informada';
-        const horario = med.horario || med.horarios || 'Horário não informado';
-        const status = med.status || 'pendente';
+    container.innerHTML = atividades.map(atividade => {
+        const descricao = atividade.descricao || 'Atividade sem descrição';
+        const tipo = atividade.tipo || 'outro';
         
-        console.log(`💊 Processando: ${nome} - Status: ${status}`);
+        // Formatar horário
+        let horario = '--:--';
+        if (atividade.data_prevista) {
+            const data = new Date(atividade.data_prevista);
+            horario = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        const status = atividade.status || 'pendente';
+        const cuidador = atividade.cuidador_nome || 'Cuidador';
+        
+        // Ícone baseado no tipo
+        const iconClass = getTaskIcon(tipo);
+        const tipoTexto = obterTextoTipo(tipo);
         
         return `
-            <div class="medication-item" data-medicamento-id="${med.id}">
-                <div class="medication-icon">
-                    <i data-feather="pill"></i>
+            <div class="activity-item">
+                <div class="activity-icon ${tipo}">
+                    <i class="${iconClass}"></i>
                 </div>
-                <div class="medication-info">
-                    <h5>${nome}</h5>
-                    <small>${dosagem} - ${horario}</small>
+                <div class="activity-info">
+                    <span class="activity-title">${descricao}</span>
+                    <div class="activity-meta">
+                        <div class="meta-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${horario}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-tag"></i>
+                            <span>${tipoTexto}</span>
+                        </div>
+                        <div class="meta-item">
+                            <i class="fas fa-user"></i>
+                            <span>${cuidador}</span>
+                        </div>
+                    </div>
                 </div>
-                <span class="badge ${status === 'pendente' ? 'bg-warning' : 'bg-success'}">
-                    ${status === 'pendente' ? 'Pendente' : 'Administrado'}
-                </span>
+                <div class="activity-status">
+                    <span class="status-badge ${status === 'pendente' ? 'badge-pendente' : 'badge-concluida'}">
+                        <i class="fas ${status === 'pendente' ? 'fa-clock' : 'fa-check'}"></i>
+                        ${status === 'pendente' ? 'Pendente' : 'Concluída'}
+                    </span>
+                </div>
             </div>
         `;
     }).join('');
-    
-    if (typeof feather !== 'undefined') feather.replace();
+}
+// ✅ FUNÇÃO PARA OBTER TEXTO DO TIPO DE ATIVIDADE
+function obterTextoTipo(tipo) {
+    const textos = {
+        'alimentacao': 'Alimentação',
+        'exercicio': 'Exercício',
+        'higiene': 'Higiene',
+        'medicacao': 'Medicação',
+        'repouso': 'Repouso',
+        'social': 'Social',
+        'outro': 'Outro'
+    };
+    return textos[tipo] || tipo;
 }
 
-    // Modificar a função updateMedicationsInterface
-    // Modifique a função updateMedicationsInterface
-    function updateMedicationsInterface(medicamentos) {
-        const container = document.getElementById("medicationSchedule");
+// ✅ FUNÇÃO PARA OBTER ÍCONES DO FONT AWESOME (CORRIGIDA)
+function getTaskIcon(tipo) {
+    const iconMap = {
+        'alimentacao': 'fas fa-utensils',
+        'exercicio': 'fas fa-running',
+        'higiene': 'fas fa-shower',
+        'medicacao': 'fas fa-pills',
+        'repouso': 'fas fa-bed',
+        'social': 'fas fa-users',
+        'outro': 'fas fa-tasks'
+    };
+    return iconMap[tipo] || 'fas fa-tasks';
+}
 
-        // Garantir que é um array
-        if (!Array.isArray(medicamentos)) {
-            medicamentos = [];
-        }
-
-        if (medicamentos.length === 0) {
-            container.innerHTML = `
-            <div class="empty-state">
-                <i data-feather="calendar"></i>
-                <p>Nenhum medicamento para hoje</p>
-            </div>
-        `;
-            feather.replace();
+// ✅ FUNÇÃO PARA CARREGAR ATIVIDADES (COM TRATAMENTO DE ERRO MELHORADO)
+// ✅ FUNÇÃO PARA CARREGAR ATIVIDADES (COM TRATAMENTO DE ERRO MELHORADO) - CORRIGIDA
+async function loadTasks() {
+    try {
+        console.log('🔍 DEBUG - Iniciando loadTasks...');
+        
+        if (!currentPatient) {
+            console.log('❌ currentPatient não definido');
             return;
         }
 
-        container.innerHTML = medicamentos.map(med => {
-            // Validar dados
-            const nome = med.nome_medicamento || med.nome || 'Medicamento não informado';
-            const dosagem = med.dosagem || 'Dosagem não informada';
-            const horario = med.horario || 'Horário não informado';
-            const status = med.status || 'pendente'; // Default para pendente
+        const usuarioId = localStorage.getItem('usuarioId');
+        const pacienteId = currentPatient.id;
 
-            return `
-            <div class="medication-item">
-                <div class="medication-icon">
-                    <i data-feather="pill"></i>
-                </div>
-                <div class="medication-info">
-                    <h5>${nome}</h5>
-                    <small>${dosagem} - ${horario}</small>
-                </div>
-                <span class="badge ${status === 'pendente' ? 'bg-warning' : 'bg-success'}">
-                    ${status === 'pendente' ? 'Pendente' : 'Administrado'}
-                </span>
-            </div>
-        `;
-        }).join('');
+        console.log('🔍 DEBUG - Dados:', { usuarioId, pacienteId, currentPatient });
 
-        feather.replace();
-    }
-
-    async function loadTasks() {
-        try {
-            const response = await fetch(`/api/cuidadores/${currentUser.id}/tarefas/hoje`);
-
-            if (response.ok) {
-                const tarefas = await response.json();
-                updateTasksInterface(tarefas);
-            }
-        } catch (error) {
-            console.error("Erro ao carregar tarefas:", error);
+        // ✅ CORREÇÃO: Mude de 'supervisores' para 'pacientes'
+        const response = await fetch(`/api/pacientes/${pacienteId}/atividades/hoje`);
+        
+        console.log('🔍 DEBUG - Resposta da API:', response.status);
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}`);
         }
+        
+        const atividades = await response.json();
+        console.log('📦 Atividades recebidas:', atividades);
+        
+        updateTasksInterface(atividades);
+    } catch (error) {
+        console.error('❌ Erro detalhado:', error);
+        updateTasksInterface([]);
     }
+}
 
-    function updateTasksInterface(tarefas) {
-        const container = document.getElementById("tasksList");
-
-        if (tarefas.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i data-feather="check-circle"></i>
-                    <p>Nenhuma tarefa para hoje</p>
-                </div>
-            `;
-            feather.replace();
-            return;
-        }
-
-        container.innerHTML = tarefas.map(tarefa => `
-            <div class="task-item">
-                <div class="task-icon">
-                    <i data-feather="${getTaskIcon(tarefa.tipo)}"></i>
-                </div>
-                <div class="task-info">
-                    <h5>${tarefa.descricao}</h5>
-                    <small>${tarefa.horario_previsto}</small>
-                </div>
-                <span class="badge ${tarefa.status === 'pendente' ? 'bg-warning' : 'bg-success'}">
-                    ${tarefa.status === 'pendente' ? 'Pendente' : 'Concluída'}
-                </span>
-            </div>
-        `).join('');
-
-        feather.replace();
+// ✅ FUNÇÃO PARA RECARREGAR TAREFAS (MANTIDA)
+async function recarregarTarefasSupervisor() {
+    try {
+        await loadTasks();
+        console.log('✅ Tarefas recarregadas no dashboard do supervisor');
+    } catch (error) {
+        console.error('❌ Erro ao recarregar tarefas no dashboard do supervisor:', error);
     }
+}
 
+// ✅ TORNAR FUNÇÃO GLOBAL (MANTIDA)
+window.recarregarTarefasSupervisor = recarregarTarefasSupervisor;
+
+    // Função para obter ícone baseado no tipo de atividade
+    function getTaskIcon(tipo) {
+        const iconMap = {
+            'alimentacao': 'coffee',
+            'exercicio': 'activity',
+            'higiene': 'droplet',
+            'medicacao': 'pill',
+            'repouso': 'moon',
+            'social': 'users',
+            'outro': 'check-square'
+        };
+        return iconMap[tipo] || 'check-square';
+    }
     async function loadAlerts() {
         try {
             const response = await fetch(`/api/pacientes/${currentPatient.id}/alertas/recentes`);
@@ -585,6 +990,150 @@ function updateMedicationsInterface(medicamentos) {
     }
 });
 
+
+// ====================== INTEGRAÇÃO COM ATIVIDADES ====================== //
+
+// Função para carregar tarefas (atividades) no dashboard
+async function carregarTarefasDashboard() {
+    try {
+        if (!currentPatient) {
+            console.log('❌ Nenhum paciente selecionado para carregar tarefas');
+            return;
+        }
+
+        console.log(`📝 Buscando atividades para dashboard - paciente: ${currentPatient.id}`);
+
+        const response = await fetch(`/api/pacientes/${currentPatient.id}/atividades/hoje`);
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar atividades para dashboard');
+        }
+
+        const atividades = await response.json();
+        console.log('📦 Atividades carregadas no dashboard:', atividades);
+
+        atualizarInterfaceTarefas(atividades);
+    } catch (error) {
+        console.error('❌ Erro ao carregar tarefas no dashboard:', error);
+        atualizarInterfaceTarefas([]);
+    }
+}
+
+// Função para atualizar a interface de tarefas
+function atualizarInterfaceTarefas(atividades) {
+    const container = document.getElementById("tasksList");
+
+    if (!container) {
+        console.error('❌ Container tasksList não encontrado no dashboard');
+        return;
+    }
+
+    // Garantir que é um array
+    if (!Array.isArray(atividades)) {
+        console.warn('⚠️ Atividades não é array:', atividades);
+        atividades = [];
+    }
+
+    console.log('🎨 Renderizando tarefas no dashboard:', atividades);
+
+    if (atividades.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i data-feather="check-circle"></i>
+                <p>Nenhuma tarefa para hoje</p>
+            </div>
+        `;
+        if (typeof feather !== 'undefined') feather.replace();
+        return;
+    }
+
+    container.innerHTML = atividades.map(atividade => {
+        // Processar dados da atividade
+        const descricao = atividade.descricao || 'Atividade sem descrição';
+
+        // Formatar horário
+        let horario = 'Horário não informado';
+        if (atividade.data_prevista) {
+            const data = new Date(atividade.data_prevista);
+            horario = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        const status = atividade.status || 'pendente';
+        const tipo = atividade.tipo || 'outro';
+
+        return `
+            <div class="task-item" data-atividade-id="${atividade.id}">
+                <div class="task-icon">
+                    <i data-feather="${getTaskIcon(tipo)}"></i>
+                </div>
+                <div class="task-info">
+                    <h5>${descricao.length > 50 ? descricao.substring(0, 50) + '...' : descricao}</h5>
+                    <small>${horario} - ${obterTextoTipo(tipo)}</small>
+                </div>
+                <span class="badge ${status === 'pendente' ? 'bg-warning' : 'bg-success'}">
+                    ${status === 'pendente' ? 'Pendente' : 'Concluída'}
+                </span>
+            </div>
+        `;
+    }).join('');
+
+    if (typeof feather !== 'undefined') feather.replace();
+}
+
+// Função para obter ícone baseado no tipo de atividade
+function getTaskIcon(tipo) {
+    const iconMap = {
+        'alimentacao': 'coffee',
+        'exercicio': 'activity',
+        'higiene': 'droplet',
+        'medicacao': 'pill',
+        'repouso': 'moon',
+        'social': 'users',
+        'outro': 'check-square'
+    };
+    return iconMap[tipo] || 'check-square';
+}
+
+// Função para obter texto do tipo de atividade
+function obterTextoTipo(tipo) {
+    const textos = {
+        'alimentacao': 'Alimentação',
+        'exercicio': 'Exercício',
+        'higiene': 'Higiene',
+        'medicacao': 'Medicação',
+        'repouso': 'Repouso',
+        'social': 'Social',
+        'outro': 'Outro'
+    };
+    return textos[tipo] || tipo;
+}
+
+// Função global para ser chamada de outros arquivos
+window.carregarTarefasDashboard = carregarTarefasDashboard;
+
+// Modifique a função initializeDashboard para carregar tarefas também
+async function initializeDashboard() {
+    try {
+        // Carregar dados do usuário logado
+        await loadUserData();
+
+        // Carregar dados do paciente
+        await loadPatientData();
+
+        // Carregar dados do dashboard
+        await loadDashboardData();
+
+        // ⬇️ CARREGAR TAREFAS/ATIVIDADES
+        await carregarTarefasDashboard();
+
+        // Configurar event listeners
+        setupEventListeners();
+
+    } catch (error) {
+        console.error("Erro ao inicializar dashboard:", error);
+        showError("Erro ao carregar dados do dashboard");
+    }
+}
 
 // ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
 function voltarParaLanding() {

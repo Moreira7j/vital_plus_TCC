@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const app = express();
 
 // Middlewares
+
 app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
@@ -166,6 +167,8 @@ app.get("/relatorios_cuidador", (req, res) => {
 app.get("/comunicacao_cuidador", (req, res) => {
     res.sendFile(path.join(__dirname, "public/paginas/comunicacao_cuidador.html"));
 });
+
+
 
 // ====================== ROTAS CORRIGIDAS PARA SUPERVISOR ====================== //
 
@@ -1281,7 +1284,38 @@ function enviarEmailConfirmacaoConvite(usuarioCuidadorId, token) {
     });
 }
 
-// ... (o resto do código permanece igual - mantive apenas as partes importantes para não exceder o limite)
+// ====================== LIMPEZA AUTOMÁTICA DE ATIVIDADES CONCLUÍDAS ====================== //
+
+function limparAtividadesConcluidas() {
+    console.log('🧹 Iniciando limpeza automática de atividades concluídas...');
+    
+    const query = `
+        DELETE FROM atividades 
+        WHERE status = 'concluida' 
+        AND DATE(data_conclusao) < CURDATE()
+    `;
+
+    db.query(query, (err, result) => {
+        if (err) {
+            console.error('❌ Erro ao limpar atividades concluídas:', err);
+            return;
+        }
+
+        console.log(`✅ Limpeza concluída: ${result.affectedRows} atividades concluídas removidas`);
+    });
+}
+
+// Executar limpeza uma vez ao iniciar o servidor (para testes)
+limparAtividadesConcluidas();
+
+// Agendar limpeza diária às 00:01
+setInterval(() => {
+    const agora = new Date();
+    if (agora.getHours() === 0 && agora.getMinutes() === 1) {
+        limparAtividadesConcluidas();
+    }
+}, 60000); // Verificar a cada minuto
+
 
 // Iniciar servidor
 const PORT = 3000;
@@ -2849,44 +2883,73 @@ app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/alertas", (req, r
     });
 });
 
-// Rota CORRIGIDA para atividades do supervisor
+// Buscar atividades do paciente para supervisor - NOVA ROTA
 app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/atividades", (req, res) => {
     const { supervisorId, pacienteId } = req.params;
 
-    console.log(`📝 Buscando atividades do paciente ${pacienteId} para supervisor: ${supervisorId}`);
+    console.log(`📅 Buscando atividades para supervisor ${supervisorId} do paciente ${pacienteId}`);
 
-    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
+    // Verificar acesso do supervisor ao paciente
     const verificarAcessoQuery = `
         SELECT p.id 
         FROM pacientes p
-        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
-        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+        WHERE p.id = ? AND (p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+                          OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?))
     `;
 
-    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
         if (err || acessoResults.length === 0) {
-            return res.status(403).json({ error: "Acesso negado" });
+            console.log('❌ Acesso negado ou paciente não encontrado');
+            return res.status(403).json({ error: "Acesso negado a este paciente" });
         }
 
+        // Buscar atividades do paciente
         const query = `
             SELECT 
-                a.*,
-                u.nome as cuidador_nome
+                a.id,
+                a.tipo,
+                a.descricao,
+                a.data_prevista,
+                a.status,
+                a.observacoes,
+                a.data_conclusao,
+                u.nome as cuidador_nome,
+                p.nome as paciente_nome
             FROM atividades a
-            LEFT JOIN usuarios u ON a.cuidador_id = u.id
-            WHERE a.paciente_id = ?
-            ORDER BY a.data_prevista DESC
-            LIMIT 10
+            LEFT JOIN pacientes p ON a.paciente_id = p.id
+            LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
+            LEFT JOIN usuarios u ON cp.usuario_id = u.id
+            WHERE a.paciente_id = ? 
+            AND (
+                (a.status = 'pendente' AND DATE(a.data_prevista) = CURDATE()) 
+                OR 
+                (a.status = 'concluida' AND DATE(a.data_conclusao) = CURDATE())
+            )
+            AND a.status != 'cancelada'
+            ORDER BY a.data_prevista ASC
         `;
 
         db.query(query, [pacienteId], (err, results) => {
             if (err) {
-                console.error("❌ Erro ao buscar atividades:", err);
+                console.error("❌ Erro ao buscar atividades para supervisor:", err);
                 return res.status(500).json({ error: "Erro interno do servidor" });
             }
 
-            console.log(`✅ ${results.length} atividades encontradas para supervisor`);
-            res.json(results);
+            console.log(`📊 ${results.length} atividades encontradas para supervisor`);
+            
+            const atividadesFormatadas = results.map(atividade => ({
+                id: atividade.id,
+                tipo: atividade.tipo,
+                descricao: atividade.descricao,
+                data_prevista: atividade.data_prevista,
+                status: atividade.status,
+                observacoes: atividade.observacoes,
+                data_conclusao: atividade.data_conclusao,
+                cuidador_nome: atividade.cuidador_nome,
+                paciente_nome: atividade.paciente_nome
+            }));
+
+            res.json(atividadesFormatadas);
         });
     });
 });
@@ -5022,5 +5085,759 @@ app.delete("/api/medicamentos/:medicamentoId", (req, res) => {
 
         console.log(`✅ Medicamento ${medicamentoId} excluído (desativado)`);
         res.json({ success: true, message: "Medicamento excluído com sucesso" });
+    });
+});
+
+// Atualizar medicamento existente
+app.put("/api/medicamentos/:medicamentoId", (req, res) => {
+    const medicamentoId = req.params.medicamentoId;
+    const {
+        nome,
+        dosagem,
+        frequencia,
+        horario,
+        via,
+        instrucoes
+    } = req.body;
+
+    console.log("✏️ Recebendo solicitação de atualização de medicamento:", {
+        medicamentoId, nome, dosagem, frequencia, horario, via
+    });
+
+    if (!nome || !dosagem || !horario || !via) {
+        return res.status(400).json({ 
+            error: "Nome, dosagem, horário e via são obrigatórios" 
+        });
+    }
+
+    const query = `
+        UPDATE medicamentos 
+        SET nome_medicamento = ?, dosagem = ?, frequencia = ?, horarios = ?, via_administracao = ?, observacoes = ?
+        WHERE id = ?
+    `;
+
+    db.query(query, [
+        nome,
+        dosagem,
+        frequencia,
+        horario,
+        via,
+        instrucoes || '',
+        medicamentoId
+    ], (err, result) => {
+        if (err) {
+            console.error("❌ Erro ao atualizar medicamento:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Medicamento não encontrado" });
+        }
+
+        console.log("✅ Medicamento atualizado com sucesso. ID:", medicamentoId);
+        
+        // Retornar o medicamento atualizado
+        res.json({
+            id: medicamentoId,
+            nome_medicamento: nome,
+            nome: nome,
+            dosagem: dosagem,
+            frequencia: frequencia,
+            horario: horario,
+            via: via,
+            instrucoes: instrucoes,
+            status: 'pendente'
+        });
+    });
+});
+
+   // ====================== ROTAS PARA ATIVIDADES ====================== //
+
+// ✅ ROTA CORRIGIDA: Criar atividade
+app.post("/api/atividades", (req, res) => {
+    const {
+        paciente_id,
+        usuario_id,
+        tipo,
+        descricao,
+        data_prevista,
+        observacoes
+    } = req.body;
+
+    console.log("📝 Recebendo solicitação de criação de atividade:", req.body);
+
+    if (!paciente_id || !usuario_id || !tipo || !descricao || !data_prevista) {
+        return res.status(400).json({ 
+            error: "Paciente ID, usuário ID, tipo, descrição e data prevista são obrigatórios" 
+        });
+    }
+
+    // Primeiro buscar o ID do cuidador profissional baseado no usuario_id
+    const getCuidadorIdQuery = `
+        SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?
+    `;
+
+    console.log(`🔍 Buscando cuidador profissional para usuario_id: ${usuario_id}`);
+
+    db.query(getCuidadorIdQuery, [usuario_id], (err, cuidadorResults) => {
+        if (err) {
+            console.error("❌ Erro ao buscar cuidador profissional:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📋 Resultados do cuidador:`, cuidadorResults);
+
+        if (cuidadorResults.length === 0) {
+            console.error("❌ Cuidador profissional não encontrado para usuario_id:", usuario_id);
+            return res.status(404).json({ error: "Cuidador profissional não encontrado" });
+        }
+
+        const cuidadorProfissionalId = cuidadorResults[0].id;
+        console.log(`✅ Cuidador profissional ID encontrado: ${cuidadorProfissionalId}`);
+
+        const insertQuery = `
+            INSERT INTO atividades 
+            (paciente_id, cuidador_id, tipo, descricao, data_prevista, observacoes, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'pendente')
+        `;
+
+        console.log(`💾 Inserindo atividade com dados:`, {
+            paciente_id,
+            cuidadorProfissionalId,
+            tipo,
+            descricao,
+            data_prevista,
+            observacoes
+        });
+
+        db.query(insertQuery, [
+            paciente_id,
+            cuidadorProfissionalId,
+            tipo,
+            descricao,
+            data_prevista,
+            observacoes || ''
+        ], (err, result) => {
+            if (err) {
+                console.error("❌ Erro ao criar atividade:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log("✅ Atividade criada com sucesso. ID:", result.insertId);
+            
+            // Buscar a atividade criada para retornar
+            const selectQuery = `
+                SELECT a.*, p.nome as paciente_nome 
+                FROM atividades a 
+                LEFT JOIN pacientes p ON a.paciente_id = p.id 
+                WHERE a.id = ?
+            `;
+            
+            db.query(selectQuery, [result.insertId], (err, results) => {
+                if (err) {
+                    console.error("❌ Erro ao buscar atividade criada:", err);
+                    return res.status(500).json({ error: "Erro interno do servidor" });
+                }
+
+                const atividade = results[0];
+                console.log("📤 Retornando atividade criada:", atividade);
+                res.json({
+                    id: atividade.id,
+                    tipo: atividade.tipo,
+                    descricao: atividade.descricao,
+                    data_prevista: atividade.data_prevista,
+                    observacoes: atividade.observacoes,
+                    status: atividade.status,
+                    paciente_nome: atividade.paciente_nome
+                });
+            });
+        });
+    });
+});
+
+// ✅ ROTA CORRIGIDA: Excluir atividade
+app.delete("/api/atividades/:id", (req, res) => {
+    const atividadeId = req.params.id;
+    console.log(`🗑️ Excluindo atividade ID: ${atividadeId}`);
+
+    const deleteQuery = 'DELETE FROM atividades WHERE id = ?';
+    db.query(deleteQuery, [atividadeId], (err, result) => {
+        if (err) {
+            console.error("❌ Erro ao excluir atividade:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Atividade não encontrada" });
+        }
+
+        console.log('✅ Atividade excluída com sucesso');
+        res.json({ 
+            success: true, 
+            message: 'Atividade excluída com sucesso',
+            id: parseInt(atividadeId)
+        });
+    });
+});
+
+// ✅ ROTA CORRIGIDA: Editar atividade
+app.put("/api/atividades/:id", (req, res) => {
+    const atividadeId = req.params.id;
+    const { tipo, descricao, data_prevista, observacoes } = req.body;
+
+    console.log(`✏️ Editando atividade ID: ${atividadeId}`, req.body);
+
+    if (!tipo || !descricao || !data_prevista) {
+        return res.status(400).json({ 
+            error: "Tipo, descrição e data prevista são obrigatórios" 
+        });
+    }
+
+    const updateQuery = `
+        UPDATE atividades 
+        SET tipo = ?, descricao = ?, data_prevista = ?, observacoes = ?
+        WHERE id = ?
+    `;
+    
+    db.query(updateQuery, [tipo, descricao, data_prevista, observacoes, atividadeId], (err, result) => {
+        if (err) {
+            console.error("❌ Erro ao editar atividade:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: "Atividade não encontrada" });
+        }
+
+        console.log('✅ Atividade editada com sucesso');
+        
+        // Buscar atividade atualizada com nome do paciente
+        const selectQuery = `
+            SELECT a.*, p.nome as paciente_nome 
+            FROM atividades a 
+            LEFT JOIN pacientes p ON a.paciente_id = p.id 
+            WHERE a.id = ?
+        `;
+        db.query(selectQuery, [atividadeId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar atividade:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            const atividade = results[0];
+            res.json({
+                id: atividade.id,
+                tipo: atividade.tipo,
+                descricao: atividade.descricao,
+                data_prevista: atividade.data_prevista,
+                observacoes: atividade.observacoes,
+                status: atividade.status,
+                paciente_nome: atividade.paciente_nome
+            });
+        });
+    });
+});
+
+// ✅ ROTA CORRIGIDA: Buscar atividades do paciente (para hoje)
+app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+
+    console.log(`📅 Buscando atividades para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        WHERE a.paciente_id = ? 
+        AND (
+            (a.status = 'pendente' AND DATE(a.data_prevista) = CURDATE()) 
+            OR 
+            (a.status = 'concluida' AND DATE(a.data_conclusao) = CURDATE())
+        )
+        AND a.status != 'cancelada'
+        ORDER BY a.data_prevista ASC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades encontradas para hoje`);
+        
+        const atividadesFormatadas = results.map(atividade => ({
+            id: atividade.id,
+            tipo: atividade.tipo,
+            descricao: atividade.descricao,
+            data_prevista: atividade.data_prevista,
+            status: atividade.status,
+            observacoes: atividade.observacoes,
+            data_conclusao: atividade.data_conclusao,
+            paciente_nome: atividade.paciente_nome
+        }));
+
+        res.json(atividadesFormatadas);
+    });
+});
+
+// ✅ ROTA CORRIGIDA: Marcar atividade como concluída
+app.put("/api/atividades/:atividadeId/concluir", (req, res) => {
+    const atividadeId = req.params.atividadeId;
+
+    console.log(`✅ Recebendo solicitação para concluir atividade: ${atividadeId}`);
+
+    const query = `
+        UPDATE atividades 
+        SET status = 'concluida', data_conclusao = NOW()
+        WHERE id = ?
+    `;
+
+    console.log(`🔍 Executando query: ${query} com ID: ${atividadeId}`);
+
+    db.query(query, [atividadeId], (err, result) => {
+        if (err) {
+            console.error("❌ Erro ao marcar atividade como concluída:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 Resultado da atualização:`, result);
+
+        if (result.affectedRows === 0) {
+            console.log(`❌ Nenhuma atividade encontrada com ID: ${atividadeId}`);
+            return res.status(404).json({ error: "Atividade não encontrada" });
+        }
+
+        console.log(`✅ Atividade ${atividadeId} marcada como concluída. Linhas afetadas: ${result.affectedRows}`);
+        
+        // Buscar a atividade atualizada para retornar
+        const selectQuery = `
+            SELECT a.*, p.nome as paciente_nome 
+            FROM atividades a 
+            LEFT JOIN pacientes p ON a.paciente_id = p.id 
+            WHERE a.id = ?
+        `;
+        db.query(selectQuery, [atividadeId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar atividade atualizada:", err);
+                return res.status(500).json({ error: "Erro ao buscar atividade" });
+            }
+
+            const atividade = results[0];
+            res.json({
+                success: true,
+                message: "Atividade concluída com sucesso",
+                atividade: {
+                    id: atividade.id,
+                    tipo: atividade.tipo,
+                    descricao: atividade.descricao,
+                    data_prevista: atividade.data_prevista,
+                    observacoes: atividade.observacoes,
+                    status: atividade.status,
+                    data_conclusao: atividade.data_conclusao,
+                    paciente_nome: atividade.paciente_nome
+                }
+            });
+        });
+    });
+});
+
+// ✅ ROTA CORRIGIDA: Buscar atividades do cuidador para um paciente específico
+app.get("/api/cuidadores/:cuidadorId/pacientes/:pacienteId/atividades", (req, res) => {
+    const { cuidadorId, pacienteId } = req.params;
+
+    console.log(`📝 Buscando atividades para cuidador ${cuidadorId} do paciente ${pacienteId}`);
+
+    // Verificar se o cuidador tem acesso ao paciente
+    const verificarAcessoQuery = `
+        SELECT cpp.id 
+        FROM cuidadores_profissionais_pacientes cpp
+        INNER JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE cp.usuario_id = ? AND cpp.paciente_id = ? AND cpp.status_vinculo = 'ativo'
+    `;
+
+    db.query(verificarAcessoQuery, [cuidadorId, pacienteId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            console.log('❌ Acesso negado ou vínculo não encontrado');
+            return res.status(403).json({ error: "Acesso negado a este paciente" });
+        }
+
+        // Buscar atividades do paciente
+        const query = `
+            SELECT 
+                a.id,
+                a.tipo,
+                a.descricao,
+                a.data_prevista,
+                a.status,
+                a.observacoes,
+                a.data_conclusao,
+                u.nome as cuidador_nome,
+                p.nome as paciente_nome
+            FROM atividades a
+            LEFT JOIN pacientes p ON a.paciente_id = p.id
+            LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
+            LEFT JOIN usuarios u ON cp.usuario_id = u.id
+            WHERE a.paciente_id = ? 
+            ORDER BY a.data_prevista DESC
+        `;
+
+        db.query(query, [pacienteId], (err, results) => {
+            if (err) {
+                console.error("❌ Erro ao buscar atividades para cuidador:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log(`📊 ${results.length} atividades encontradas para cuidador`);
+            
+            const atividadesFormatadas = results.map(atividade => ({
+                id: atividade.id,
+                tipo: atividade.tipo,
+                descricao: atividade.descricao,
+                data_prevista: atividade.data_prevista,
+                status: atividade.status,
+                observacoes: atividade.observacoes,
+                data_conclusao: atividade.data_conclusao,
+                cuidador_nome: atividade.cuidador_nome,
+                paciente_nome: atividade.paciente_nome
+            }));
+
+            res.json(atividadesFormatadas);
+        });
+    });
+});
+
+// ✅ ROTA CORRIGIDA: Estatísticas de adesão (usando MySQL)
+app.get('/api/pacientes/:id/estatisticas-adesao', (req, res) => {
+    const pacienteId = req.params.id;
+    
+    console.log(`📊 Buscando estatísticas de adesão para paciente: ${pacienteId}`);
+
+    // Buscar dados dos últimos 7 dias usando MySQL
+    const query = `
+        SELECT 
+            DATE(data_registro) as data,
+            COUNT(*) as total_medicamentos,
+            SUM(CASE WHEN status = 'administrado' THEN 1 ELSE 0 END) as administrados
+        FROM medicamentos 
+        WHERE paciente_id = ? 
+        AND data_registro >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        GROUP BY DATE(data_registro)
+        ORDER BY data ASC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error('❌ Erro ao calcular estatísticas de adesão:', err);
+            return res.status(500).json({ error: 'Erro interno do servidor' });
+        }
+
+        // Preparar dados para os últimos 7 dias
+        const dadosSemana = [];
+        const hoje = new Date();
+        
+        for (let i = 6; i >= 0; i--) {
+            const data = new Date(hoje);
+            data.setDate(data.getDate() - i);
+            const dataFormatada = data.toISOString().split('T')[0];
+            
+            const dadosDia = results.find(item => {
+                const itemData = new Date(item.data).toISOString().split('T')[0];
+                return itemData === dataFormatada;
+            });
+            
+            const taxaDia = dadosDia && dadosDia.total_medicamentos > 0 
+                ? Math.round((dadosDia.administrados / dadosDia.total_medicamentos) * 100) 
+                : 0;
+            
+            dadosSemana.push(taxaDia);
+        }
+
+        // Calcular estatísticas gerais
+        const totalGeral = results.reduce((sum, item) => sum + item.total_medicamentos, 0);
+        const administradosGeral = results.reduce((sum, item) => sum + item.administrados, 0);
+        const taxaGeral = totalGeral > 0 ? Math.round((administradosGeral / totalGeral) * 100) : 0;
+
+        console.log(`✅ Estatísticas calculadas: ${taxaGeral}% de adesão`);
+
+        res.json({
+            taxaGeral,
+            dadosSemana,
+            totalMedicamentos: totalGeral,
+            administrados: administradosGeral,
+            pendentes: totalGeral - administradosGeral
+        });
+    });
+});
+
+// ====================== ROTA CORRIGIDA PARA ATIVIDADES DO DIA ====================== //
+
+// ✅ ROTA ADICIONADA: Buscar atividades do paciente para hoje
+app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+
+    console.log(`📅 Buscando atividades de HOJE para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        WHERE a.paciente_id = ? 
+        AND DATE(a.data_prevista) = CURDATE()
+        AND a.status != 'cancelada'
+        ORDER BY a.data_prevista ASC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades de hoje:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades de hoje encontradas`);
+        
+        const atividadesFormatadas = results.map(atividade => ({
+            id: atividade.id,
+            tipo: atividade.tipo,
+            descricao: atividade.descricao,
+            data_prevista: atividade.data_prevista,
+            status: atividade.status,
+            observacoes: atividade.observacoes,
+            data_conclusao: atividade.data_conclusao,
+            paciente_nome: atividade.paciente_nome
+        }));
+
+        res.json(atividadesFormatadas);
+    });
+});
+
+// ====================== ROTA ALTERNATIVA PARA ATIVIDADES ====================== //
+
+// ✅ ROTA ALTERNATIVA: Buscar atividades do paciente (todas)
+app.get("/api/pacientes/:pacienteId/atividades", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+
+    console.log(`📅 Buscando TODAS atividades para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        WHERE a.paciente_id = ? 
+        ORDER BY a.data_prevista DESC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades encontradas`);
+        
+        const atividadesFormatadas = results.map(atividade => ({
+            id: atividade.id,
+            tipo: atividade.tipo,
+            descricao: atividade.descricao,
+            data_prevista: atividade.data_prevista,
+            status: atividade.status,
+            observacoes: atividade.observacoes,
+            data_conclusao: atividade.data_conclusao,
+            paciente_nome: atividade.paciente_nome
+        }));
+
+        res.json(atividadesFormatadas);
+    });
+});
+
+// ====================== ROTAS PARA ATIVIDADES - VERIFICAR SE EXISTEM ====================== //
+
+// ✅ ROTA 1: Buscar atividades de hoje
+app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+    console.log(`📅 [ROTA CHAMADA] Buscando atividades de HOJE para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        WHERE a.paciente_id = ? 
+        AND DATE(a.data_prevista) = CURDATE()
+        AND a.status != 'cancelada'
+        ORDER BY a.data_prevista ASC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades de hoje:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades de hoje encontradas para paciente ${pacienteId}`);
+        
+        const atividadesFormatadas = results.map(atividade => ({
+            id: atividade.id,
+            tipo: atividade.tipo,
+            descricao: atividade.descricao,
+            data_prevista: atividade.data_prevista,
+            status: atividade.status,
+            observacoes: atividade.observacoes,
+            data_conclusao: atividade.data_conclusao,
+            paciente_nome: atividade.paciente_nome
+        }));
+
+        res.json(atividadesFormatadas);
+    });
+});
+
+// ✅ ROTA 2: Buscar todas as atividades
+app.get("/api/pacientes/:pacienteId/atividades", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+    console.log(`📅 [ROTA CHAMADA] Buscando TODAS atividades para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        WHERE a.paciente_id = ? 
+        ORDER BY a.data_prevista DESC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades encontradas para paciente ${pacienteId}`);
+        
+        const atividadesFormatadas = results.map(atividade => ({
+            id: atividade.id,
+            tipo: atividade.tipo,
+            descricao: atividade.descricao,
+            data_prevista: atividade.data_prevista,
+            status: atividade.status,
+            observacoes: atividade.observacoes,
+            data_conclusao: atividade.data_conclusao,
+            paciente_nome: atividade.paciente_nome
+        }));
+
+        res.json(atividadesFormatadas);
+    });
+});
+
+// ✅ ROTA 3: Criar atividade
+app.post("/api/atividades", (req, res) => {
+    const {
+        paciente_id,
+        usuario_id,
+        tipo,
+        descricao,
+        data_prevista,
+        observacoes
+    } = req.body;
+
+    console.log("📝 [ROTA CHAMADA] Criando nova atividade:", req.body);
+
+    if (!paciente_id || !usuario_id || !tipo || !descricao || !data_prevista) {
+        return res.status(400).json({ 
+            error: "Paciente ID, usuário ID, tipo, descrição e data prevista são obrigatórios" 
+        });
+    }
+
+    // Buscar ID do cuidador profissional
+    const getCuidadorIdQuery = `SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?`;
+
+    db.query(getCuidadorIdQuery, [usuario_id], (err, cuidadorResults) => {
+        if (err) {
+            console.error("❌ Erro ao buscar cuidador profissional:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        if (cuidadorResults.length === 0) {
+            return res.status(404).json({ error: "Cuidador profissional não encontrado" });
+        }
+
+        const cuidadorProfissionalId = cuidadorResults[0].id;
+
+        const insertQuery = `
+            INSERT INTO atividades 
+            (paciente_id, cuidador_id, tipo, descricao, data_prevista, observacoes, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'pendente')
+        `;
+
+        db.query(insertQuery, [
+            paciente_id,
+            cuidadorProfissionalId,
+            tipo,
+            descricao,
+            data_prevista,
+            observacoes || ''
+        ], (err, result) => {
+            if (err) {
+                console.error("❌ Erro ao criar atividade:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log("✅ Atividade criada com sucesso. ID:", result.insertId);
+            
+            // Buscar a atividade criada
+            const selectQuery = `
+                SELECT a.*, p.nome as paciente_nome 
+                FROM atividades a 
+                LEFT JOIN pacientes p ON a.paciente_id = p.id 
+                WHERE a.id = ?
+            `;
+            
+            db.query(selectQuery, [result.insertId], (err, results) => {
+                if (err) {
+                    console.error("❌ Erro ao buscar atividade criada:", err);
+                    return res.status(500).json({ error: "Erro interno do servidor" });
+                }
+
+                const atividade = results[0];
+                res.json(atividade);
+            });
+        });
     });
 });

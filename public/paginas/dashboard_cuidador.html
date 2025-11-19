@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-     <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="icon" href="../assets/logo minimalista.png">
 </head>
 
 <body>
@@ -111,7 +111,7 @@
                                 </div>
                             </div>
                         </div>
-                        
+
                         <!-- Status de Saúde - Adicionado igual tinha antes -->
                         <div class="patient-status-info">
                             <div class="health-status">
@@ -121,7 +121,7 @@
                                     <p class="text-muted" id="healthDescription">Todas as métricas normais</p>
                                 </div>
                             </div>
-                            
+
                             <div class="patient-additional-info">
                                 <div class="info-item">
                                     <small>Condição Principal</small>
@@ -222,12 +222,13 @@
                         <div class="status-card">
                             <div class="card-header">
                                 <h4><i class="fas fa-tasks"></i> Tarefas de Hoje</h4>
-                                <button class="btn-link" id="addTaskBtn">
+                                <button class="btn-link" onclick="window.location.href='atividades_cuidador.html'">
                                     <i class="fas fa-plus"></i> Nova
                                 </button>
                             </div>
                             <div class="activities-list">
-                                <div class="tasks-list" id="tasksList">
+                                <!-- ✅ CORREÇÃO: Container activityFeed adicionado -->
+                                <div id="activityFeed">
                                     <div class="empty-state">
                                         <i class="fas fa-check-circle"></i>
                                         <p>Nenhuma tarefa para hoje</p>
@@ -252,57 +253,10 @@
                             </div>
                         </div>
 
-                        <!-- Anotações Rápidas -->
-                        <div class="status-card">
-                            <div class="card-header">
-                                <h4><i class="fas fa-edit"></i> Anotações</h4>
-                            </div>
-                            <div class="card-body">
-                                <form class="notes-form" id="quickNoteForm">
-                                    <textarea placeholder="Registre observações sobre o paciente..." rows="3"
-                                        id="quickNote"></textarea>
-                                    <div class="notes-actions">
-                                        <button type="submit" class="btn-link">
-                                            <i class="fas fa-save"></i> Salvar
-                                        </button>
-                                        <button type="button" class="btn-link" id="clearNoteBtn">
-                                            <i class="fas fa-trash"></i> Limpar
-                                        </button>
-                                    </div>
-                                </form>
-                                <div class="recent-notes" id="recentNotes">
-                                    <h6>Últimas anotações</h6>
-                                </div>
-                            </div>
-                        </div>
+                      
 
                         <!-- Comunicação Rápida -->
-                        <div class="status-card">
-                            <div class="card-header">
-                                <h4><i class="fas fa-comments"></i> Comunicação</h4>
-                            </div>
-                            <div class="card-body">
-                                <div class="communication-quick">
-                                    <div class="contact-item">
-                                        <i class="fas fa-user"></i>
-                                        <div>
-                                            <strong id="contactName">Familiar</strong>
-                                            <small id="contactInfo">Telefone: --</small>
-                                        </div>
-                                        <button class="btn-link" id="callBtn">
-                                            <i class="fas fa-phone"></i>
-                                        </button>
-                                    </div>
-                                    <form class="message-form" id="quickMessageForm">
-                                        <textarea placeholder="Mensagem rápida..." rows="2"></textarea>
-                                        <button type="submit" class="btn-link">
-                                            <i class="fas fa-paper-plane"></i>
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    
 
                     <!-- Informações Adicionais -->
                     <div class="additional-info-grid">
@@ -414,10 +368,10 @@
     <script src="../js/dashboard_cuidador.js"></script>
     <script>
         // Adicionar esta função para atualizar o nome do paciente no header também
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             // Observar mudanças no elemento patientName e atualizar o header
-            const observer = new MutationObserver(function(mutations) {
-                mutations.forEach(function(mutation) {
+            const observer = new MutationObserver(function (mutations) {
+                mutations.forEach(function (mutation) {
                     if (mutation.type === 'characterData' || mutation.type === 'childList') {
                         const patientName = document.getElementById('patientName').textContent;
                         const patientNameHeader = document.getElementById('patientNameHeader');
@@ -427,7 +381,7 @@
                     }
                 });
             });
-            
+
             const patientNameElement = document.getElementById('patientName');
             if (patientNameElement) {
                 observer.observe(patientNameElement, {

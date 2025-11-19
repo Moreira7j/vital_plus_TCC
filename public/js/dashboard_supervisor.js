@@ -203,6 +203,122 @@ async function carregarDadosAdicionais(usuarioId, pacienteId) {
     }
 }
 
+// Função para carregar atividades no dashboard do supervisor
+async function loadTasks() {
+    try {
+        if (!currentPatient) {
+            console.log('❌ Nenhum paciente selecionado no supervisor');
+            return;
+        }
+
+        const usuarioId = localStorage.getItem('usuarioId');
+        const pacienteId = currentPatient.id;
+
+        console.log(`📝 Buscando atividades para supervisor ${usuarioId} do paciente ${pacienteId}`);
+
+        const response = await fetch(`/api/supervisores/${usuarioId}/pacientes/${pacienteId}/atividades`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar atividades para supervisor');
+        }
+        
+        const atividades = await response.json();
+        console.log('📦 Atividades recebidas no dashboard do supervisor:', atividades);
+        
+        updateTasksInterface(atividades);
+    } catch (error) {
+        console.error('❌ Erro ao carregar atividades no dashboard do supervisor:', error);
+        updateTasksInterface([]);
+    }
+}
+
+// Função para atualizar a interface de atividades do supervisor
+function updateTasksInterface(atividades) {
+    const container = document.getElementById("tasksList");
+    
+    if (!container) {
+        console.error('❌ Container tasksList não encontrado no dashboard do supervisor');
+        return;
+    }
+    
+    if (!Array.isArray(atividades)) {
+        atividades = [];
+    }
+    
+    console.log('🎨 Renderizando atividades no dashboard do supervisor:', atividades);
+
+    if (atividades.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i data-feather="check-circle"></i>
+                <p>Nenhuma atividade registrada hoje</p>
+            </div>
+        `;
+        if (typeof feather !== 'undefined') feather.replace();
+        return;
+    }
+    
+    container.innerHTML = atividades.map(atividade => {
+        const descricao = atividade.descricao || 'Atividade sem descrição';
+        
+        // Formatar horário
+        let horario = 'Horário não informado';
+        if (atividade.data_prevista) {
+            const data = new Date(atividade.data_prevista);
+            horario = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        const status = atividade.status || 'pendente';
+        const tipo = atividade.tipo || 'outro';
+        const cuidador = atividade.cuidador_nome || 'Cuidador';
+        
+        return `
+            <div class="task-item" data-atividade-id="${atividade.id}">
+                <div class="task-icon">
+                    <i data-feather="${getTaskIcon(tipo)}"></i>
+                </div>
+                <div class="task-info">
+                    <h5>${descricao}</h5>
+                    <small>${horario} - ${obterTextoTipo(tipo)}</small>
+                    <small class="text-muted">Registrado por: ${cuidador}</small>
+                </div>
+                <span class="badge ${status === 'pendente' ? 'bg-warning' : 'bg-success'}">
+                    ${status === 'pendente' ? 'Pendente' : 'Concluída'}
+                </span>
+            </div>
+        `;
+    }).join('');
+    
+    if (typeof feather !== 'undefined') feather.replace();
+}
+
+// Função para obter texto do tipo de atividade
+function obterTextoTipo(tipo) {
+    const textos = {
+        'alimentacao': 'Alimentação',
+        'exercicio': 'Exercício',
+        'higiene': 'Higiene',
+        'medicacao': 'Medicação',
+        'repouso': 'Repouso',
+        'social': 'Social',
+        'outro': 'Outro'
+    };
+    return textos[tipo] || tipo;
+}
+
+// Função para obter ícone baseado no tipo de atividade
+function getTaskIcon(tipo) {
+    const iconMap = {
+        'alimentacao': 'coffee',
+        'exercicio': 'activity',
+        'higiene': 'droplet',
+        'medicacao': 'pill',
+        'repouso': 'moon',
+        'social': 'users',
+        'outro': 'check-square'
+    };
+    return iconMap[tipo] || 'check-square';
+}
 // Função para atualizar a interface - ATUALIZADA
 function atualizarInterfaceDependente(paciente) {
     console.log('🎨 Atualizando interface para paciente:', paciente);
@@ -427,6 +543,18 @@ function atualizarMedicamentos(medicamentos) {
 
     feather.replace();
 }
+// Função para recarregar tarefas quando uma atividade for criada/concluída
+async function recarregarTarefasSupervisor() {
+    try {
+        await loadTasks();
+        console.log('✅ Tarefas recarregadas no dashboard do supervisor');
+    } catch (error) {
+        console.error('❌ Erro ao recarregar tarefas no dashboard do supervisor:', error);
+    }
+}
+
+// Tornar a função global para ser chamada de outros arquivos
+window.recarregarTarefasSupervisor = recarregarTarefasSupervisor;
 
 function exibirAtividades(atividades) {
     const activityFeed = document.getElementById('activityFeed');
@@ -748,6 +876,143 @@ setInterval(() => {
     }
 }, 2000);
 
+// ✅ FUNÇÃO PARA CARREGAR ATIVIDADES DO CUIDADOR
+async function loadTasks() {
+    try {
+        if (!currentPatient) {
+            console.log('❌ Nenhum paciente selecionado no supervisor');
+            return;
+        }
+
+        const usuarioId = localStorage.getItem('usuarioId');
+        const pacienteId = currentPatient.id;
+
+        console.log(`📝 Buscando atividades para supervisor ${usuarioId} do paciente ${pacienteId}`);
+
+        const response = await fetch(`/api/supervisores/${usuarioId}/pacientes/${pacienteId}/atividades`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar atividades para supervisor');
+        }
+        
+        const atividades = await response.json();
+        console.log('📦 Atividades recebidas no dashboard do supervisor:', atividades);
+        
+        updateTasksInterface(atividades);
+    } catch (error) {
+        console.error('❌ Erro ao carregar atividades no dashboard do supervisor:', error);
+        updateTasksInterface([]);
+    }
+}
+
+// ✅ FUNÇÃO PARA ATUALIZAR A INTERFACE DE ATIVIDADES
+function updateTasksInterface(atividades) {
+    const container = document.getElementById("activityFeed");
+    
+    if (!container) {
+        console.error('❌ Container activityFeed não encontrado no dashboard do supervisor');
+        return;
+    }
+    
+    if (!Array.isArray(atividades)) {
+        atividades = [];
+    }
+    
+    console.log('🎨 Renderizando atividades no dashboard do supervisor:', atividades);
+
+    if (atividades.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i data-feather="clock"></i>
+                <p>Nenhuma atividade recente</p>
+                <small class="text-muted">As atividades aparecerão aqui quando forem registradas</small>
+            </div>
+        `;
+        if (typeof feather !== 'undefined') feather.replace();
+        return;
+    }
+    
+    container.innerHTML = atividades.map(atividade => {
+        const descricao = atividade.descricao || 'Atividade sem descrição';
+        
+        // Formatar horário
+        let horario = 'Horário não informado';
+        if (atividade.data_prevista) {
+            const data = new Date(atividade.data_prevista);
+            horario = data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+        
+        const status = atividade.status || 'pendente';
+        const tipo = atividade.tipo || 'outro';
+        const cuidador = atividade.cuidador_nome || 'Cuidador';
+        
+        // Formatar data de conclusão se existir
+        let conclusaoInfo = '';
+        if (atividade.data_conclusao) {
+            const dataConclusao = new Date(atividade.data_conclusao);
+            conclusaoInfo = `<small class="text-muted">Concluída em: ${dataConclusao.toLocaleString('pt-BR')}</small>`;
+        }
+        
+        return `
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i data-feather="${getTaskIcon(tipo)}"></i>
+                </div>
+                <div class="activity-info">
+                    <h5>${descricao}</h5>
+                    <small>${horario} - ${obterTextoTipo(tipo)}</small>
+                    <small class="text-muted">Registrado por: ${cuidador}</small>
+                    ${conclusaoInfo}
+                </div>
+                <span class="badge ${status === 'pendente' ? 'bg-warning' : 'bg-success'}">
+                    ${status === 'pendente' ? 'Pendente' : 'Concluída'}
+                </span>
+            </div>
+        `;
+    }).join('');
+    
+    if (typeof feather !== 'undefined') feather.replace();
+}
+
+// ✅ FUNÇÕES AUXILIARES
+function obterTextoTipo(tipo) {
+    const textos = {
+        'alimentacao': 'Alimentação',
+        'exercicio': 'Exercício',
+        'higiene': 'Higiene',
+        'medicacao': 'Medicação',
+        'repouso': 'Repouso',
+        'social': 'Social',
+        'outro': 'Outro'
+    };
+    return textos[tipo] || tipo;
+}
+
+function getTaskIcon(tipo) {
+    const iconMap = {
+        'alimentacao': 'coffee',
+        'exercicio': 'activity',
+        'higiene': 'droplet',
+        'medicacao': 'pill',
+        'repouso': 'moon',
+        'social': 'users',
+        'outro': 'check-square'
+    };
+    return iconMap[tipo] || 'check-square';
+}
+
+// ✅ FUNÇÃO PARA RECARREGAR TAREFAS
+async function recarregarTarefasSupervisor() {
+    try {
+        await loadTasks();
+        console.log('✅ Tarefas recarregadas no dashboard do supervisor');
+    } catch (error) {
+        console.error('❌ Erro ao recarregar tarefas no dashboard do supervisor:', error);
+    }
+}
+
+// ✅ TORNAR FUNÇÃO GLOBAL
+window.recarregarTarefasSupervisor = recarregarTarefasSupervisor;
 // ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
 function voltarParaLanding() {
     console.log('🏠 Voltando para a landing page...');

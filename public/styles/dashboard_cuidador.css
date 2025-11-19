@@ -181,6 +181,20 @@ body {
   box-shadow: 0 5px 15px rgba(0, 181, 194, 0.35);
 }
 
+.btn-landing {
+  background: linear-gradient(135deg, #00B5C2, #0095a1);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 /* ===== LAYOUT PRINCIPAL ===== */
 .dashboard-main {
   flex: 1;
@@ -479,8 +493,8 @@ body {
 /* ===== LISTAS (ATIVIDADES, ALERTAS) ===== */
 .activities-list, .alerts-list {
   padding: 1.25rem;
-  max-height: none !important;  /* ← REMOVER ALTURA MÁXIMA */
-  overflow-y: visible !important; /* ← REMOVER SCROLL */
+  max-height: none !important;
+  overflow-y: visible !important;
 }
 
 /* ADICIONE ESTAS REGRAS ESPECÍFICAS PARA MEDICAMENTOS */
@@ -1286,4 +1300,288 @@ body {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+}
+
+/* ====================== CORREÇÃO PARA MEDICAMENTOS NO DASHBOARD ====================== */
+.medication-schedule {
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.medication-item {
+    display: grid !important;
+    grid-template-columns: 44px 1fr auto !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+    background: #f8f9fa !important;
+    border-radius: 8px !important;
+    border: 1px solid #e9ecef !important;
+    margin-bottom: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.medication-item:hover {
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    border-color: #00B5C2 !important;
+}
+
+.medication-icon {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    flex-shrink: 0 !important;
+    font-size: 1.1rem !important;
+    background: linear-gradient(135deg, #00B5C2, #4B0082) !important;
+}
+
+.medication-info {
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+.medication-name {
+    display: block !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: #2c3e50 !important;
+    margin-bottom: 0.5rem !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+}
+
+/* CORREÇÃO: GARANTIR EXIBIÇÃO DE DOSAGEM E HORÁRIO NO DASHBOARD */
+.medication-details {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 0.5rem !important;
+    align-items: start !important;
+}
+
+.detail-item {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.2rem !important;
+}
+
+.detail-label {
+    font-size: 0.7rem !important;
+    color: #00B5C2 !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+}
+
+.detail-value {
+    font-size: 0.85rem !important;
+    color: #2c3e50 !important;
+    font-weight: 500 !important;
+    line-height: 1.3 !important;
+}
+
+/* Garantir que todas as informações básicas sejam exibidas */
+.medication-details .detail-item:nth-child(1),
+.medication-details .detail-item:nth-child(2),
+.medication-details .detail-item:nth-child(3) {
+    display: flex !important;
+}
+
+.medication-status {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    min-width: 120px !important;
+}
+
+.status-badge {
+    padding: 0.3rem 0.7rem !important;
+    border-radius: 12px !important;
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.3px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 0.25rem !important;
+    white-space: nowrap !important;
+}
+
+.badge-pendente {
+    background: #fff3cd !important;
+    color: #856404 !important;
+    border: 1px solid #ffeaa7 !important;
+}
+
+.badge-concluida {
+    background: #d1f2eb !important;
+    color: #155724 !important;
+    border: 1px solid #a3e4d7 !important;
+    padding: 0.25rem 0.6rem !important;
+    font-size: 0.65rem !important;
+}
+
+/* ====================== CORREÇÃO PARA ATIVIDADES NO DASHBOARD ====================== */
+#activityFeed {
+    padding: 1rem !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 0.75rem !important;
+}
+
+.activity-item {
+    display: grid !important;
+    grid-template-columns: 44px 1fr auto !important;
+    align-items: center !important;
+    gap: 1rem !important;
+    padding: 1rem !important;
+    background: #f8f9fa !important;
+    border-radius: 8px !important;
+    border: 1px solid #e9ecef !important;
+    margin-bottom: 0.75rem !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.activity-item:hover {
+    background: white !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    border-color: #00B5C2 !important;
+}
+
+.activity-icon {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 8px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    color: white !important;
+    flex-shrink: 0 !important;
+    font-size: 1.1rem !important;
+}
+
+/* Cores dos ícones baseadas no tipo */
+.activity-icon.alimentacao { background: linear-gradient(135deg, #FF6B6B, #e74c3c) !important; }
+.activity-icon.exercicio { background: linear-gradient(135deg, #4ECDC4, #00B5C2) !important; }
+.activity-icon.higiene { background: linear-gradient(135deg, #45B7D1, #3498db) !important; }
+.activity-icon.medicacao { background: linear-gradient(135deg, #96CEB4, #27ae60) !important; }
+.activity-icon.repouso { background: linear-gradient(135deg, #FECA57, #f39c12) !important; }
+.activity-icon.social { background: linear-gradient(135deg, #54A0FF, #2980b9) !important; }
+.activity-icon.outro { background: linear-gradient(135deg, #8395A7, #6c757d) !important; }
+
+.activity-info {
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+.activity-title {
+    display: block !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: #2c3e50 !important;
+    margin-bottom: 0.5rem !important;
+    line-height: 1.3 !important;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+}
+
+.activity-meta {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 0.5rem !important;
+    align-items: start !important;
+}
+
+.meta-item {
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.375rem !important;
+    font-size: 0.8rem !important;
+    color: #6c757d !important;
+    white-space: nowrap !important;
+}
+
+.meta-item i {
+    font-size: 0.7rem !important;
+    color: #00B5C2 !important;
+    width: 12px !important;
+}
+
+.activity-status {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    min-width: 120px !important;
+}
+
+/* ====================== RESPONSIVIDADE CORRIGIDA ====================== */
+@media (max-width: 768px) {
+    .medication-item,
+    .activity-item {
+        grid-template-columns: 44px 1fr !important;
+        gap: 0.75rem !important;
+        padding: 0.75rem !important;
+    }
+    
+    .medication-status,
+    .activity-status {
+        grid-column: 1 / -1 !important;
+        justify-content: flex-start !important;
+        margin-top: 0.5rem !important;
+        min-width: auto !important;
+    }
+    
+    .medication-details,
+    .activity-meta {
+        grid-template-columns: 1fr !important;
+        gap: 0.5rem !important;
+    }
+    
+    .detail-item,
+    .meta-item {
+        flex-direction: row !important;
+        justify-content: space-between !important;
+    }
+}
+
+@media (max-width: 480px) {
+    .medication-details,
+    .activity-meta {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .detail-item,
+    .meta-item {
+        font-size: 0.75rem !important;
+    }
+    
+    .detail-label,
+    .meta-item i {
+        font-size: 0.65rem !important;
+    }
+}
+
+/* Garantir que não haja scroll nos containers */
+.activities-list, .medication-schedule, .alerts-list {
+    max-height: none !important;
+    height: auto !important;
+    overflow-y: visible !important;
+    padding: 1rem !important;
+}
+
+/* Ajustar containers específicos */
+#activityFeed, #medicationSchedule {
+    max-height: none !important;
+    height: auto !important;
+    overflow-y: visible !important;
 }

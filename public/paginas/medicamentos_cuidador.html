@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/feather-icons"></script>
-     <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="icon" href="../assets/logo minimalista.png">
 </head>
 
 <body>
@@ -21,7 +22,7 @@
             </div>
 
             <div class="user-info">
-                
+
                 <div class="header-actions">
                     <button class="btn-notifications">
                         <i class="fas fa-bell"></i>
@@ -58,7 +59,7 @@
                     <a href="atividades_cuidador.html" class="nav-item" data-section="activities">
                         <i class="fas fa-tasks"></i>
                         <span>Atividades</span>
-                    </a>   
+                    </a>
                     <a href="comunicacao_cuidador.html" class="nav-item" data-section="communication">
                         <i class="fas fa-comments"></i>
                         <span>Comunicação</span>
@@ -130,7 +131,7 @@
                                     <label for="filtroData">Data</label>
                                     <input type="date" id="filtroData" class="form-control" value="">
                                 </div>
-                                
+
                                 <div class="filter-group">
                                     <label for="filtroStatus">Status</label>
                                     <select id="filtroStatus" class="form-control">
@@ -140,15 +141,16 @@
                                         <option value="atrasado">Atrasados</option>
                                     </select>
                                 </div>
-                                
+
                                 <div class="filter-group">
                                     <label for="filtroBusca" class="hidden-label">Buscar</label>
                                     <div class="search-input">
                                         <i class="fas fa-search"></i>
-                                        <input type="text" id="filtroBusca" placeholder="Buscar medicamentos..." class="form-control">
+                                        <input type="text" id="filtroBusca" placeholder="Buscar medicamentos..."
+                                            class="form-control">
                                     </div>
                                 </div>
-                                
+
                                 <div class="filter-group filter-button">
                                     <button id="aplicarFiltros" class="btn btn-primary">
                                         <i class="fas fa-filter"></i>
@@ -205,7 +207,7 @@
         </div>
     </footer>
 
-    <!-- Modal para Novo Medicamento -->
+    <!-- Modal para Novo/Editar Medicamento -->
     <div id="medicamentoModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -214,20 +216,22 @@
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            
+
             <form id="medicamentoForm">
                 <div class="modal-body">
                     <div class="form-group">
                         <label for="medicamentoNome">Nome do Medicamento *</label>
-                        <input type="text" id="medicamentoNome" name="nome" required class="form-control" placeholder="Digite o nome do medicamento">
+                        <input type="text" id="medicamentoNome" name="nome" required class="form-control"
+                            placeholder="Digite o nome do medicamento">
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="medicamentoDosagem">Dosagem *</label>
-                            <input type="text" id="medicamentoDosagem" name="dosagem" required class="form-control" placeholder="Ex: 500mg, 10ml">
+                            <input type="text" id="medicamentoDosagem" name="dosagem" required class="form-control"
+                                placeholder="Ex: 500mg, 10ml">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="medicamentoFrequencia">Frequência *</label>
                             <select id="medicamentoFrequencia" name="frequencia" required class="form-control">
@@ -241,13 +245,13 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="medicamentoHorario">Horário *</label>
                             <input type="time" id="medicamentoHorario" name="horario" required class="form-control">
                         </div>
-                        
+
                         <div class="form-group">
                             <label for="medicamentoVia">Via de Administração *</label>
                             <select id="medicamentoVia" name="via" required class="form-control">
@@ -261,13 +265,14 @@
                             </select>
                         </div>
                     </div>
-                    
+
                     <div class="form-group">
                         <label for="medicamentoInstrucoes">Instruções Especiais</label>
-                        <textarea id="medicamentoInstrucoes" name="instrucoes" class="form-control" placeholder="Instruções de administração..." rows="3"></textarea>
+                        <textarea id="medicamentoInstrucoes" name="instrucoes" class="form-control"
+                            placeholder="Instruções de administração..." rows="3"></textarea>
                     </div>
                 </div>
-                
+
                 <div class="modal-footer">
                     <button type="button" id="cancelarBtn" class="btn btn-outline">Cancelar</button>
                     <button type="submit" class="btn btn-primary">
@@ -278,10 +283,30 @@
             </form>
         </div>
     </div>
+    <!-- Modal de Confirmação de Exclusão -->
+<div id="confirmacaoModal" class="modal-confirmacao">
+    <div class="modal-confirmacao-conteudo">
+        <button id="fecharModalConfirmacao" class="fechar-modal">&times;</button>
+        
+        <div class="modal-confirmacao-header">
+            <h3>Confirmar Exclusão</h3>
+        </div>
+        
+        <div class="modal-confirmacao-body">
+            <p id="textoConfirmacaoExclusao">Tem certeza que deseja excluir este medicamento?</p>
+        </div>
+        
+        <div class="modal-confirmacao-acoes">
+            <button id="cancelarExclusaoBtn" class="btn-cancelar">Cancelar</button>
+            <button id="confirmarExclusaoBtn" class="btn-confirmar">Excluir</button>
+        </div>
+    </div>
+</div>
 
     <script src="../js/medicamentos_cuidador.js"></script>
     <script>
         feather.replace();
     </script>
 </body>
+
 </html>

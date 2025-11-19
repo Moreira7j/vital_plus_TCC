@@ -1,4 +1,4 @@
-/* ===== MEDICAMENTOS CUIDADOR - CSS ===== */
+/* ===== MEDICAMENTOS CUIDADOR - CSS COMPLETO CORRIGIDO ===== */
 :root {
   --primary: #00B5C2;
   --primary-dark: #0095a1;
@@ -179,6 +179,20 @@ body {
   background: linear-gradient(45deg, #0095a1, var(--primary));
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 181, 194, 0.35);
+}
+
+.btn-landing {
+  background: linear-gradient(135deg, #00B5C2, #0095a1);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 600;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 /* ===== LAYOUT PRINCIPAL ===== */
@@ -468,7 +482,7 @@ body {
   gap: 0.5rem;
 }
 
-/* ===== MEDICAMENTOS CONTAINER ===== */
+/* ===== CORREÇÃO DOS CARDS DE MEDICAMENTOS - BOTÃO NÃO SOBREPÕE ===== */
 .medicamentos-container {
   display: flex;
   flex-direction: column;
@@ -517,39 +531,129 @@ body {
   box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
 }
 
+/* CORREÇÃO PRINCIPAL: Layout grid para evitar sobreposição */
 .medicamento-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr auto;
   gap: 1rem;
+  align-items: start;
+  margin-bottom: 1rem;
+  min-height: 60px; /* Altura mínima consistente */
 }
 
 .medicamento-info {
-  flex: 1;
-  min-width: 250px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .medicamento-info h3 {
   margin: 0.5rem 0;
   color: var(--dark);
   font-weight: 600;
+  font-size: 1.1rem;
+  line-height: 1.3;
+  word-break: break-word;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* CORREÇÃO: BADGE ADMINISTRADO MENOR */
+.status-badge {
+  padding: 0.3rem 0.8rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+  margin-bottom: 0.5rem;
+}
+
+.status-badge.pendente {
+  background-color: var(--warning-light);
+  color: var(--warning);
+  border: 1px solid var(--warning);
+}
+
+.status-badge.administrado {
+  background-color: var(--success);
+  color: white;
+  border: 1px solid var(--success);
+  padding: 0.2rem 0.6rem !important;
+  font-size: 0.7rem !important;
+}
+
+.status-badge.atrasado {
+  background-color: var(--danger-light);
+  color: var(--danger);
+  border: 1px solid var(--danger);
 }
 
 .medicamento-acoes {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: flex-start;
+  min-width: 150px; /* Largura fixa para consistência */
 }
 
+/* CORREÇÃO CRÍTICA: Remover botão administrado desnecessário */
+.medicamento-card.administrado .btn-primary {
+  display: none !important;
+}
+
+/* Ajustar largura quando só tem botões de ação */
+.medicamento-card.administrado .medicamento-acoes {
+  min-width: 80px;
+}
+
+/* CORREÇÃO: GARANTIR EXIBIÇÃO DE DOSAGEM E HORÁRIO */
 .medicamento-body {
-  color: var(--text-muted);
-  margin-bottom: 1rem;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0.75rem !important;
+  margin-bottom: 1rem !important;
 }
 
-.medicamento-body p {
-  margin-bottom: 0.5rem;
+.med-info-item {
+  display: flex !important;
+  align-items: flex-start !important;
+  gap: 0.75rem !important;
+  padding: 0.4rem 0 !important;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.med-info-item:last-child {
+  border-bottom: none;
+}
+
+.med-info-item strong {
+  color: #495057 !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  min-width: 110px !important;
+  flex-shrink: 0 !important;
+  margin-top: 0.1rem;
+}
+
+.med-info-item span {
+  color: #2c3e50 !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  line-height: 1.4 !important;
+  flex: 1 !important;
+}
+
+/* Garantir que as informações sejam sempre visíveis */
+.medicamento-body .med-info-item:nth-child(1),
+.medicamento-body .med-info-item:nth-child(2),
+.medicamento-body .med-info-item:nth-child(3) {
+  display: flex !important;
 }
 
 .medicamento-metadata {
@@ -565,29 +669,6 @@ body {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-}
-
-.status-badge {
-  padding: 0.25rem 0.75rem;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  display: inline-block;
-}
-
-.status-badge.pendente {
-  background-color: var(--warning-light);
-  color: var(--warning);
-}
-
-.status-badge.administrado {
-  background-color: var(--success-light);
-  color: var(--success);
-}
-
-.status-badge.atrasado {
-  background-color: var(--danger-light);
-  color: var(--danger);
 }
 
 /* ===== CHART CONTAINER ===== */
@@ -611,6 +692,7 @@ body {
   gap: 0.5rem;
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -623,6 +705,11 @@ body {
   background: linear-gradient(45deg, #0095a1, var(--primary));
   transform: translateY(-2px);
   box-shadow: 0 5px 15px rgba(0, 181, 194, 0.35);
+}
+
+.btn-success {
+  background: #28a745;
+  color: white;
 }
 
 .btn-outline {
@@ -650,11 +737,28 @@ body {
   cursor: pointer;
   color: var(--text-muted);
   transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
 }
 
 .btn-icon:hover {
   background-color: var(--light);
   color: var(--primary);
+}
+
+/* Estilo para o botão de edição */
+.btn-edit {
+  color: var(--warning);
+  transition: var(--transition);
+}
+
+.btn-edit:hover {
+  color: var(--warning);
+  background: var(--warning-light);
+  transform: scale(1.1);
 }
 
 /* ===== BADGES ===== */
@@ -894,6 +998,38 @@ body {
   background: rgba(255, 255, 255, 0.5);
 }
 
+/* ===== RODAPÉ ===== */
+.dashboard-footer {
+  background: var(--dark);
+  color: white;
+  padding: 1rem 2rem;
+  margin-top: auto;
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.footer-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.footer-links a {
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: var(--transition);
+  font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+  color: white;
+}
+
 /* ===== RESPONSIVIDADE ===== */
 @media (max-width: 1200px) {
   .vitals-grid {
@@ -971,13 +1107,30 @@ body {
     padding: 1rem;
   }
   
+  /* CORREÇÃO RESPONSIVA PARA MEDICAMENTOS */
   .medicamento-header {
-    flex-direction: column;
+    grid-template-columns: 1fr;
     gap: 1rem;
+    text-align: center;
   }
   
   .medicamento-acoes {
-    align-self: flex-end;
+    justify-content: center;
+    order: -1;
+  }
+  
+  .medicamento-body {
+    text-align: center;
+  }
+  
+  .med-info-item {
+    flex-direction: column;
+    gap: 0.25rem;
+    text-align: center;
+  }
+  
+  .med-info-item strong {
+    min-width: auto !important;
   }
   
   .medicamento-metadata {
@@ -1028,51 +1181,129 @@ body {
     width: 100%;
     justify-content: center;
   }
+  
+  .medicamento-acoes {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .medicamento-acoes .btn {
+    width: 100%;
+  }
 }
 
-/* ===== RODAPÉ ===== */
-.dashboard-footer {
-  background: var(--dark);
-  color: white;
-  padding: 1rem 2rem;
-  margin-top: auto;
+/* ===== CORREÇÃO PARA CARDS DE MEDICAMENTOS - EVITAR SOBREPOSIÇÃO ===== */
+.medicamento-card.administrado .medicamento-header {
+    grid-template-columns: 1fr auto !important;
+    min-height: auto !important;
 }
 
-.footer-content {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
+.medicamento-card.administrado .medicamento-acoes {
+    min-width: 80px !important;
+    justify-content: flex-end;
 }
 
-.footer-links {
-  display: flex;
-  gap: 1.5rem;
+/* Garantir que o botão Administrar seja completamente removido quando não necessário */
+.medicamento-card.administrado .btn-primary {
+    display: none !important;
 }
 
-.footer-links a {
-  color: rgba(255, 255, 255, 0.7);
-  text-decoration: none;
-  transition: var(--transition);
-  font-size: 0.9rem;
+/* Ajuste no layout do header para estado administrado */
+.medicamento-card.administrado .medicamento-info {
+    margin-right: 0;
 }
 
-.footer-links a:hover {
-  color: white;
+/* Modal de Confirmação */
+.modal-confirmacao {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
 }
 
-/* ===== BOTÃO VOLTAR PARA LANDING PAGE ===== */
-.btn-landing {
-    background: linear-gradient(135deg, #00B5C2, #0095a1);
+.modal-confirmacao-conteudo {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    text-align: center;
+}
+
+.modal-confirmacao-header {
+    margin-bottom: 16px;
+}
+
+.modal-confirmacao-header h3 {
+    margin: 0;
+    color: #333;
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.modal-confirmacao-body {
+    margin-bottom: 24px;
+}
+
+.modal-confirmacao-body p {
+    margin: 0;
+    color: #666;
+    line-height: 1.5;
+}
+
+.modal-confirmacao-acoes {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.btn-confirmar {
+    background: #dc3545;
     color: white;
     border: none;
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--radius);
+    padding: 10px 20px;
+    border-radius: 6px;
     cursor: pointer;
-    font-weight: 600;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.btn-confirmar:hover {
+    background: #c82333;
+}
+
+.btn-cancelar {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.btn-cancelar:hover {
+    background: #5a6268;
+}
+
+/* Botão de fechar do modal */
+.fechar-modal {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #666;
+}
+
+.fechar-modal:hover {
+    color: #333;
 }

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-     <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="icon" href="../assets/logo minimalista.png">
     <script src="https://unpkg.com/feather-icons"></script>
 </head>
 
@@ -22,7 +23,7 @@
             </div>
 
             <div class="user-info">
-                
+
                 <div class="header-actions">
                     <button class="btn-notifications">
                         <i class="fas fa-bell"></i>
@@ -273,9 +274,30 @@
         </div>
     </div>
 
+    <!-- Modal de Confirmação de Exclusão de Atividade -->
+    <div id="confirmacaoExclusaoAtividadeModal" class="modal-confirmacao">
+        <div class="modal-confirmacao-conteudo">
+            <button id="fecharModalConfirmacaoAtividade" class="fechar-modal">&times;</button>
+
+            <div class="modal-confirmacao-header">
+                <h3>Confirmar Exclusão</h3>
+            </div>
+
+            <div class="modal-confirmacao-body">
+                <p id="textoConfirmacaoExclusaoAtividade">Tem certeza que deseja excluir esta atividade?</p>
+            </div>
+
+            <div class="modal-confirmacao-acoes">
+                <button id="cancelarExclusaoBtn" class="btn-cancelar">Cancelar</button>
+                <button id="confirmarExclusaoBtn" class="btn-confirmar">Excluir</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/atividades_cuidador.js"></script>
     <script>
         feather.replace();
     </script>
 </body>
+
 </html>
