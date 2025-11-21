@@ -177,35 +177,51 @@ function obterAtividadesExemplo() {
     ];
 }
 
-// Criar atividade
+// ✅ FUNÇÃO AUXILIAR: Converter data para formato do backend
+function formatarDataParaBackend(dataString, horarioString) {
+    const [horas, minutos] = horarioString.split(':');
+    const data = new Date(dataString);
+    
+    // Se dataString não for válida, usar data atual
+    const dataFinal = isNaN(data.getTime()) ? new Date() : data;
+    
+    dataFinal.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+    
+    return dataFinal.toISOString().slice(0, 19).replace('T', ' ');
+}
+
 async function criarAtividade(atividadeData) {
     try {
         console.log('📤 Iniciando criação de atividade...');
         
         const { usuarioId, pacienteId } = verificarDadosUsuario();
 
-        if (!pacienteId) {
-            throw new Error('Nenhum paciente selecionado');
+        if (!pacienteId || !usuarioId) {
+            throw new Error('Paciente ou usuário não identificado');
         }
 
-        if (!usuarioId) {
-            throw new Error('Usuário não identificado');
-        }
-
-        // ✅ CORREÇÃO: Criar data corretamente para HOJE com o horário selecionado
+        // ✅ CORREÇÃO: Usar data atual LOCAL com horário desejado
         const hoje = new Date();
         const [horas, minutos] = atividadeData.horario.split(':');
         
-        // Usar a data de HOJE com o horário selecionado
-        const dataAtividade = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate(), parseInt(horas), parseInt(minutos), 0);
-        
-        // Formatar para o formato MySQL
-        const dataPrevistaFormatada = dataAtividade.toISOString().slice(0, 19).replace('T', ' ');
+        // Criar data LOCAL (não UTC)
+        const dataAtividadeLocal = new Date(
+            hoje.getFullYear(),
+            hoje.getMonth(),
+            hoje.getDate(),
+            parseInt(horas),
+            parseInt(minutos),
+            0
+        );
 
-        console.log('📅 Data da atividade:', {
-            dataOriginal: dataAtividade,
-            dataFormatada: dataPrevistaFormatada,
-            horarioSelecionado: atividadeData.horario
+        // Converter para formato do backend
+        const dataPrevistaFormatada = dataAtividadeLocal.toISOString().slice(0, 19).replace('T', ' ');
+
+        console.log('📅 Data criada (LOCAL):', {
+            horario_selecionado: atividadeData.horario,
+            data_local: dataAtividadeLocal.toString(),
+            data_iso: dataAtividadeLocal.toISOString(),
+            data_enviada: dataPrevistaFormatada
         });
 
         const dadosParaAPI = {
@@ -217,8 +233,6 @@ async function criarAtividade(atividadeData) {
             observacoes: atividadeData.observacoes || ''
         };
 
-        console.log('💾 Dados que serão enviados para API:', dadosParaAPI);
-
         const response = await fetch('/api/atividades', {
             method: 'POST',
             headers: {
@@ -227,11 +241,8 @@ async function criarAtividade(atividadeData) {
             body: JSON.stringify(dadosParaAPI)
         });
 
-        console.log('📥 Status da resposta:', response.status);
-
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('❌ Erro na resposta:', errorText);
             throw new Error(`Erro ${response.status}: ${errorText}`);
         }
 
@@ -245,20 +256,35 @@ async function criarAtividade(atividadeData) {
     }
 }
 
-// Atualizar atividade
+// ✅ SOLUÇÃO ALTERNATIVA: Enviar data em formato específico
 async function atualizarAtividade(id, atividadeData) {
     try {
-        console.log('📤 Atualizando atividade:', { id, ...atividadeData });
+        const atividadeOriginal = atividades.find(a => a.id == id);
+        if (!atividadeOriginal) {
+            throw new Error('Atividade original não encontrada');
+        }
 
-        // Formatar data_prevista
-        const dataAtividade = new Date();
+        // ✅ FORMATO MANUAL: Evitar problemas de timezone
+        const dataOriginal = new Date(atividadeOriginal.data_prevista);
         const [horas, minutos] = atividadeData.horario.split(':');
-        dataAtividade.setHours(parseInt(horas), parseInt(minutos), 0, 0);
+        
+        // Formatar manualmente no formato YYYY-MM-DD HH:MM:SS
+        const ano = dataOriginal.getFullYear();
+        const mes = String(dataOriginal.getMonth() + 1).padStart(2, '0');
+        const dia = String(dataOriginal.getDate()).padStart(2, '0');
+        
+        const dataFormatada = `${ano}-${mes}-${dia} ${horas}:${minutos}:00`;
+
+        console.log('🔍 FORMATO MANUAL:', {
+            data_original: atividadeOriginal.data_prevista,
+            novo_horario: atividadeData.horario,
+            data_formatada_manual: dataFormatada
+        });
 
         const dadosParaAPI = {
             tipo: atividadeData.tipo,
             descricao: atividadeData.descricao,
-            data_prevista: dataAtividade.toISOString().slice(0, 19).replace('T', ' '),
+            data_prevista: dataFormatada, // ✅ Formato manual
             observacoes: atividadeData.observacoes || ''
         };
 
@@ -276,7 +302,13 @@ async function atualizarAtividade(id, atividadeData) {
         }
 
         const data = await response.json();
-        console.log('✅ Atividade atualizada com sucesso:', data);
+        
+        // Atualizar localmente
+        const index = atividades.findIndex(a => a.id == id);
+        if (index !== -1) {
+            atividades[index] = { ...atividades[index], ...data };
+        }
+        
         return data;
 
     } catch (error) {
@@ -285,6 +317,22 @@ async function atualizarAtividade(id, atividadeData) {
     }
 }
 
+// ✅ FUNÇÃO DE DEBUG: Verificar todas as atividades
+function debugTodasAtividades() {
+    console.log('🐛 DEBUG COMPLETO DAS ATIVIDADES:');
+    atividades.forEach((atividade, index) => {
+        const data = new Date(atividade.data_prevista);
+        console.log(`Atividade ${index + 1} - ID: ${atividade.id}:`, {
+            descricao: atividade.descricao,
+            data_prevista_original: atividade.data_prevista,
+            data_local: data.toString(),
+            horario_local: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`,
+            horario_utc: `${String(data.getUTCHours()).padStart(2, '0')}:${String(data.getUTCMinutes()).padStart(2, '0')}`
+        });
+    });
+}
+
+// Chame esta função após carregar as atividades para debug
 // Marcar como concluída
 async function marcarComoConcluidaHandler(id) {
     try {
@@ -331,9 +379,21 @@ function renderizarAtividades() {
     }
 
     container.innerHTML = atividadesFiltradas.map(atividade => {
-        // Garantir valores padrão
+        // ✅ CORREÇÃO: Usar horário LOCAL para exibição (igual ao dashboard)
         const dataPrevista = new Date(atividade.data_prevista);
-        const horario = dataPrevista.toTimeString().slice(0, 5);
+        
+        // Usar métodos LOCAIS para exibição (getHours, getMinutes)
+        const horasLocal = String(dataPrevista.getHours()).padStart(2, '0');
+        const minutosLocal = String(dataPrevista.getMinutes()).padStart(2, '0');
+        const horarioLocal = `${horasLocal}:${minutosLocal}`;
+        
+        console.log('🔍 DEBUG - Exibindo atividade:', {
+            id: atividade.id,
+            data_prevista: atividade.data_prevista,
+            horarioLocal: horarioLocal,
+            horasLocal: dataPrevista.getHours(),
+            minutosLocal: dataPrevista.getMinutes()
+        });
         
         return `
         <div class="atividade-card ${atividade.status}" data-atividade-id="${atividade.id}">
@@ -369,11 +429,11 @@ function renderizarAtividades() {
             </div>
             <div class="atividade-body">
                 <p><strong>Tipo:</strong> ${obterTextoTipo(atividade.tipo)}</p>
-                <p><strong>Horário:</strong> ${horario}</p>
+                <p><strong>Horário:</strong> ${horarioLocal}</p>
                 ${atividade.observacoes ? `<p><strong>Observações:</strong> ${atividade.observacoes}</p>` : ''}
             </div>
             <div class="atividade-metadata">
-                <span><i data-feather="clock"></i> Agendada para: ${horario}</span>
+                <span><i data-feather="clock"></i> Agendada para: ${horarioLocal}</span>
             </div>
         </div>
         `;
@@ -436,7 +496,7 @@ function fecharModal() {
     document.getElementById('atividadeForm').reset();
 }
 
-// Editar atividade
+// ✅ CORREÇÃO: Editar atividade - usar horário LOCAL
 function editarAtividade(id) {
     console.log(`✏️ Editando atividade ID: ${id}`);
     
@@ -454,15 +514,46 @@ function editarAtividade(id) {
     document.getElementById('atividadeDescricao').value = atividade.descricao || '';
     document.getElementById('atividadeObservacoes').value = atividade.observacoes || '';
     
-    // Formatar horário
+    // ✅ CORREÇÃO: Extrair horário LOCAL (igual à exibição)
     const dataPrevista = new Date(atividade.data_prevista);
-    const horario = dataPrevista.toTimeString().slice(0, 5);
-    document.getElementById('atividadeHorario').value = horario;
+    
+    // Usar métodos LOCAIS para edição (getHours, getMinutes)
+    const horasLocal = String(dataPrevista.getHours()).padStart(2, '0');
+    const minutosLocal = String(dataPrevista.getMinutes()).padStart(2, '0');
+    const horarioLocal = `${horasLocal}:${minutosLocal}`;
+    
+    console.log('🔍 DEBUG - Horário LOCAL para edição:', {
+        data_prevista_original: atividade.data_prevista,
+        horasLocal: dataPrevista.getHours(),
+        minutosLocal: dataPrevista.getMinutes(),
+        horarioLocal: horarioLocal
+    });
+    
+    document.getElementById('atividadeHorario').value = horarioLocal;
     
     document.getElementById('atividadeModal').style.display = 'flex';
 }
+// ✅ FUNÇÃO AUXILIAR: Debug detalhado das atividades
+function debugAtividades() {
+    console.log('🐛 DEBUG DETALHADO DAS ATIVIDADES:');
+    atividades.forEach((atividade, index) => {
+        const data = new Date(atividade.data_prevista);
+        console.log(`Atividade ${index + 1}:`, {
+            id: atividade.id,
+            descricao: atividade.descricao,
+            data_prevista_original: atividade.data_prevista,
+            data_interpretada: data.toString(),
+            horario_extraido: data.toTimeString().slice(0, 5),
+            horas: data.getHours(),
+            minutos: data.getMinutes()
+        });
+    });
+}
 
-// Salvar atividade (criação e edição)
+// Chame esta função após carregar as atividades:
+// debugAtividades();
+
+// ✅ CORREÇÃO: Salvar atividade com refresh forçado
 async function salvarAtividade(e) {
     e.preventDefault();
     
@@ -486,13 +577,21 @@ async function salvarAtividade(e) {
         if (atividadeEditando) {
             resultado = await atualizarAtividade(atividadeEditando, atividadeData);
             mostrarMensagem('Atividade atualizada com sucesso!', 'success');
+            
+            // ✅ FORÇAR RE-RENDERIZAÇÃO IMEDIATA
+            renderizarAtividades();
+            atualizarEstatisticas();
         } else {
             resultado = await criarAtividade(atividadeData);
             mostrarMensagem('Atividade criada com sucesso!', 'success');
+            await carregarAtividades(); // Recarregar do servidor para nova atividade
         }
         
         fecharModal();
-        await carregarAtividades();
+        
+        // Debug para verificar se atualizou
+        console.log('🔍 Após salvar - verificando atividades:');
+        debugTodasAtividades();
         
         // ⬇️ ATUALIZAR DASHBOARD
         if (typeof window.recarregarTarefasDashboard === 'function') {
@@ -505,7 +604,6 @@ async function salvarAtividade(e) {
         mostrarLoading(false);
     }
 }
-
 // Concluir atividade
 async function concluirAtividade(id) {
     try {
@@ -754,6 +852,8 @@ function voltarParaDependentes() {
     console.log('✅ Dados limpos. Redirecionando para dependentes.html');
     window.location.href = 'dependentes.html';
 }
+
+
 
 // FUNÇÃO VOLTAR PARA LANDING PAGE
 function voltarParaLanding() {

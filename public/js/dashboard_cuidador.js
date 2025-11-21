@@ -1,5 +1,9 @@
 // dashboard_cuidador.js
 
+// ====================== VARIÁVEIS GLOBAIS ====================== //
+let currentPatient = null;
+let currentUser = null;
+
 document.addEventListener("DOMContentLoaded", function () {
     // Inicializar feather icons
     feather.replace();
@@ -11,27 +15,33 @@ document.addEventListener("DOMContentLoaded", function () {
     // Inicializar dashboard
     initializeDashboard();
 
-    async function initializeDashboard() {
-        try {
-            // Carregar dados do usuário logado
-            await loadUserData();
+  async function initializeDashboard() {
+    try {
+        console.log('🚀 INICIANDO DASHBOARD...');
+        
+        // Carregar dados do usuário logado
+        await loadUserData();
+        console.log('✅ Usuário carregado');
 
-            // Carregar dados do paciente
-            await loadPatientData();
+        // Carregar dados do paciente
+        await loadPatientData();
+        console.log('✅ Paciente carregado:', currentPatient);
 
-            // Carregar dados do dashboard
-            await loadDashboardData();
+        // Carregar dados do dashboard
+        await loadDashboardData();
+        console.log('✅ Dashboard carregado');
 
-            // Configurar event listeners
-            setupEventListeners();
+        // Configurar event listeners
+        setupEventListeners();
+        console.log('✅ Event listeners configurados');
 
-        } catch (error) {
-            console.error("Erro ao inicializar dashboard:", error);
-            showError("Erro ao carregar dados do dashboard");
-        }
-        // Na sua função que carrega o dashboard, adicione:
-        await loadTasks();
+        console.log('🎉 DASHBOARD INICIALIZADO COM SUCESSO!');
+
+    } catch (error) {
+        console.error("❌ Erro ao inicializar dashboard:", error);
+        showError("Erro ao carregar dados do dashboard");
     }
+}   
 
     async function loadUserData() {
         // Recuperar dados do usuário do localStorage
@@ -52,67 +62,248 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("userName").textContent = currentUser.name;
     }
 
-    async function loadPatientData() {
-        try {
-            // Buscar paciente vinculado ao cuidador
-            const response = await fetch(`/api/cuidadores/${currentUser.id}/paciente`);
-
-            if (!response.ok) {
-                throw new Error("Paciente não encontrado");
-            }
-
-            const paciente = await response.json();
-            currentPatient = paciente;
-
-            // Atualizar interface do paciente
-            updatePatientInterface(paciente);
-
-        } catch (error) {
-            console.error("Erro ao carregar paciente:", error);
+  async function loadPatientData() {
+    try {
+        const userId = localStorage.getItem("usuarioId");
+        if (!userId) {
+            console.error("❌ ID do usuário não encontrado");
             showEmptyPatientState();
+            return;
+        }
+
+        console.log(`🎯 Buscando paciente para cuidador: ${userId}`);
+
+        // Buscar paciente vinculado ao cuidador
+        const response = await fetch(`/api/cuidadores/${userId}/paciente`);
+
+        if (!response.ok) {
+            if (response.status === 404) {
+                console.log("ℹ️ Nenhum paciente vinculado encontrado");
+                showEmptyPatientState();
+                return;
+            }
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+
+        const paciente = await response.json();
+        console.log('✅ Paciente carregado:', paciente);
+        
+        currentPatient = paciente;
+
+        // Atualizar interface do paciente
+        updatePatientInterface(paciente);
+
+        // ✅ NOVO: Atualizar card de atividades também
+        await updateActivityInfoCard();
+
+    } catch (error) {
+        console.error("❌ Erro ao carregar paciente:", error);
+        showEmptyPatientState();
+    }
+}
+// ✅ FUNÇÃO PARA DESTACAR HORÁRIOS URGENTES (PRÓXIMOS 30 MINUTOS)
+function verificarHorariosUrgentes() {
+    const agora = new Date();
+    const limite = new Date(agora.getTime() + 30 * 60 * 1000); // 30 minutos
+    
+    // Verificar próxima medicação
+    const nextMedElement = document.getElementById('nextMedication');
+    const nextTaskElement = document.getElementById('nextTask');
+    
+    if (nextMedElement.textContent !== '--:--') {
+        const [horas, minutos] = nextMedElement.textContent.split(':').map(Number);
+        const horarioMedicacao = new Date();
+        horarioMedicacao.setHours(horas, minutos, 0, 0);
+        
+        if (horarioMedicacao <= limite && horarioMedicacao >= agora) {
+            nextMedElement.setAttribute('data-urgent', 'true');
+        } else {
+            nextMedElement.removeAttribute('data-urgent');
         }
     }
+    
+    if (nextTaskElement.textContent !== '--:--') {
+        const [horas, minutos] = nextTaskElement.textContent.split(':').map(Number);
+        const horarioTarefa = new Date();
+        horarioTarefa.setHours(horas, minutos, 0, 0);
+        
+        if (horarioTarefa <= limite && horarioTarefa >= agora) {
+            nextTaskElement.setAttribute('data-urgent', 'true');
+        } else {
+            nextTaskElement.removeAttribute('data-urgent');
+        }
+    }
+}
 
-    function updatePatientInterface(paciente) {
-        // Atualizar informações básicas
-        document.getElementById("patientName").textContent = paciente.nome || "Nome não informado";
-        document.getElementById("patientAge").textContent = calcularIdade(paciente.data_nascimento) + " anos";
-        document.getElementById("patientCondition").textContent = paciente.condicao_principal || "Não informada";
-        document.getElementById("healthPlan").textContent = paciente.plano_saude || "Não informado";
-        document.getElementById("patientAllergies").textContent = paciente.alergias || "Nenhuma";
+// ✅ ATUALIZAR A FUNÇÃO updateActivityInfoCard PARA INCLUIR VERIFICAÇÃO DE URGÊNCIA
+// ✅ FUNÇÃO PRINCIPAL CORRIGIDA - USA localStorage EM VEZ DE currentPatient
+async function updateActivityInfoCard() {
+    try {
+        console.log('🔄 [FIX] Atualizando card de atividades...');
+        
+        // Usar diretamente do localStorage para evitar problemas de timing
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+        const usuarioId = localStorage.getItem('usuarioId');
+        
+        console.log('🔍 [FIX] IDs do localStorage:', { pacienteId, usuarioId });
 
-        // Tentar carregar foto do paciente
-        if (paciente.foto_perfil) {
-            document.getElementById("patientAvatar").src = `/uploads/${paciente.foto_perfil}`;
+        if (!pacienteId) {
+            console.log('❌ [FIX] Nenhum paciente selecionado no localStorage');
+            resetActivityInfoCard();
+            return;
         }
 
-        // Carregar informações do familiar
+        // Buscar dados em paralelo
+        const [medicamentos, atividades] = await Promise.all([
+            fetch(`/api/pacientes/${pacienteId}/medicamentos/hoje`).then(r => r.ok ? r.json() : []),
+            fetch(`/api/pacientes/${pacienteId}/atividades/hoje`).then(r => r.ok ? r.json() : [])
+        ]);
+
+        console.log('📦 [FIX] Dados recebidos:', {
+            medicamentos: medicamentos.length,
+            atividades: atividades.length
+        });
+
+        // Processar e atualizar a interface
+        processarEAtualizarCard(medicamentos, atividades);
+
+    } catch (error) {
+        console.error('❌ [FIX] Erro ao atualizar card:', error);
+        resetActivityInfoCard();
+    }
+}
+
+    function updatePatientInterface(paciente) {
+    console.log('🎯 Atualizando interface do paciente:', paciente);
+    
+    // Atualizar informações básicas
+    document.getElementById("patientName").textContent = paciente.nome || "Nome não informado";
+    document.getElementById("patientAge").textContent = calcularIdade(paciente.data_nascimento) + " anos";
+    document.getElementById("patientCondition").textContent = paciente.condicao_principal || "Não informada";
+    document.getElementById("healthPlan").textContent = paciente.plano_saude || "Não informado";
+    document.getElementById("patientAllergies").textContent = paciente.alergias || "Nenhuma";
+
+    // Atualizar informações detalhadas (seção adicional)
+    document.getElementById("patientConditionInfo").textContent = paciente.condicao_principal || "Não informada";
+    document.getElementById("healthPlanInfo").textContent = paciente.plano_saude || "Não informado";
+    document.getElementById("patientAllergiesInfo").textContent = paciente.alergias || "Nenhuma";
+
+    // Tentar carregar foto do paciente
+    if (paciente.foto_perfil) {
+        document.getElementById("patientAvatar").src = `/uploads/${paciente.foto_perfil}`;
+    } else {
+        document.getElementById("patientAvatar").src = '/assets/default-avatar.png';
+    }
+
+    // Atualizar header com nome do paciente
+    const patientNameHeader = document.getElementById("patientNameHeader");
+    if (patientNameHeader) {
+        patientNameHeader.textContent = paciente.nome || "Paciente";
+    }
+
+    // Carregar informações do familiar
+    if (paciente.familiar_contratante_id) {
         loadFamiliarInfo(paciente.familiar_contratante_id);
     }
 
-    function showEmptyPatientState() {
-        document.getElementById("patientName").textContent = "Nenhum paciente vinculado";
-        document.getElementById("patientAge").textContent = "--";
-        document.getElementById("patientCondition").textContent = "--";
-        document.getElementById("healthPlan").textContent = "--";
-        document.getElementById("patientAllergies").textContent = "--";
-        document.getElementById("healthStatus").textContent = "Indisponível";
-        document.getElementById("healthDescription").textContent = "Aguardando vínculo com paciente";
+    // Atualizar status de saúde baseado nos dados disponíveis
+    updateHealthStatus(paciente);
+}
+
+// Nova função para atualizar o status de saúde
+function updateHealthStatus(paciente) {
+    const healthStatus = document.getElementById("healthStatus");
+    const healthDescription = document.getElementById("healthDescription");
+    
+    if (!healthStatus || !healthDescription) return;
+
+    // Lógica simples para determinar status (você pode aprimorar isso)
+    if (paciente.condicao_principal) {
+        healthStatus.textContent = "Em acompanhamento";
+        healthStatus.className = "health-status-indicator stable";
+        healthDescription.textContent = `Condição: ${paciente.condicao_principal}`;
+    } else {
+        healthStatus.textContent = "Estável";
+        healthStatus.className = "health-status-indicator good";
+        healthDescription.textContent = "Todas as métricas normais";
+    }
+}
+
+   function showEmptyPatientState() {
+    console.log('ℹ️ Mostrando estado vazio do paciente');
+    
+    // Atualizar informações básicas
+    document.getElementById("patientName").textContent = "Nenhum paciente vinculado";
+    document.getElementById("patientAge").textContent = "--";
+    document.getElementById("patientCondition").textContent = "--";
+    document.getElementById("healthPlan").textContent = "--";
+    document.getElementById("patientAllergies").textContent = "--";
+
+    // Atualizar informações detalhadas
+    document.getElementById("patientConditionInfo").textContent = "--";
+    document.getElementById("healthPlanInfo").textContent = "--";
+    document.getElementById("patientAllergiesInfo").textContent = "--";
+
+    // Resetar foto
+    document.getElementById("patientAvatar").src = '/assets/default-avatar.png';
+
+    // Atualizar status de saúde
+    const healthStatus = document.getElementById("healthStatus");
+    const healthDescription = document.getElementById("healthDescription");
+    
+    if (healthStatus && healthDescription) {
+        healthStatus.textContent = "Indisponível";
+        healthStatus.className = "health-status-indicator warning";
+        healthDescription.textContent = "Aguardando vínculo com paciente";
     }
 
-    async function loadFamiliarInfo(familiarId) {
-        try {
-            const response = await fetch(`/api/familiares/${familiarId}/info`);
-            if (response.ok) {
-                const familiar = await response.json();
-                document.getElementById("familiarName").textContent = familiar.nome || "Não informado";
-                document.getElementById("contactName").textContent = familiar.nome || "Familiar";
-                document.getElementById("contactInfo").textContent = `Telefone: ${familiar.telefone || "--"}`;
+    // Atualizar header
+    const patientNameHeader = document.getElementById("patientNameHeader");
+    if (patientNameHeader) {
+        patientNameHeader.textContent = "Nenhum paciente";
+    }
+
+    // Resetar familiar
+    const familiarNameElement = document.getElementById("familiarName");
+    if (familiarNameElement) {
+        familiarNameElement.textContent = "--";
+    }
+}
+
+   // Melhorar a função loadFamiliarInfo
+async function loadFamiliarInfo(familiarId) {
+    try {
+        const response = await fetch(`/api/familiares/${familiarId}/info`);
+        if (response.ok) {
+            const familiar = await response.json();
+            
+            // Atualizar nome do familiar no perfil básico
+            const familiarNameElement = document.getElementById("familiarName");
+            if (familiarNameElement) {
+                familiarNameElement.textContent = familiar.nome || "Não informado";
             }
-        } catch (error) {
-            console.error("Erro ao carregar familiar:", error);
+            
+            // Atualizar informações de contato (se os elementos existirem)
+            const contactName = document.getElementById("contactName");
+            const contactInfo = document.getElementById("contactInfo");
+            
+            if (contactName) {
+                contactName.textContent = familiar.nome || "Familiar";
+            }
+            if (contactInfo) {
+                contactInfo.textContent = `Telefone: ${familiar.telefone || "--"}`;
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao carregar familiar:", error);
+        
+        // Fallback caso ocorra erro
+        const familiarNameElement = document.getElementById("familiarName");
+        if (familiarNameElement) {
+            familiarNameElement.textContent = "Familiar não encontrado";
         }
     }
+}
 
     async function loadDashboardData() {
         if (!currentPatient) return;
@@ -1135,8 +1326,490 @@ async function initializeDashboard() {
     }
 }
 
+// ✅ FUNÇÃO PARA CARREGAR PACIENTE ANTES DO DEBUG
+async function carregarPacienteParaDebug() {
+    try {
+        console.log('🔄 Carregando paciente para debug...');
+        
+        const userId = localStorage.getItem('usuarioId');
+        if (!userId) {
+            throw new Error('Usuário não logado');
+        }
+
+        // Buscar paciente da API
+        const response = await fetch(`/api/cuidadores/${userId}/paciente`);
+        
+        if (!response.ok) {
+            throw new Error('Erro ao carregar paciente');
+        }
+
+        currentPatient = await response.json();
+        console.log('✅ Paciente carregado:', currentPatient);
+        
+        return currentPatient;
+    } catch (error) {
+        console.error('❌ Erro ao carregar paciente:', error);
+        return null;
+    }
+}
+// ✅ FUNÇÃO PARA ATUALIZAR O CARD DE PRÓXIMAS ATIVIDADES (COM DEBUG)
+async function updateActivityInfoCard() {
+    try {
+        console.log('🔄 [DEBUG] Iniciando updateActivityInfoCard...');
+        
+        if (!currentPatient) {
+            console.log('❌ [DEBUG] currentPatient é null/undefined');
+            resetActivityInfoCard();
+            return;
+        }
+
+        console.log('👤 [DEBUG] Paciente atual:', {
+            id: currentPatient.id,
+            nome: currentPatient.nome
+        });
+
+        // Buscar medicamentos e atividades em paralelo
+        console.log('📡 [DEBUG] Buscando dados da API...');
+        const [medicamentos, atividades] = await Promise.all([
+            fetchMedicamentosParaHoje(),
+            fetchAtividadesParaHoje()
+        ]);
+
+        console.log('💊 [DEBUG] Medicamentos recebidos:', medicamentos);
+        console.log('📅 [DEBUG] Atividades recebidas:', atividades);
+
+        // Processar próxima medicação
+        const proximaMedicacao = encontrarProximaMedicacao(medicamentos);
+        console.log('⏰ [DEBUG] Próxima medicação:', proximaMedicacao);
+        document.getElementById('nextMedication').textContent = proximaMedicacao;
+
+        // Processar próxima tarefa
+        const proximaTarefa = encontrarProximaTarefa(atividades);
+        console.log('✅ [DEBUG] Próxima tarefa:', proximaTarefa);
+        document.getElementById('nextTask').textContent = proximaTarefa;
+
+        // Processar consultas e exames
+        const consultasAgendadas = contarConsultasAgendadas(atividades);
+        console.log('📋 [DEBUG] Consultas agendadas:', consultasAgendadas);
+        document.getElementById('scheduledAppointments').textContent = consultasAgendadas;
+
+        const examesPendentes = contarExamesPendentes(atividades);
+        console.log('🔬 [DEBUG] Exames pendentes:', examesPendentes);
+        document.getElementById('pendingExams').textContent = examesPendentes;
+
+        console.log('🎉 [DEBUG] Card de atividades atualizado com sucesso!');
+
+    } catch (error) {
+        console.error('❌ [DEBUG] Erro ao atualizar card de atividades:', error);
+        resetActivityInfoCard();
+    }
+}
+
+// ✅ FUNÇÃO PARA TESTAR AS APIs DIRETAMENTE (CORRIGIDA)
+async function testarAPIs() {
+    try {
+        console.log('🧪 TESTANDO APIs...');
+        
+        if (!currentPatient) {
+            console.log('❌ currentPatient não definido no testarAPIs');
+            return;
+        }
+
+        console.log(`👤 Paciente ID: ${currentPatient.id}`);
+
+        // Testar API de medicamentos
+        console.log(`💊 Testando API: /api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        const medResponse = await fetch(`/api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        console.log('📊 Status medicamentos:', medResponse.status);
+        console.log('📊 Status texto:', medResponse.statusText);
+        
+        if (medResponse.ok) {
+            const medData = await medResponse.json();
+            console.log('📦 Dados medicamentos:', medData);
+            console.log('🔢 Quantidade de medicamentos:', medData.length);
+            
+            if (medData.length > 0) {
+                console.log('📝 Exemplo de medicamento:', medData[0]);
+            }
+        } else {
+            console.log('❌ Erro medicamentos:', await medResponse.text());
+        }
+
+        // Testar API de atividades
+        console.log(`📅 Testando API: /api/pacientes/${currentPatient.id}/atividades/hoje`);
+        const ativResponse = await fetch(`/api/pacientes/${currentPatient.id}/atividades/hoje`);
+        console.log('📊 Status atividades:', ativResponse.status);
+        console.log('📊 Status texto:', ativResponse.statusText);
+        
+        if (ativResponse.ok) {
+            const ativData = await ativResponse.json();
+            console.log('📦 Dados atividades:', ativData);
+            console.log('🔢 Quantidade de atividades:', ativData.length);
+            
+            if (ativData.length > 0) {
+                console.log('📝 Exemplo de atividade:', ativData[0]);
+            }
+        } else {
+            console.log('❌ Erro atividades:', await ativResponse.text());
+        }
+
+    } catch (error) {
+        console.error('❌ Erro no teste das APIs:', error);
+    }
+}
+
+// ✅ CHAMAR ESTA FUNÇÃO NO CONSOLE DO NAVEGADOR PARA TESTAR
+window.testarAPIs = testarAPIs;
+
+// ✅ FUNÇÃO PARA BUSCAR MEDICAMENTOS PARA HOJE (CORRIGIDA)
+async function fetchMedicamentosParaHoje() {
+    try {
+        if (!currentPatient) {
+            console.log('❌ currentPatient não definido no fetchMedicamentosParaHoje');
+            return [];
+        }
+
+        console.log(`💊 Buscando medicamentos para paciente: ${currentPatient.id}`);
+        const response = await fetch(`/api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const medicamentos = await response.json();
+        console.log(`✅ ${medicamentos.length} medicamentos encontrados`);
+        return medicamentos;
+    } catch (error) {
+        console.error('❌ Erro ao buscar medicamentos:', error);
+        return [];
+    }
+}
+
+// ✅ FUNÇÃO PARA TESTAR AS APIs DIRETAMENTE (CORRIGIDA)
+async function testarAPIs() {
+    try {
+        console.log('🧪 TESTANDO APIs...');
+        
+        if (!currentPatient) {
+            console.log('❌ currentPatient não definido no testarAPIs');
+            return;
+        }
+
+        console.log(`👤 Paciente ID: ${currentPatient.id}`);
+
+        // Testar API de medicamentos
+        console.log(`💊 Testando API: /api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        const medResponse = await fetch(`/api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        console.log('📊 Status medicamentos:', medResponse.status);
+        console.log('📊 Status texto:', medResponse.statusText);
+        
+        if (medResponse.ok) {
+            const medData = await medResponse.json();
+            console.log('📦 Dados medicamentos:', medData);
+            console.log('🔢 Quantidade de medicamentos:', medData.length);
+            
+            if (medData.length > 0) {
+                console.log('📝 Exemplo de medicamento:', medData[0]);
+            }
+        } else {
+            console.log('❌ Erro medicamentos:', await medResponse.text());
+        }
+
+        // Testar API de atividades
+        console.log(`📅 Testando API: /api/pacientes/${currentPatient.id}/atividades/hoje`);
+        const ativResponse = await fetch(`/api/pacientes/${currentPatient.id}/atividades/hoje`);
+        console.log('📊 Status atividades:', ativResponse.status);
+        console.log('📊 Status texto:', ativResponse.statusText);
+        
+        if (ativResponse.ok) {
+            const ativData = await ativResponse.json();
+            console.log('📦 Dados atividades:', ativData);
+            console.log('🔢 Quantidade de atividades:', ativData.length);
+            
+            if (ativData.length > 0) {
+                console.log('📝 Exemplo de atividade:', ativData[0]);
+            }
+        } else {
+            console.log('❌ Erro atividades:', await ativResponse.text());
+        }
+
+    } catch (error) {
+        console.error('❌ Erro no teste das APIs:', error);
+    }
+}
+
+// ✅ FUNÇÃO PARA BUSCAR MEDICAMENTOS PARA HOJE (CORRIGIDA)
+async function fetchMedicamentosParaHoje() {
+    try {
+        if (!currentPatient) {
+            console.log('❌ currentPatient não definido no fetchMedicamentosParaHoje');
+            return [];
+        }
+
+        console.log(`💊 Buscando medicamentos para paciente: ${currentPatient.id}`);
+        const response = await fetch(`/api/pacientes/${currentPatient.id}/medicamentos/hoje`);
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const medicamentos = await response.json();
+        console.log(`✅ ${medicamentos.length} medicamentos encontrados`);
+        return medicamentos;
+    } catch (error) {
+        console.error('❌ Erro ao buscar medicamentos:', error);
+        return [];
+    }
+}
+
+// ✅ FUNÇÃO PARA BUSCAR ATIVIDADES PARA HOJE (CORRIGIDA)
+async function fetchAtividadesParaHoje() {
+    try {
+        if (!currentPatient) {
+            console.log('❌ currentPatient não definido no fetchAtividadesParaHoje');
+            return [];
+        }
+
+        console.log(`📅 Buscando atividades para paciente: ${currentPatient.id}`);
+        const response = await fetch(`/api/pacientes/${currentPatient.id}/atividades/hoje`);
+        
+        if (!response.ok) {
+            throw new Error(`Erro ${response.status}: ${response.statusText}`);
+        }
+        
+        const atividades = await response.json();
+        console.log(`✅ ${atividades.length} atividades encontradas`);
+        return atividades;
+    } catch (error) {
+        console.error('❌ Erro ao buscar atividades:', error);
+        return [];
+    }
+}
+
+// ✅ FUNÇÃO PARA ENCONTRAR PRÓXIMA MEDICAÇÃO (CORRIGIDA)
+// ✅ VERSÕES SIMPLIFICADAS DAS FUNÇÕES DE PROCESSAMENTO
+function encontrarProximaMedicacaoSimples(medicamentos) {
+    if (!medicamentos || medicamentos.length === 0) return '--:--';
+    
+    const agora = new Date();
+    const horarioAtual = agora.getHours() * 60 + agora.getMinutes();
+    
+    // Encontrar todos os horários de medicamentos
+    const horarios = [];
+    
+    medicamentos.forEach(med => {
+        const horario = med.horario || med.horarios;
+        if (horario) {
+            try {
+                const [horas, minutos] = horario.split(':').map(Number);
+                const totalMinutos = horas * 60 + minutos;
+                horarios.push(totalMinutos);
+            } catch (e) {
+                console.warn('⚠️ Horário inválido:', horario);
+            }
+        }
+    });
+    
+    if (horarios.length === 0) return '--:--';
+    
+    // Ordenar e encontrar próximo
+    horarios.sort((a, b) => a - b);
+    const proximo = horarios.find(h => h >= horarioAtual) || horarios[0];
+    
+    const horas = Math.floor(proximo / 60);
+    const minutos = proximo % 60;
+    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+}
+
+// ✅ FUNÇÃO SIMPLIFICADA DE PROCESSAMENTO
+function processarEAtualizarCard(medicamentos, atividades) {
+    // Próxima medicação
+    const proximaMedicacao = encontrarProximaMedicacaoSimples(medicamentos);
+    document.getElementById('nextMedication').textContent = proximaMedicacao;
+    console.log('⏰ [FIX] Próxima medicação:', proximaMedicacao);
+
+    // Próxima tarefa
+    const proximaTarefa = encontrarProximaTarefaSimples(atividades);
+    document.getElementById('nextTask').textContent = proximaTarefa;
+    console.log('✅ [FIX] Próxima tarefa:', proximaTarefa);
+
+    // Consultas agendadas
+    const consultasAgendadas = contarConsultasAgendadasSimples(atividades);
+    document.getElementById('scheduledAppointments').textContent = consultasAgendadas;
+    console.log('📋 [FIX] Consultas:', consultasAgendadas);
+
+    // Exames pendentes
+    const examesPendentes = contarExamesPendentesSimples(atividades);
+    document.getElementById('pendingExams').textContent = examesPendentes;
+    console.log('🔬 [FIX] Exames:', examesPendentes);
+
+    console.log('🎉 [FIX] Card atualizado com sucesso!');
+}
+
+function encontrarProximaTarefaSimples(atividades) {
+    if (!atividades || atividades.length === 0) return '--:--';
+    
+    const agora = new Date();
+    const horarioAtual = agora.getHours() * 60 + agora.getMinutes();
+    
+    // Encontrar todas as tarefas pendentes
+    const horariosTarefas = [];
+    
+    atividades.forEach(atividade => {
+        if (atividade.status === 'pendente' && atividade.data_prevista) {
+            try {
+                const data = new Date(atividade.data_prevista);
+                const totalMinutos = data.getHours() * 60 + data.getMinutes();
+                horariosTarefas.push(totalMinutos);
+            } catch (e) {
+                console.warn('⚠️ Data inválida:', atividade.data_prevista);
+            }
+        }
+    });
+    
+    if (horariosTarefas.length === 0) return '--:--';
+    
+    // Ordenar e encontrar próximo
+    horariosTarefas.sort((a, b) => a - b);
+    const proximo = horariosTarefas.find(h => h >= horarioAtual) || horariosTarefas[0];
+    
+    const horas = Math.floor(proximo / 60);
+    const minutos = proximo % 60;
+    return `${horas.toString().padStart(2, '0')}:${minutos.toString().padStart(2, '0')}`;
+}
+
+// ✅ FUNÇÃO PARA FORÇAR ATUALIZAÇÃO (USE NO CONSOLE DO NAVEGADOR)
+window.debugCardAtividades = async function() {
+    console.log('🐛 INICIANDO DEBUG MANUAL...');
+    
+    // Verificar se currentPatient existe, se não, carregar
+    if (!currentPatient) {
+        console.log('⚠️ currentPatient não definido. Carregando...');
+        currentPatient = await carregarPacienteParaDebug();
+        
+        if (!currentPatient) {
+            console.log('❌ Não foi possível carregar o paciente');
+            return;
+        }
+    }
+    
+    console.log('👤 currentPatient:', currentPatient);
+    
+    // Verificar se os elementos existem
+    const elementos = ['nextMedication', 'nextTask', 'scheduledAppointments', 'pendingExams'];
+    elementos.forEach(id => {
+        const el = document.getElementById(id);
+        console.log(`🔍 Elemento #${id}:`, el ? 'EXISTE' : 'NÃO EXISTE', el);
+        
+        // Mostrar conteúdo atual
+        if (el) {
+            console.log(`   Conteúdo atual: "${el.textContent}"`);
+        }
+    });
+    
+    // Testar APIs
+    await testarAPIs();
+    
+    // Forçar atualização
+    await updateActivityInfoCard();
+    
+    console.log('🐛 DEBUG COMPLETO');
+};
+function contarConsultasAgendadasSimples(atividades) {
+    if (!atividades) return '0';
+    
+    const consultas = atividades.filter(atividade => {
+        const descricao = (atividade.descricao || '').toLowerCase();
+        const tipo = (atividade.tipo || '').toLowerCase();
+        
+        return descricao.includes('consulta') || 
+               descricao.includes('médico') || 
+               descricao.includes('doutor') ||
+               tipo === 'consulta';
+    });
+    
+    return consultas.length.toString();
+}
+
+function contarExamesPendentesSimples(atividades) {
+    if (!atividades) return '0';
+    
+    const exames = atividades.filter(atividade => {
+        const descricao = (atividade.descricao || '').toLowerCase();
+        const tipo = (atividade.tipo || '').toLowerCase();
+        
+        return descricao.includes('exame') || 
+               descricao.includes('laboratório') || 
+               descricao.includes('teste') ||
+               tipo === 'exame';
+    });
+    
+    return exames.length.toString();
+}
+
+// ✅ FUNÇÃO DE RESET (mantida)
+function resetActivityInfoCard() {
+    const elementos = ['nextMedication', 'nextTask', 'scheduledAppointments', 'pendingExams'];
+    elementos.forEach(id => {
+        const element = document.getElementById(id);
+        if (element) {
+            if (id.includes('Medication') || id.includes('Task')) {
+                element.textContent = '--:--';
+            } else {
+                element.textContent = '0';
+            }
+        }
+    });
+}
+
+// ✅ INTEGRAR COM A ATUALIZAÇÃO DO DASHBOARD
+async function loadDashboardData() {
+    if (!currentPatient) return;
+
+    try {
+        console.log('📊 Carregando dados do dashboard...');
+        
+        // Carregar em paralelo para melhor performance
+        await Promise.all([
+            loadVitalSigns(),
+            loadMedications(),
+            loadTasks(),
+            loadAlerts(),
+            updateActivityInfoCard() // ✅ NOVO: Atualizar card de atividades
+        ]);
+
+        console.log('✅ Todos os dados do dashboard carregados');
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados do dashboard:', error);
+    }
+}
+
+// ✅ ATUALIZAR QUANDO ATIVIDADES SÃO MODIFICADAS
+window.atualizarCardAtividades = async function() {
+    console.log('🔄 Atualizando card de próximas atividades...');
+    try {
+        await updateActivityInfoCard();
+    } catch (error) {
+        console.error('❌ Erro ao atualizar card de atividades:', error);
+    }
+};
+
 // ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
 function voltarParaLanding() {
     console.log('🏠 Voltando para a landing page...');
     window.location.href = 'landingpage.html';
+}
+
+// ✅ FUNÇÃO AUXILIAR: Obter Conexão do Pool
+function obterConexao() {
+    return new Promise((resolve, reject) => {
+        db.getConnection((err, connection) => {
+            if (err) {
+                console.error('❌ Erro ao obter conexão:', err);
+                reject(err);
+            } else {
+                resolve(connection);
+            }
+        });
+    });
 }

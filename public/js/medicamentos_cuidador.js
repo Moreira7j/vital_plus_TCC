@@ -88,7 +88,7 @@ async function confirmarExclusao() {
     }
 }
 
-// Modificar a função carregarMedicamentos
+// ✅ Função carregarMedicamentos ATUALIZADA
 async function carregarMedicamentos() {
     try {
         mostrarLoading(true);
@@ -111,8 +111,14 @@ async function carregarMedicamentos() {
 
         renderizarMedicamentos();
         atualizarEstatisticas();
+        
+        // ✅ ADICIONAR ESTA LINHA - Inicializar gráfico após carregar medicamentos
+        setTimeout(() => {
+            inicializarGraficoAdesao();
+        }, 100);
+        
     } catch (error) {
-        console.error('Erro ao carregar medicamentos:', error);
+        console.error('❌ Erro ao carregar medicamentos:', error);
         medicamentos = [];
         renderizarMedicamentos();
         atualizarEstatisticas();
@@ -343,11 +349,11 @@ async function criarMedicamento(medicamentoData) {
     }
 }
 
-// Função para atualizar medicamento
 async function atualizarMedicamento(id, medicamentoData) {
     try {
         console.log('📤 Enviando atualização do medicamento:', { id, ...medicamentoData });
 
+        // ✅ CORREÇÃO: A rota espera /api/medicamentos/:medicamentoId
         const response = await fetch(`/api/medicamentos/${id}`, {
             method: 'PUT',
             headers: {
@@ -447,9 +453,7 @@ async function salvarMedicamento(e) {
 
 function editarMedicamento(id) {
     console.log(`✏️ Editando medicamento ID: ${id}`);
-    console.log(`📋 Lista completa de medicamentos:`, medicamentos);
-
-    // Encontrar o medicamento
+    
     const medicamento = medicamentos.find(m => m.id == id);
     if (!medicamento) {
         console.error('❌ Medicamento não encontrado na lista');
@@ -458,45 +462,40 @@ function editarMedicamento(id) {
     }
 
     medicamentoEditando = id;
-    console.log(`🎯 Medicamento em edição: ${medicamentoEditando}`);
-
-    // Preencher o modal com os dados atuais
     document.getElementById('modalTitulo').textContent = 'Editar Medicamento';
 
-    // Preencher campos do formulário
-    document.getElementById('medicamentoNome').value = medicamento.nome_medicamento || medicamento.nome || '';
-    document.getElementById('medicamentoDosagem').value = medicamento.dosagem || '';
+    // ✅ CORREÇÃO: Usar os campos corretos do medicamento
+    const nomeMedicamento = medicamento.nome_medicamento || medicamento.nome || '';
+    const horarioMedicamento = medicamento.horario || medicamento.horarios || '';
+    const viaMedicamento = medicamento.via || medicamento.via_administracao || '';
+    const instrucoesMedicamento = medicamento.instrucoes || medicamento.observacoes || '';
 
-    // Mapear frequência para valor do select
-    const frequenciaMapeada = mapearFrequenciaParaSelect(medicamento.frequencia);
-    document.getElementById('medicamentoFrequencia').value = frequenciaMapeada;
-
-    // Formatar horário se necessário (garantir formato HH:MM)
-    let horario = medicamento.horario || '';
-    if (horario && !horario.includes(':')) {
-        // Se o horário veio como "0830", converter para "08:30"
-        horario = horario.replace(/(\d{2})(\d{2})/, '$1:$2');
+    // Formatar horário para o input type="time"
+    let horarioFormatado = horarioMedicamento;
+    if (horarioFormatado && !horarioFormatado.includes(':')) {
+        // Converter "0830" para "08:30"
+        if (horarioFormatado.length === 4) {
+            horarioFormatado = horarioFormatado.replace(/(\d{2})(\d{2})/, '$1:$2');
+        }
     }
-    document.getElementById('medicamentoHorario').value = horario;
 
-    // Mapear via para valor do select
-    const viaMapeada = mapearViaParaSelect(medicamento.via);
-    document.getElementById('medicamentoVia').value = viaMapeada;
-
-    document.getElementById('medicamentoInstrucoes').value = medicamento.instrucoes || medicamento.observacoes || '';
-
-    console.log('✅ Modal preenchido com:', {
-        nome: document.getElementById('medicamentoNome').value,
-        dosagem: document.getElementById('medicamentoDosagem').value,
-        frequencia: document.getElementById('medicamentoFrequencia').value,
-        horario: document.getElementById('medicamentoHorario').value,
-        via: document.getElementById('medicamentoVia').value,
-        instrucoes: document.getElementById('medicamentoInstrucoes').value
+    console.log('📋 Dados do medicamento para edição:', {
+        nome: nomeMedicamento,
+        horarioOriginal: horarioMedicamento,
+        horarioFormatado: horarioFormatado,
+        via: viaMedicamento,
+        instrucoes: instrucoesMedicamento
     });
 
-    // Abrir modal
+    // Preencher formulário
+    document.getElementById('medicamentoNome').value = nomeMedicamento;
+    document.getElementById('medicamentoDosagem').value = medicamento.dosagem || '';
+    document.getElementById('medicamentoFrequencia').value = mapearFrequenciaParaSelect(medicamento.frequencia) || 'uma_vez';
+    document.getElementById('medicamentoHorario').value = horarioFormatado;
+    document.getElementById('medicamentoVia').value = mapearViaParaSelect(viaMedicamento) || 'oral';
+    document.getElementById('medicamentoInstrucoes').value = instrucoesMedicamento;
+
     document.getElementById('medicamentoModal').style.display = 'flex';
-    console.log('📱 Modal aberto para edição');
 }
 
 // REMOVER a função excluirMedicamentoConfirmacao antiga que usava confirm()
@@ -565,61 +564,285 @@ function atualizarEstatisticas() {
 
 // Adicione esta função para validar dados antes de renderizar
 function validarMedicamento(med) {
+    // ✅ CORREÇÃO: Considerar todos os possíveis nomes de campos
     return {
         id: med.id || 0,
         nome_medicamento: med.nome_medicamento || med.nome || 'Medicamento não informado',
         nome: med.nome_medicamento || med.nome || 'Medicamento não informado',
         dosagem: med.dosagem || 'Dosagem não informada',
         frequencia: med.frequencia || 'Frequência não informada',
-        horario: med.horario || '--:--',
-        via: med.via || 'Via não informada',
-        instrucoes: med.instrucoes || '',
+        horario: med.horario || med.horarios || '--:--', // ✅ Considera ambos
+        horarios: med.horarios || med.horario || '--:--', // ✅ Para o banco
+        via: med.via || med.via_administracao || 'Via não informada', // ✅ Considera ambos
+        via_administracao: med.via_administracao || med.via || 'Via não informada', // ✅ Para o banco
+        instrucoes: med.instrucoes || med.observacoes || '',
+        observacoes: med.observacoes || med.instrucoes || '',
         status: med.status || 'pendente'
     };
 }
 
-function inicializarGraficoAdesao() {
-    const ctx = document.getElementById('adesaoChart').getContext('2d');
+// ✅ SOLUÇÃO ALTERNATIVA - Carrega Chart.js dinamicamente
+function carregarChartJS() {
+    return new Promise((resolve, reject) => {
+        // Se já estiver carregado, resolve imediatamente
+        if (typeof Chart !== 'undefined') {
+            resolve();
+            return;
+        }
 
-    // Dados de exemplo para o gráfico
-    const data = {
-        labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
-        datasets: [
-            {
+        console.log('📦 Carregando Chart.js dinamicamente...');
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+        script.onload = () => {
+            console.log('✅ Chart.js carregado com sucesso!');
+            resolve();
+        };
+        script.onerror = () => {
+            console.error('❌ Falha ao carregar Chart.js');
+            reject();
+        };
+        document.head.appendChild(script);
+    });
+}
+
+// ✅ Função carregarMedicamentos ATUALIZADA
+async function carregarMedicamentos() {
+    try {
+        mostrarLoading(true);
+
+        // ✅ Carregar Chart.js antes de tudo
+        await carregarChartJS();
+
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+        if (!pacienteId) {
+            throw new Error('Nenhum paciente selecionado');
+        }
+
+        console.log(`🎯 Buscando medicamentos para paciente: ${pacienteId}`);
+
+        const response = await fetch(`/api/pacientes/${pacienteId}/medicamentos/hoje`);
+
+        if (!response.ok) {
+            throw new Error('Erro ao carregar medicamentos da API');
+        }
+
+        medicamentos = await response.json();
+        console.log('📦 Medicamentos carregados da API:', medicamentos);
+
+        renderizarMedicamentos();
+        atualizarEstatisticas();
+        inicializarGraficoAdesao(); // ✅ Agora deve funcionar
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar medicamentos:', error);
+        medicamentos = [];
+        renderizarMedicamentos();
+        atualizarEstatisticas();
+        mostrarMensagem('Erro ao carregar medicamentos: ' + error.message, 'error');
+    } finally {
+        mostrarLoading(false);
+    }
+}
+
+// ✅ Função inicializarGraficoAdesao SIMPLIFICADA
+function inicializarGraficoAdesao() {
+    try {
+        console.log('🎯 Inicializando gráfico de adesão...');
+        
+        const ctx = document.getElementById('adesaoChart');
+        if (!ctx) {
+            console.warn('⚠️ Canvas do gráfico não encontrado');
+            return;
+        }
+
+        // Dados de exemplo - você pode substituir por dados reais depois
+        const data = {
+            labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+            datasets: [{
                 label: 'Taxa de Adesão (%)',
-                data: [85, 92, 78, 95, 88, 90, 82],
+                data: [85, 92, 78, 95, 88, 90, 75],
                 borderColor: '#00B5C2',
                 backgroundColor: 'rgba(0, 181, 194, 0.1)',
                 tension: 0.4,
                 fill: true
-            }
-        ]
-    };
+            }]
+        };
 
-    new Chart(ctx, {
-        type: 'line',
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                }
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 100,
-                    ticks: {
-                        callback: function (value) {
-                            return value + '%';
+        // Destruir gráfico anterior se existir
+        if (window.adesaoChartInstance) {
+            window.adesaoChartInstance.destroy();
+        }
+
+        // Criar novo gráfico
+        window.adesaoChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function (value) {
+                                return value + '%';
+                            }
                         }
                     }
                 }
             }
+        });
+
+        console.log('✅ Gráfico criado com sucesso!');
+        
+    } catch (error) {
+        console.error('❌ Erro no gráfico:', error);
+    }
+}
+
+// ✅ Função inicializarGraficoAdesao ATUALIZADA - COM INDICADORES DINÂMICOS
+function inicializarGraficoAdesao() {
+    try {
+        console.log('🎯 Inicializando gráfico de adesão DINÂMICO...');
+        
+        const ctx = document.getElementById('adesaoChart');
+        if (!ctx) {
+            console.warn('⚠️ Canvas do gráfico não encontrado');
+            return;
         }
-    });
+
+        // ✅ CALCULAR DADOS REAIS baseados nos medicamentos
+        const totalMedicamentos = medicamentos.length;
+        const medicamentosAdministrados = medicamentos.filter(m => m.status === 'administrado').length;
+        const taxaAdesaoHoje = totalMedicamentos > 0 ? 
+            Math.round((medicamentosAdministrados / totalMedicamentos) * 100) : 0;
+
+        console.log('📊 Dados reais calculados:', {
+            total: totalMedicamentos,
+            administrados: medicamentosAdministrados,
+            taxa: taxaAdesaoHoje + '%'
+        });
+
+        // ✅ DADOS DINÂMICOS baseados na taxa real de hoje
+        // Simula uma semana de dados, onde o último dia (hoje) tem a taxa real
+        const dadosSemana = [];
+        const dias = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+        
+        for (let i = 0; i < 7; i++) {
+            if (i === 6) {
+                // Último dia (hoje) - usa a taxa REAL
+                dadosSemana.push(taxaAdesaoHoje);
+            } else {
+                // Dias anteriores - simula variação baseada na taxa atual
+                const variacao = (Math.random() * 20) - 10; // -10% a +10%
+                const taxaDia = Math.max(0, Math.min(100, taxaAdesaoHoje + variacao));
+                dadosSemana.push(Math.round(taxaDia));
+            }
+        }
+
+        const data = {
+            labels: dias,
+            datasets: [{
+                label: 'Taxa de Adesão (%)',
+                data: dadosSemana,
+                borderColor: taxaAdesaoHoje >= 80 ? '#28a745' : 
+                           taxaAdesaoHoje >= 60 ? '#ffc107' : '#dc3545',
+                backgroundColor: taxaAdesaoHoje >= 80 ? 'rgba(40, 167, 69, 0.1)' : 
+                               taxaAdesaoHoje >= 60 ? 'rgba(255, 193, 7, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: taxaAdesaoHoje >= 80 ? '#28a745' : 
+                                    taxaAdesaoHoje >= 60 ? '#ffc107' : '#dc3545',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 2,
+                pointRadius: 6
+            }]
+        };
+
+        // Destruir gráfico anterior se existir
+        if (window.adesaoChartInstance) {
+            window.adesaoChartInstance.destroy();
+        }
+
+        // Criar novo gráfico
+        window.adesaoChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Adesão: ${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: {
+                            callback: function (value) {
+                                return value + '%';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // ✅ ADICIONAR TEXTO DINÂMICO para mostrar os dados reais
+        adicionarTextoDinamicoGrafico(taxaAdesaoHoje, medicamentosAdministrados, totalMedicamentos);
+        
+        console.log('✅ Gráfico DINÂMICO criado com sucesso!');
+        console.log('📈 Taxa de hoje:', taxaAdesaoHoje + '%');
+        
+    } catch (error) {
+        console.error('❌ Erro no gráfico:', error);
+    }
+}
+
+// ✅ FUNÇÃO PARA ADICIONAR TEXTO DINÂMICO
+function adicionarTextoDinamicoGrafico(taxaHoje, administrados, total) {
+    // Verificar se já existe o texto, se não, criar
+    let textoContainer = document.getElementById('textoAdesaoDinamico');
+    
+    if (!textoContainer) {
+        textoContainer = document.createElement('div');
+        textoContainer.id = 'textoAdesaoDinamico';
+        textoContainer.style.cssText = `
+            text-align: center;
+            margin-top: 10px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+        `;
+        
+        // Encontrar o card do gráfico e inserir após o canvas
+        const chartCard = document.querySelector('#adesaoChart').closest('.card-body');
+        if (chartCard) {
+            chartCard.appendChild(textoContainer);
+        }
+    }
+    
+    // Determinar cor baseada na taxa
+    let corTexto = '#dc3545'; // vermelho
+    if (taxaHoje >= 80) corTexto = '#28a745'; // verde
+    else if (taxaHoje >= 60) corTexto = '#ffc107'; // amarelo
+    
+    textoContainer.innerHTML = `
+        <div style="font-size: 14px; color: #666;">
+            <strong style="color: ${corTexto}; font-size: 16px;">${taxaHoje}% de adesão hoje</strong><br>
+            <small>${administrados} de ${total} medicamentos administrados</small>
+        </div>
+    `;
 }
 
 // Utilitários

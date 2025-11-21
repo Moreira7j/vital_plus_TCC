@@ -5088,7 +5088,7 @@ app.delete("/api/medicamentos/:medicamentoId", (req, res) => {
     });
 });
 
-// Atualizar medicamento existente
+// ✅ ROTA CORRIGIDA: Atualizar medicamento existente
 app.put("/api/medicamentos/:medicamentoId", (req, res) => {
     const medicamentoId = req.params.medicamentoId;
     const {
@@ -5110,6 +5110,7 @@ app.put("/api/medicamentos/:medicamentoId", (req, res) => {
         });
     }
 
+    // ✅ CORREÇÃO: Usar os nomes de colunas corretos do banco
     const query = `
         UPDATE medicamentos 
         SET nome_medicamento = ?, dosagem = ?, frequencia = ?, horarios = ?, via_administracao = ?, observacoes = ?
@@ -5117,12 +5118,12 @@ app.put("/api/medicamentos/:medicamentoId", (req, res) => {
     `;
 
     db.query(query, [
-        nome,
-        dosagem,
-        frequencia,
-        horario,
-        via,
-        instrucoes || '',
+        nome,           // vai para nome_medicamento
+        dosagem,        // vai para dosagem
+        frequencia,     // vai para frequencia
+        horario,        // vai para horarios
+        via,            // vai para via_administracao
+        instrucoes || '', // vai para observacoes
         medicamentoId
     ], (err, result) => {
         if (err) {
@@ -5136,16 +5137,16 @@ app.put("/api/medicamentos/:medicamentoId", (req, res) => {
 
         console.log("✅ Medicamento atualizado com sucesso. ID:", medicamentoId);
         
-        // Retornar o medicamento atualizado
+        // ✅ CORREÇÃO: Retornar os campos no formato que o frontend espera
         res.json({
             id: medicamentoId,
             nome_medicamento: nome,
             nome: nome,
             dosagem: dosagem,
             frequencia: frequencia,
-            horario: horario,
-            via: via,
-            instrucoes: instrucoes,
+            horario: horario,  // mantém como 'horario' para o frontend
+            via: via,          // mantém como 'via' para o frontend
+            instrucoes: instrucoes, // mantém como 'instrucoes' para o frontend
             status: 'pendente'
         });
     });
@@ -5280,12 +5281,23 @@ app.delete("/api/atividades/:id", (req, res) => {
     });
 });
 
-// ✅ ROTA CORRIGIDA: Editar atividade
 app.put("/api/atividades/:id", (req, res) => {
     const atividadeId = req.params.id;
     const { tipo, descricao, data_prevista, observacoes } = req.body;
 
-    console.log(`✏️ Editando atividade ID: ${atividadeId}`, req.body);
+    console.log(`✏️ Editando atividade ID: ${atividadeId}`, {
+        tipo,
+        descricao,
+        data_prevista, // ✅ Verificar o que está chegando
+        observacoes
+    });
+
+    // ✅ DEBUG: Verificar se a data está correta
+    console.log('🔍 DEBUG BACKEND - Data recebida:', {
+        data_prevista,
+        data_interpretada: new Date(data_prevista).toString(),
+        data_iso: new Date(data_prevista).toISOString()
+    });
 
     if (!tipo || !descricao || !data_prevista) {
         return res.status(400).json({ 
@@ -5311,13 +5323,8 @@ app.put("/api/atividades/:id", (req, res) => {
 
         console.log('✅ Atividade editada com sucesso');
         
-        // Buscar atividade atualizada com nome do paciente
-        const selectQuery = `
-            SELECT a.*, p.nome as paciente_nome 
-            FROM atividades a 
-            LEFT JOIN pacientes p ON a.paciente_id = p.id 
-            WHERE a.id = ?
-        `;
+        // Buscar atividade atualizada
+        const selectQuery = `SELECT * FROM atividades WHERE id = ?`;
         db.query(selectQuery, [atividadeId], (err, results) => {
             if (err) {
                 console.error("❌ Erro ao buscar atividade:", err);
@@ -5325,19 +5332,24 @@ app.put("/api/atividades/:id", (req, res) => {
             }
 
             const atividade = results[0];
+            
+            // ✅ DEBUG: Verificar o que foi salvo no banco
+            console.log('💾 DEBUG BACKEND - Data salva no banco:', {
+                data_salva: atividade.data_prevista,
+                data_interpretada: new Date(atividade.data_prevista).toString()
+            });
+            
             res.json({
                 id: atividade.id,
                 tipo: atividade.tipo,
                 descricao: atividade.descricao,
                 data_prevista: atividade.data_prevista,
                 observacoes: atividade.observacoes,
-                status: atividade.status,
-                paciente_nome: atividade.paciente_nome
+                status: atividade.status
             });
         });
     });
 });
-
 // ✅ ROTA CORRIGIDA: Buscar atividades do paciente (para hoje)
 app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
     const pacienteId = req.params.pacienteId;
@@ -5839,5 +5851,214 @@ app.post("/api/atividades", (req, res) => {
                 res.json(atividade);
             });
         });
+    });
+});
+
+
+//rotas para os sinais vitais//
+
+// ✅ ROTA CORRIGIDA E TESTADA: Registrar Sinais Vitais
+app.post("/api/sinais-vitais", async (req, res) => {
+    const {
+        paciente_id,
+        cuidador_id, // Este é o usuario_id (13)
+        sistolica,
+        diastolica,
+        glicemia,
+        temperatura,
+        batimentos,
+        observacoes
+    } = req.body;
+
+    console.log("📤 Recebendo dados de sinais vitais:", req.body);
+
+    if (!paciente_id) {
+        return res.status(400).json({ error: "ID do paciente é obrigatório" });
+    }
+
+    // Validar que pelo menos um campo foi preenchido
+    if (!sistolica && !diastolica && !glicemia && !temperatura && !batimentos) {
+        return res.status(400).json({ error: "Pelo menos um sinal vital deve ser preenchido" });
+    }
+
+    try {
+        // Registrar pressão arterial (se fornecida)
+        if (sistolica && diastolica) {
+            const query = `
+                INSERT INTO sinais_vitais 
+                (paciente_id, tipo, valor_principal, valor_secundario, unidade_medida, observacoes, registrado_por) 
+                VALUES (?, 'pressao_arterial', ?, ?, 'mmHg', ?, ?)
+            `;
+            
+            await new Promise((resolve, reject) => {
+                db.query(query, [paciente_id, sistolica, diastolica, observacoes, cuidador_id], (err, result) => {
+                    if (err) {
+                        console.error("❌ Erro ao registrar pressão:", err);
+                        reject(err);
+                    } else {
+                        console.log(`✅ Pressão arterial registrada: ${sistolica}/${diastolica}`);
+                        resolve(result);
+                    }
+                });
+            });
+        }
+
+        // Registrar glicemia (se fornecida)
+        if (glicemia) {
+            const query = `
+                INSERT INTO sinais_vitais 
+                (paciente_id, tipo, valor_principal, unidade_medida, observacoes, registrado_por) 
+                VALUES (?, 'glicemia', ?, 'mg/dL', ?, ?)
+            `;
+            
+            await new Promise((resolve, reject) => {
+                db.query(query, [paciente_id, glicemia, observacoes, cuidador_id], (err, result) => {
+                    if (err) {
+                        console.error("❌ Erro ao registrar glicemia:", err);
+                        reject(err);
+                    } else {
+                        console.log(`✅ Glicemia registrada: ${glicemia}`);
+                        resolve(result);
+                    }
+                });
+            });
+        }
+
+        // Registrar temperatura (se fornecida)
+        if (temperatura) {
+            const query = `
+                INSERT INTO sinais_vitais 
+                (paciente_id, tipo, valor_principal, unidade_medida, observacoes, registrado_por) 
+                VALUES (?, 'temperatura', ?, '°C', ?, ?)
+            `;
+            
+            await new Promise((resolve, reject) => {
+                db.query(query, [paciente_id, temperatura, observacoes, cuidador_id], (err, result) => {
+                    if (err) {
+                        console.error("❌ Erro ao registrar temperatura:", err);
+                        reject(err);
+                    } else {
+                        console.log(`✅ Temperatura registrada: ${temperatura}`);
+                        resolve(result);
+                    }
+                });
+            });
+        }
+
+        // Registrar batimentos (se fornecida)
+        if (batimentos) {
+            const query = `
+                INSERT INTO sinais_vitais 
+                (paciente_id, tipo, valor_principal, unidade_medida, observacoes, registrado_por) 
+                VALUES (?, 'batimentos', ?, 'bpm', ?, ?)
+            `;
+            
+            await new Promise((resolve, reject) => {
+                db.query(query, [paciente_id, batimentos, observacoes, cuidador_id], (err, result) => {
+                    if (err) {
+                        console.error("❌ Erro ao registrar batimentos:", err);
+                        reject(err);
+                    } else {
+                        console.log(`✅ Batimentos registrados: ${batimentos}`);
+                        resolve(result);
+                    }
+                });
+            });
+        }
+
+        console.log("🎉 Todos os sinais vitais registrados com sucesso!");
+        res.status(201).json({ 
+            success: true, 
+            message: "Sinais vitais registrados com sucesso" 
+        });
+
+    } catch (error) {
+        console.error("💥 Erro ao registrar sinais vitais:", error);
+        res.status(500).json({ 
+            error: "Erro interno do servidor: " + error.message 
+        });
+    }
+});
+
+// ✅ ROTA SIMPLIFICADA: Buscar Últimos Sinais Vitais
+app.get("/api/pacientes/:id/sinais-vitais/ultimos", (req, res) => {
+    const pacienteId = req.params.id;
+    console.log(`📥 Buscando últimos sinais vitais para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT * FROM sinais_vitais 
+        WHERE paciente_id = ? 
+        ORDER BY data_registro DESC 
+        LIMIT 10
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar sinais vitais:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`✅ ${results.length} registros encontrados`);
+
+        // Organizar os resultados
+        const resposta = {
+            pressao_arterial: null,
+            glicemia: null,
+            temperatura: null,
+            batimentos: null
+        };
+
+        results.forEach(sinal => {
+            if (!resposta[sinal.tipo]) {
+                if (sinal.tipo === 'pressao_arterial') {
+                    resposta[sinal.tipo] = {
+                        valor: `${sinal.valor_principal}/${sinal.valor_secundario}`,
+                        data_registro: sinal.data_registro
+                    };
+                } else {
+                    resposta[sinal.tipo] = {
+                        valor: sinal.valor_principal,
+                        data_registro: sinal.data_registro
+                    };
+                }
+            }
+        });
+
+        res.json(resposta);
+    });
+});
+
+// ✅ ROTA: Histórico de Sinais Vitais
+app.get("/api/pacientes/:id/sinais-vitais/historico", (req, res) => {
+    const pacienteId = req.params.id;
+    const { tipo, dias = 7 } = req.query;
+
+    console.log(`📊 Buscando histórico de sinais vitais para paciente: ${pacienteId}, tipo: ${tipo}, dias: ${dias}`);
+
+    let query = `
+        SELECT sv.*, u.nome as registrado_por_nome 
+        FROM sinais_vitais sv
+        LEFT JOIN usuarios u ON sv.registrado_por = u.id
+        WHERE sv.paciente_id = ? 
+        AND sv.data_registro >= DATE_SUB(NOW(), INTERVAL ? DAY)
+    `;
+    
+    const params = [pacienteId, dias];
+    
+    if (tipo) {
+        query += " AND sv.tipo = ?";
+        params.push(tipo);
+    }
+    
+    query += " ORDER BY sv.data_registro DESC";
+    
+    db.query(query, params, (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar histórico:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`✅ ${results.length} registros históricos encontrados`);
+        res.json(results);
     });
 });
