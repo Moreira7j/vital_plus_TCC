@@ -563,32 +563,100 @@ function exibirAtividades(atividades) {
     if (!atividades || atividades.length === 0) {
         activityFeed.innerHTML = `
             <div class="empty-state">
-                <i data-feather="clock"></i>
+                <i class="fas fa-clock"></i>
                 <p>Nenhuma atividade recente</p>
+                <small class="text-muted">As atividades aparecerão aqui quando forem registradas</small>
             </div>
         `;
-        feather.replace();
         return;
     }
 
-    const atividadesHTML = atividades.map(atividade => `
-        <div class="activity-item">
-            <div class="activity-icon ${atividade.tipo || 'default'}">
-                <i data-feather="${obterIconeAtividade(atividade.tipo)}"></i>
+    const atividadesHTML = atividades.map(atividade => {
+        const descricao = atividade.descricao || 'Atividade sem descrição';
+        const tipo = atividade.tipo || 'outro';
+        const cuidador = atividade.cuidador_nome || 'Cuidador';
+        
+        // Formatar data
+        let dataFormatada = 'Data não informada';
+        if (atividade.data_prevista) {
+            const data = new Date(atividade.data_prevista);
+            dataFormatada = data.toLocaleDateString('pt-BR') + ' ' + 
+                           data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Verificar se está atrasada
+        const isAtrasada = atividade.status === 'pendente' && 
+                          new Date(atividade.data_prevista) < new Date();
+        
+        const statusClass = isAtrasada ? 'bg-danger' : 
+                           (atividade.status === 'concluida' ? 'bg-success' : 'bg-warning');
+        
+        const statusText = isAtrasada ? 'Atrasada' : 
+                          (atividade.status === 'concluida' ? 'Concluída' : 'Pendente');
+
+        return `
+            <div class="activity-item ${isAtrasada ? 'atrasada' : ''} ${tipo}">
+                <div class="activity-icon">
+                    <i class="${obterIconeClasseAtividade(tipo)}"></i>
+                </div>
+                <div class="activity-content">
+                    <h5>${descricao}</h5>
+                    <div class="activity-meta">
+                        <span>
+                            <i class="fas fa-calendar"></i>
+                            ${dataFormatada}
+                        </span>
+                        <span>
+                            <i class="fas fa-user"></i>
+                            ${cuidador}
+                        </span>
+                        <span>
+                            <i class="fas fa-tag"></i>
+                            ${obterTextoTipo(tipo)}
+                        </span>
+                    </div>
+                    ${atividade.observacoes ? `
+                        <div class="activity-notes">
+                            <strong>Observações:</strong> ${atividade.observacoes}
+                        </div>
+                    ` : ''}
+                </div>
+                <span class="badge ${statusClass}">${statusText}</span>
             </div>
-            <div class="activity-content">
-                <h5>${atividade.descricao || 'Atividade'}</h5>
-                <p>Por: ${atividade.cuidador_nome || 'Cuidador'}</p>
-                <small class="activity-time">${formatarData(atividade.data_prevista || atividade.data_criacao)}</small>
-                <span class="badge ${atividade.status === 'concluida' ? 'bg-success' : 'bg-warning'}">
-                    ${atividade.status === 'concluida' ? 'Concluída' : 'Pendente'}
-                </span>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 
     activityFeed.innerHTML = atividadesHTML;
-    feather.replace();
+}
+
+// Função auxiliar para obter classe do ícone Font Awesome
+function obterIconeClasseAtividade(tipo) {
+    const iconMap = {
+        'alimentacao': 'fas fa-utensils',
+        'exercicio': 'fas fa-running',
+        'higiene': 'fas fa-shower',
+        'medicacao': 'fas fa-pills',
+        'repouso': 'fas fa-bed',
+        'social': 'fas fa-users',
+        'consulta': 'fas fa-stethoscope',
+        'outro': 'fas fa-tasks'
+    };
+    return iconMap[tipo] || 'fas fa-tasks';
+}
+
+// Função para obter texto do tipo de atividade
+function obterTextoTipo(tipo) {
+    const textos = {
+        'alimentacao': 'Alimentação',
+        'exercicio': 'Exercício',
+        'higiene': 'Higiene',
+        'medicacao': 'Medicação',
+        'repouso': 'Repouso',
+        'social': 'Social',
+        'consulta': 'Consulta',
+        'outro': 'Outro'
+    };
+    return textos[tipo] || tipo;
 }
 
 function exibirAlertas(alertas) {
@@ -1017,4 +1085,415 @@ window.recarregarTarefasSupervisor = recarregarTarefasSupervisor;
 function voltarParaLanding() {
     console.log('🏠 Voltando para a landing page...');
     window.location.href = 'landingpage.html';
+}
+
+// ✅ ADICIONE ESTAS FUNÇÕES AO dashboard_supervisor.js
+
+// Função para carregar dados sincronizados do cuidador
+async function carregarDadosSincronizados() {
+    try {
+        const usuarioId = localStorage.getItem('usuarioId');
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+
+        if (!usuarioId || !pacienteId) {
+            console.log('❌ Dados insuficientes para sincronização');
+            return;
+        }
+
+        console.log('🔄 Carregando dados sincronizados do cuidador...');
+
+        // Carregar dados em paralelo
+        const [atividadesData, sinaisVitaisData, dashboardData] = await Promise.all([
+            fetch(`/api/supervisores/${usuarioId}/pacientes/${pacienteId}/atividades-compartilhadas?periodo=7`).then(r => r.json()),
+            fetch(`/api/supervisores/${usuarioId}/pacientes/${pacienteId}/sinais-vitais-compartilhados?dias=7`).then(r => r.json()),
+            fetch(`/api/supervisores/${usuarioId}/pacientes/${pacienteId}/dashboard-tempo-real`).then(r => r.json())
+        ]);
+
+        // Atualizar interface com dados sincronizados
+        atualizarDashboardSincronizado(atividadesData, sinaisVitaisData, dashboardData);
+
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados sincronizados:', error);
+    }
+}
+
+// Função para atualizar dashboard com dados sincronizados
+function atualizarDashboardSincronizado(atividadesData, sinaisVitaisData, dashboardData) {
+    console.log('🎯 Atualizando dashboard com dados sincronizados');
+
+    // Atualizar atividades
+    if (atividadesData && atividadesData.atividades) {
+        exibirAtividadesSincronizadas(atividadesData);
+    }
+
+    // Atualizar sinais vitais
+    if (sinaisVitaisData && sinaisVitaisData.dados) {
+        atualizarSinaisVitaisSincronizados(sinaisVitaisData);
+    }
+
+    // Atualizar dashboard em tempo real
+    if (dashboardData) {
+        atualizarDashboardTempoReal(dashboardData);
+    }
+}
+
+// Função para exibir atividades sincronizadas
+function exibirAtividadesSincronizadas(atividadesData) {
+    const container = document.getElementById('activityFeed');
+    if (!container) return;
+
+    const atividades = atividadesData.atividades;
+    const estatisticas = atividadesData.estatisticas;
+
+    if (!atividades || atividades.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i data-feather="clock"></i>
+                <p>Nenhuma atividade registrada</p>
+                <small class="text-muted">As atividades do cuidador aparecerão aqui</small>
+            </div>
+        `;
+        if (window.feather) window.feather.replace();
+        return;
+    }
+
+    // Atualizar estatísticas
+    atualizarEstatisticasAtividades(estatisticas);
+
+    // Exibir atividades
+    container.innerHTML = atividades.map(atividade => {
+        const descricao = atividade.descricao || 'Atividade sem descrição';
+        const tipo = atividade.tipo || 'outro';
+        const cuidador = atividade.cuidador_nome || 'Cuidador';
+        
+        // Formatar data
+        let dataFormatada = 'Data não informada';
+        if (atividade.data_prevista) {
+            const data = new Date(atividade.data_prevista);
+            dataFormatada = data.toLocaleDateString('pt-BR') + ' ' + data.toLocaleTimeString('pt-BR', { 
+                hour: '2-digit', minute: '2-digit' 
+            });
+        }
+
+        // Verificar se está atrasada
+        const isAtrasada = atividade.status === 'pendente' && new Date(atividade.data_prevista) < new Date();
+        const statusClass = isAtrasada ? 'bg-danger' : (atividade.status === 'concluida' ? 'bg-success' : 'bg-warning');
+        const statusText = isAtrasada ? 'Atrasada' : (atividade.status === 'concluida' ? 'Concluída' : 'Pendente');
+
+        return `
+            <div class="activity-item ${isAtrasada ? 'atrasada' : ''}">
+                <div class="activity-icon">
+                    <i data-feather="${getTaskIcon(tipo)}"></i>
+                </div>
+                <div class="activity-info">
+                    <h5>${descricao}</h5>
+                    <div class="activity-meta">
+                        <span><i data-feather="calendar"></i> ${dataFormatada}</span>
+                        <span><i data-feather="user"></i> ${cuidador}</span>
+                        <span><i data-feather="tag"></i> ${obterTextoTipo(tipo)}</span>
+                    </div>
+                    ${atividade.observacoes ? `<p class="activity-notes">${atividade.observacoes}</p>` : ''}
+                </div>
+                <span class="badge ${statusClass}">${statusText}</span>
+            </div>
+        `;
+    }).join('');
+
+    if (window.feather) window.feather.replace();
+}
+
+// Função para atualizar estatísticas de atividades
+function atualizarEstatisticasAtividades(estatisticas) {
+    const elementos = {
+        'totalAtividades': estatisticas.total,
+        'atividadesConcluidas': estatisticas.concluidas,
+        'atividadesPendentes': estatisticas.pendentes,
+        'atividadesAtrasadas': estatisticas.atrasadas
+    };
+
+    Object.keys(elementos).forEach(id => {
+        const elemento = document.getElementById(id);
+        if (elemento) {
+            elemento.textContent = elementos[id];
+        }
+    });
+
+    // Atualizar percentual de conclusão
+    const percentualElement = document.getElementById('percentualConclusao');
+    if (percentualElement) {
+        percentualElement.textContent = `${estatisticas.percentualConclusao}%`;
+    }
+}
+
+// Função para atualizar sinais vitais sincronizados
+function atualizarSinaisVitaisSincronizados(sinaisData) {
+    console.log('💓 Atualizando sinais vitais sincronizados');
+
+    const estatisticas = sinaisData.estatisticas;
+    
+    // Atualizar cards de sinais vitais
+    if (estatisticas.pressao_arterial) {
+        document.getElementById('pressaoMedia').textContent = 
+            `${estatisticas.pressao_arterial.mediaSistolica}/${estatisticas.pressao_arterial.mediaDiastolica}`;
+    }
+
+    if (estatisticas.glicemia) {
+        document.getElementById('glicemiaMedia').textContent = estatisticas.glicemia.media;
+        document.getElementById('glicemiaStatus').textContent = estatisticas.glicemia.classificacao;
+    }
+
+    if (estatisticas.temperatura) {
+        document.getElementById('temperaturaMedia').textContent = estatisticas.temperatura.media + '°C';
+    }
+
+    if (estatisticas.batimentos) {
+        document.getElementById('heartRate').textContent = estatisticas.batimentos.media;
+    }
+
+    // Atualizar último registro
+    const ultimaAtualizacao = document.getElementById('ultimaAtualizacaoSinais');
+    if (ultimaAtualizacao) {
+        ultimaAtualizacao.textContent = `Última atualização: ${new Date().toLocaleTimeString('pt-BR')}`;
+    }
+}
+
+// Correção para a função de atualização de sinais vitais
+function atualizarDashboardTempoReal(dados) {
+    try {
+        console.log('📊 Atualizando dashboard tempo real com:', dados);
+        
+        // Glicemia
+        const glicemiaElement = document.getElementById('vitalGlicemia');
+        if (glicemiaElement && dados.glicemia !== undefined) {
+            glicemiaElement.textContent = `${dados.glicemia} mg/dL`;
+        }
+        
+        // Pressão Arterial
+        const pressaoElement = document.getElementById('vitalPressaoArterial');
+        if (pressaoElement && dados.pressao_arterial) {
+            pressaoElement.textContent = dados.pressao_arterial;
+        }
+        
+        // Temperatura
+        const temperaturaElement = document.getElementById('vitalTemperatura');
+        if (temperaturaElement && dados.temperatura !== undefined) {
+            temperaturaElement.textContent = `${dados.temperatura}°C`;
+        }
+        
+        // Adesão a Medicamentos
+        const adesaoElement = document.getElementById('vitalAdesao');
+        if (adesaoElement && dados.adesao_medicamentos !== undefined) {
+            adesaoElement.textContent = `${dados.adesao_medicamentos}%`;
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro ao atualizar dashboard tempo real:', error);
+    }
+}
+
+// ✅ INTEGRAR COM A CARGA INICIAL
+// Modifique a função carregarDadosAdicionais para incluir sincronização
+async function carregarDadosAdicionais(usuarioId, pacienteId) {
+    try {
+        await Promise.all([
+            carregarSinaisVitais(usuarioId, pacienteId),
+            carregarAtividades(usuarioId, pacienteId),
+            carregarAlertas(usuarioId, pacienteId),
+            carregarMedicamentos(usuarioId, pacienteId),
+            carregarDadosSincronizados() // ✅ NOVO: Carregar dados sincronizados
+        ]);
+    } catch (error) {
+        console.error('❌ Erro ao carregar dados adicionais:', error);
+    }
+}
+
+// ✅ CONFIGURAR ATUALIZAÇÃO AUTOMÁTICA
+function configurarAtualizacaoAutomatica() {
+    // Atualizar a cada 30 segundos
+    setInterval(() => {
+        console.log('🔄 Atualização automática dos dados...');
+        carregarDadosSincronizados();
+    }, 30000);
+
+    // Também atualizar quando a página ganhar foco
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            console.log('📱 Página visível, atualizando dados...');
+            carregarDadosSincronizados();
+        }
+    });
+}
+
+// ✅ CHAMAR NO INÍCIO
+// Adicione esta linha no final do DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... código existente ...
+    
+    // Configurar atualização automática
+    configurarAtualizacaoAutomatica();
+});
+
+// Função para sincronizar atividades concluídas
+async function sincronizarAtividadesConcluidas() {
+    try {
+        const pacienteId = localStorage.getItem('selectedPatientId') || sessionStorage.getItem('selectedPatientId');
+        
+        if (!pacienteId) {
+            console.log('❌ Nenhum paciente selecionado');
+            return;
+        }
+        
+        const response = await fetch(`/api/atividades/concluidas/${pacienteId}`);
+        const atividadesConcluidas = await response.json();
+        
+        // Remover atividades concluídas da visualização
+        atividadesConcluidas.forEach(atividadeId => {
+            const elemento = document.querySelector(`[data-activity-id="${atividadeId}"]`);
+            if (elemento) {
+                elemento.remove();
+            }
+        });
+        
+    } catch (error) {
+        console.error('❌ Erro ao sincronizar atividades concluídas:', error);
+    }
+}
+
+// Executar sincronização a cada 30 segundos
+setInterval(sincronizarAtividadesConcluidas, 30000);
+
+// ===== SINCronIZAÇÃO EM TEMPO REAL - PARA SUPERVISOR/FAMILIAR =====
+
+// Função para sincronização em tempo real
+async function sincronizarDadosTempoReal() {
+    try {
+        const pacienteId = localStorage.getItem('selectedPatientId') || sessionStorage.getItem('selectedPatientId');
+        
+        if (!pacienteId) {
+            console.log('🔄 Aguardando seleção de paciente...');
+            return;
+        }
+        
+        console.log('🔄 Sincronizando dados do paciente:', pacienteId);
+        
+        const response = await fetch(`/api/sincronizar/${pacienteId}`);
+        
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        
+        const dadosSincronizados = await response.json();
+        console.log('✅ Dados sincronizados:', dadosSincronizados);
+        
+        // Atualizar sinais vitais
+        if (dadosSincronizados.sinais_vitais) {
+            atualizarSinaisVitais(dadosSincronizados.sinais_vitais);
+        }
+        
+        // Atualizar atividades
+        if (dadosSincronizados.atividades) {
+            atualizarAtividades(dadosSincronizados.atividades);
+        }
+        
+        // Atualizar medicamentos
+        if (dadosSincronizados.medicamentos) {
+            atualizarMedicamentos(dadosSincronizados.medicamentos);
+        }
+        
+        // Atualizar alertas
+        if (dadosSincronizados.alertas) {
+            atualizarAlertas(dadosSincronizados.alertas);
+        }
+        
+    } catch (error) {
+        console.error('❌ Erro na sincronização:', error);
+    }
+}
+
+// Iniciar sincronização quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    // Primeira sincronização após 2 segundos
+    setTimeout(sincronizarDadosTempoReal, 2000);
+    
+    // Sincronizar a cada 15 segundos
+    setInterval(sincronizarDadosTempoReal, 15000);
+});
+
+// Funções de atualização específicas
+function atualizarSinaisVitais(sinaisVitais) {
+    console.log('💓 Atualizando sinais vitais:', sinaisVitais);
+    
+    // Glicemia
+    if (sinaisVitais.glicemia !== undefined) {
+        const element = document.getElementById('vitalGlicemia');
+        if (element) element.textContent = `${sinaisVitais.glicemia} mg/dL`;
+    }
+    
+    // Pressão Arterial
+    if (sinaisVitais.pressao_arterial) {
+        const element = document.getElementById('vitalPressaoArterial');
+        if (element) element.textContent = sinaisVitais.pressao_arterial;
+    }
+    
+    // Temperatura
+    if (sinaisVitais.temperatura !== undefined) {
+        const element = document.getElementById('vitalTemperatura');
+        if (element) element.textContent = `${sinaisVitais.temperatura}°C`;
+    }
+    
+    // Adesão a Medicamentos
+    if (sinaisVitais.adesao_medicamentos !== undefined) {
+        const element = document.getElementById('vitalAdesao');
+        if (element) element.textContent = `${sinaisVitais.adesao_medicamentos}%`;
+    }
+}
+
+function atualizarAtividades(atividades) {
+    console.log('📋 Atualizando atividades:', atividades);
+    
+    const atividadesContainer = document.getElementById('atividadesContainer');
+    if (!atividadesContainer) return;
+    
+    // Filtrar apenas atividades não concluídas
+    const atividadesPendentes = atividades.filter(ativ => !ativ.concluida);
+    
+    if (atividadesPendentes.length === 0) {
+        atividadesContainer.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <p>Nenhuma atividade pendente</p>
+            </div>
+        `;
+        return;
+    }
+    
+    // Atualizar a lista de atividades
+    atividadesContainer.innerHTML = atividadesPendentes.map(atividade => `
+        <div class="activity-card" data-activity-id="${atividade.id}">
+            <div class="activity-content">
+                <h4>${atividade.titulo}</h4>
+                <p>${atividade.descricao}</p>
+                <div class="activity-meta">
+                    <span class="activity-time">
+                        <i class="fas fa-clock"></i>
+                        ${atividade.horario}
+                    </span>
+                    <span class="activity-status ${atividade.status}">
+                        ${atividade.status === 'pendente' ? '🟡 Pendente' : 
+                          atividade.status === 'atrasado' ? '🔴 Atrasado' : '🟢 Concluído'}
+                    </span>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function atualizarMedicamentos(medicamentos) {
+    console.log('💊 Atualizando medicamentos:', medicamentos);
+    // Implementar lógica de atualização de medicamentos
+}
+
+function atualizarAlertas(alertas) {
+    console.log('🚨 Atualizando alertas:', alertas);
+    // Implementar lógica de atualização de alertas
 }

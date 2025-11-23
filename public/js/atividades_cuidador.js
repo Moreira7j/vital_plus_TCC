@@ -10,6 +10,7 @@ let filtrosAtivos = {
 // Variáveis globais para controle
 let atividadeEditando = null;
 let atividadeParaExcluir = null;
+let ultimaLimpeza = null;
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
@@ -18,7 +19,56 @@ document.addEventListener('DOMContentLoaded', function() {
     inicializarEventListeners();
     carregarAtividades();
     inicializarGraficoAtividades();
+    
+    // ✅ INICIAR VERIFICAÇÃO DA MEIA-NOITE
+    setInterval(verificarMeiaNoite, 60000); // Verificar a cada minuto
+    console.log('⏰ Verificação de meia-noite iniciada (a cada minuto)');
 });
+
+// ✅ FUNÇÃO SIMPLES PARA LIMPAR ATIVIDADES CONCLUÍDAS DO BANCO
+async function limparAtividadesConcluidas() {
+    try {
+        console.log('🧹 Chamando API para limpar atividades concluídas...');
+        
+        const response = await fetch('/api/atividades/concluidas', {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            throw new Error('Erro ao limpar atividades');
+        }
+
+        const resultado = await response.json();
+        console.log('✅ Limpeza concluída:', resultado);
+        
+    } catch (error) {
+        console.error('❌ Erro ao limpar atividades:', error);
+    }
+}
+
+// ✅ VERIFICAR MEIA-NOITE E LIMPAR
+async function verificarMeiaNoite() {
+    const agora = new Date();
+    const hoje = agora.toDateString();
+    
+    // Se já limpamos hoje, não faz nada
+    if (ultimaLimpeza === hoje) {
+        return;
+    }
+    
+    const hora = agora.getHours();
+    const minutos = agora.getMinutes();
+    
+    // Se for meia-noite (00:00)
+    if (hora === 0 && minutos === 0) {
+        console.log('🎯 É meia-noite! Limpando atividades concluídas...');
+        await limparAtividadesConcluidas();
+        ultimaLimpeza = hoje;
+    }
+}
+
+// Restante do código permanece EXATAMENTE igual...
+// [Todo o resto do seu código original aqui...]
 
 // Event Listeners
 function inicializarEventListeners() {
@@ -852,8 +902,6 @@ function voltarParaDependentes() {
     console.log('✅ Dados limpos. Redirecionando para dependentes.html');
     window.location.href = 'dependentes.html';
 }
-
-
 
 // FUNÇÃO VOLTAR PARA LANDING PAGE
 function voltarParaLanding() {

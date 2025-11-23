@@ -1265,3 +1265,214 @@ body {
         display: none; /* Em mobile mostra só o ícone */
     }
 }
+
+/* ===== CORREÇÕES PARA O CARD DE ATIVIDADES ===== */
+
+/* Garantir que o card de atividades ocupe toda a altura disponível */
+.activities-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* Container da lista de atividades deve expandir */
+.activities-list {
+    flex: 1;
+    padding: 1.25rem;
+    max-height: none !important; /* Remove altura máxima fixa */
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Itens de atividade devem ocupar toda a largura */
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius);
+    background: white;
+    transition: var(--transition);
+    width: 100%;
+    margin-bottom: 0.5rem;
+}
+
+.activity-item:hover {
+    border-color: var(--primary);
+    box-shadow: var(--card-shadow);
+    transform: translateY(-2px);
+}
+
+.activity-item:last-child {
+    margin-bottom: 0;
+}
+
+/* Ícone da atividade */
+.activity-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+}
+
+/* Conteúdo da atividade deve expandir */
+.activity-content {
+    flex: 1;
+    min-width: 0; /* Permite que o texto quebre */
+}
+
+.activity-content h5 {
+    margin: 0 0 0.5rem 0;
+    color: var(--dark);
+    font-weight: 600;
+    font-size: 1rem;
+    line-height: 1.4;
+}
+
+.activity-content p {
+    margin: 0 0 0.5rem 0;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.activity-time {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Badge de status */
+.activity-item .badge {
+    align-self: flex-start;
+    flex-shrink: 0;
+    margin-left: auto;
+}
+
+/* Estados específicos para diferentes tipos de atividades */
+.activity-item.medicacao .activity-icon {
+    background: linear-gradient(135deg, var(--primary), #0095a1);
+}
+
+.activity-item.alimentacao .activity-icon {
+    background: linear-gradient(135deg, var(--success), #219653);
+}
+
+.activity-item.exercicio .activity-icon {
+    background: linear-gradient(135deg, var(--warning), #e67e22);
+}
+
+.activity-item.higiene .activity-icon {
+    background: linear-gradient(135deg, var(--info), #2980b9);
+}
+
+.activity-item.consulta .activity-icon {
+    background: linear-gradient(135deg, var(--secondary), #6a2ca8);
+}
+
+/* Meta informações da atividade */
+.activity-meta {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.activity-meta span {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.activity-meta i {
+    font-size: 0.7rem;
+}
+
+/* Notas da atividade */
+.activity-notes {
+    background: var(--light);
+    padding: 0.75rem;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--text);
+    border-left: 3px solid var(--primary);
+}
+
+/* Estado de atividade atrasada */
+.activity-item.atrasada {
+    border-left: 4px solid var(--danger);
+    background: var(--danger-light);
+}
+
+.activity-item.atrasada .activity-content h5 {
+    color: var(--danger);
+}
+
+/* Estados vazios devem ocupar todo o card */
+.activities-list .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    padding: 2rem;
+    text-align: center;
+    color: var(--text-muted);
+}
+
+.activities-list .empty-state i {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+.activities-list .empty-state p {
+    margin: 0 0 0.5rem 0;
+    font-size: 1rem;
+}
+
+.activities-list .empty-state small {
+    font-size: 0.85rem;
+    opacity: 0.7;
+}
+
+/* Responsividade para atividades */
+@media (max-width: 768px) {
+    .activity-item {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .activity-item .badge {
+        align-self: center;
+        margin-left: 0;
+        margin-top: 0.5rem;
+    }
+    
+    .activity-meta {
+        justify-content: center;
+    }
+    
+    .activity-content {
+        text-align: center;
+    }
+}
+
+/* Garantir que o card header tenha espaço adequado */
+.activities-card .card-header {
+    flex-shrink: 0; /* Impede que o header encolha */
+}

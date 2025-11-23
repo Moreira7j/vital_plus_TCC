@@ -288,3 +288,15 @@ ADD COLUMN status ENUM('pendente', 'administrado', 'atrasado') DEFAULT 'pendente
 ADD COLUMN data_administracao DATETIME NULL,
 ADD COLUMN administrado_por INT NULL,
 ADD FOREIGN KEY (administrado_por) REFERENCES usuarios(id);
+
+-- 1. Remover a chave estrangeira problemática
+ALTER TABLE sinais_vitais DROP FOREIGN KEY sinais_vitais_ibfk_2;
+
+-- 2. Adicionar a chave estrangeira correta (referenciando usuarios)
+ALTER TABLE sinais_vitais 
+ADD FOREIGN KEY (registrado_por) REFERENCES usuarios(id) ON DELETE SET NULL;
+
+-- 3. Adicionar índices para melhor performance
+CREATE INDEX idx_sinais_paciente_tipo ON sinais_vitais(paciente_id, tipo);
+CREATE INDEX idx_sinais_data ON sinais_vitais(data_registro);
+CREATE INDEX idx_sinais_tipo ON sinais_vitais(tipo);

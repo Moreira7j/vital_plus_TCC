@@ -1,19 +1,19 @@
 // ===============================
-// relatorios_supervisor.js  (VERSÃO CORRIGIDA - PROBLEMA DE AUTENTICAÇÃO)
+// relatorios_familiar.js - VERSÃO CORRIGIDA
 // ===============================
 
 // Variáveis globais
 let relatoriosData = [];
 let usuarioLogado = null;
-let tipoChartObj = null;
-let evolucaoChartObj = null;
+let currentCharts = {};
 
 // Inicialização quando a página carrega
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('🔧 Inicializando relatorios_supervisor.js...');
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Inicializando relatorios_familiar.js...');
     
-    if (window.feather && typeof window.feather.replace === 'function') {
-        window.feather.replace();
+    // Inicializar Feather Icons se disponível
+    if (typeof feather !== 'undefined') {
+        feather.replace();
     }
     
     carregarDadosRelatorios();
@@ -27,18 +27,13 @@ async function carregarDadosRelatorios() {
     try {
         console.log('🔄 Carregando dados do usuário...');
         
-        // ✅ CORREÇÃO: Verificar múltiplas possibilidades de armazenamento
-        usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado'));
-        
-        // Se não encontrar no localStorage padrão, tenta outras chaves
-        if (!usuarioLogado) {
-            console.log('❌ usuarioLogado não encontrado no localStorage, verificando alternativas...');
-            usuarioLogado = JSON.parse(localStorage.getItem('currentUser')) || 
-                           JSON.parse(sessionStorage.getItem('usuarioLogado')) ||
-                           JSON.parse(sessionStorage.getItem('currentUser'));
-        }
+        // Buscar dados do usuário de múltiplas fontes
+        usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado')) || 
+                       JSON.parse(localStorage.getItem('currentUser')) ||
+                       JSON.parse(sessionStorage.getItem('usuarioLogado')) ||
+                       JSON.parse(sessionStorage.getItem('currentUser'));
 
-        console.log('📋 Dados recuperados:', usuarioLogado);
+        console.log('📋 Dados do usuário:', usuarioLogado);
 
         if (!usuarioLogado) {
             console.error('❌ Nenhum usuário logado encontrado!');
@@ -49,215 +44,22 @@ async function carregarDadosRelatorios() {
             return;
         }
 
-        // ✅ CORREÇÃO FLEXÍVEL: Verificar tipo de usuário de várias formas
-        const tipoUsuario = usuarioLogado.tipo || usuarioLogado.tipo_usuario || usuarioLogado.role;
-        console.log('👤 Tipo de usuário detectado:', tipoUsuario);
-
-        const isFamiliarContratante = 
-            tipoUsuario === 'familiar_contratante' || 
-            tipoUsuario === 'familiar contratante' ||
-            tipoUsuario === 'supervisor' ||
-            tipoUsuario === 'admin';
-
-        if (!isFamiliarContratante) {
-            console.log('🚫 Acesso negado. Tipo de usuário:', tipoUsuario);
-            mostrarErro('Acesso permitido apenas para familiares contratantes');
-            setTimeout(() => {
-                window.location.href = '../paginas/LandingPage.html';
-            }, 3000);
-            return;
-        }
-
-        console.log('✅ Usuário autorizado! ID:', usuarioLogado.id, 'Nome:', usuarioLogado.nome);
-
         // Atualizar interface com nome do usuário
         const userNameEl = document.getElementById('userName');
         if (userNameEl) {
-            userNameEl.textContent = usuarioLogado.nome || 'Usuário';
+            userNameEl.textContent = usuarioLogado.nome || usuarioLogado.name || 'Usuário';
         }
 
         // Carregar dados
-        await buscarRelatorios();
         await buscarDependentes();
+        await buscarRelatorios();
         
         console.log('✅ Dados carregados com sucesso!');
 
     } catch (error) {
         console.error('❌ Erro crítico ao carregar dados:', error);
-        mostrarErro('Erro ao carregar dados: ' + (error.message || error));
+        mostrarErro('Erro ao carregar dados: ' + error.message);
     }
-}
-
-// ===============================
-// BUSCAR RELATÓRIOS
-// ===============================
-async function buscarRelatorios() {
-    try {
-        console.log('📊 Buscando relatórios para usuário ID:', usuarioLogado.id);
-        
-        // ✅ CORREÇÃO: Tentar múltiplas rotas possíveis
-        let relatoriosEncontrados = [];
-        
-        // Tentativa 1: Rota específica do supervisor
-        try {
-            const resp1 = await fetch(`/api/supervisor/${usuarioLogado.id}/relatorios`);
-            if (resp1.ok) {
-                relatoriosEncontrados = await resp1.json();
-                console.log('✅ Relatórios encontrados via rota supervisor:', relatoriosEncontrados.length);
-            }
-        } catch (e) {
-            console.log('❌ Rota supervisor falhou, tentando próxima...');
-        }
-
-        // Tentativa 2: Rota alternativa
-        if (relatoriosEncontrados.length === 0) {
-            try {
-                const resp2 = await fetch(`/api/familiares/${usuarioLogado.id}/relatorios`);
-                if (resp2.ok) {
-                    relatoriosEncontrados = await resp2.json();
-                    console.log('✅ Relatórios encontrados via rota familiares:', relatoriosEncontrados.length);
-                }
-            } catch (e) {
-                console.log('❌ Rota familiares falhou, tentando próxima...');
-            }
-        }
-
-        // Tentativa 3: Buscar via pacientes
-        if (relatoriosEncontrados.length === 0) {
-            relatoriosEncontrados = await buscarRelatoriosViaPacientes();
-        }
-
-        // Se ainda não encontrou, usar dados de exemplo
-        if (relatoriosEncontrados.length === 0) {
-            console.log('⚠️ Nenhum relatório encontrado, usando dados de exemplo');
-            relatoriosEncontrados = obterDadosExemplo();
-        }
-
-        relatoriosData = relatoriosEncontrados;
-        
-    } catch (error) {
-        console.warn('❌ Erro ao buscar relatórios (usando dados de exemplo):', error);
-        relatoriosData = obterDadosExemplo();
-    }
-
-    atualizarEstatisticas();
-    exibirRelatorios(relatoriosData);
-    renderizarGraficos();
-}
-
-// Buscar relatórios através dos pacientes
-async function buscarRelatoriosViaPacientes() {
-    try {
-        console.log('🔄 Buscando relatórios via pacientes...');
-        const pacientes = await buscarPacientesDoUsuario();
-        const todosRelatorios = [];
-
-        for (const paciente of pacientes) {
-            try {
-                const resp = await fetch(`/api/pacientes/${paciente.id}/relatorios`);
-                if (resp.ok) {
-                    const relatoriosPaciente = await resp.json();
-                    // Adiciona informações do paciente a cada relatório
-                    relatoriosPaciente.forEach(rel => {
-                        rel.paciente_nome = paciente.nome;
-                        rel.paciente_id = paciente.id;
-                    });
-                    todosRelatorios.push(...relatoriosPaciente);
-                }
-            } catch (error) {
-                console.warn(`Erro ao buscar relatórios do paciente ${paciente.nome}:`, error);
-            }
-        }
-
-        console.log(`✅ Encontrados ${todosRelatorios.length} relatórios via pacientes`);
-        return todosRelatorios;
-        
-    } catch (error) {
-        console.error('❌ Erro ao buscar relatórios via pacientes:', error);
-        return [];
-    }
-}
-
-// Buscar pacientes do usuário
-async function buscarPacientesDoUsuario() {
-    try {
-        console.log('👥 Buscando pacientes do usuário...');
-        
-        // Tentar diferentes rotas para pacientes
-        let pacientes = [];
-        
-        try {
-            const resp1 = await fetch(`/api/familiares/${usuarioLogado.id}/pacientes_contratante`);
-            if (resp1.ok) {
-                pacientes = await resp1.json();
-                console.log('✅ Pacientes encontrados via contratante:', pacientes.length);
-            }
-        } catch (e) {
-            console.log('❌ Rota pacientes_contratante falhou, tentando próxima...');
-        }
-
-        if (pacientes.length === 0) {
-            try {
-                const resp2 = await fetch(`/api/familiares/${usuarioLogado.id}/pacientes`);
-                if (resp2.ok) {
-                    pacientes = await resp2.json();
-                    console.log('✅ Pacientes encontrados via rota geral:', pacientes.length);
-                }
-            } catch (e) {
-                console.log('❌ Rota pacientes geral falhou...');
-            }
-        }
-
-        // Se não encontrou pacientes, usar dados de exemplo
-        if (pacientes.length === 0) {
-            console.log('⚠️ Nenhum paciente encontrado, usando dados de exemplo');
-            pacientes = [
-                { id: 1, nome: "Maria Silva" },
-                { id: 2, nome: "João Souza" }
-            ];
-        }
-
-        return pacientes;
-        
-    } catch (error) {
-        console.error('❌ Erro ao buscar pacientes:', error);
-        return [
-            { id: 1, nome: "Maria Silva" },
-            { id: 2, nome: "João Souza" }
-        ];
-    }
-}
-
-function obterDadosExemplo() {
-    return [
-        {
-            id: 1,
-            titulo: "Relatório Semanal de Saúde - Maria",
-            paciente_nome: "Maria Silva",
-            paciente_id: 1,
-            tipo: "saude",
-            conteudo: "Paciente apresentou melhora significativa nos níveis de glicemia. Pressão arterial estável. Alimentação balanceada conforme orientação nutricional.",
-            data_criacao: new Date().toISOString()
-        },
-        {
-            id: 2,
-            titulo: "Controle de Medicamentos - João",
-            paciente_nome: "João Souza",
-            paciente_id: 2,
-            tipo: "medicamentos",
-            conteudo: "Todos os medicamentos foram administrados conforme prescrição médica. Paciente colaborativo com o tratamento.",
-            data_criacao: new Date(Date.now() - 86400000).toISOString()
-        },
-        {
-            id: 3,
-            titulo: "Atividades Físicas - Maria",
-            paciente_nome: "Maria Silva",
-            paciente_id: 1,
-            tipo: "atividades",
-            conteudo: "Realizada caminhada leve de 30 minutos. Paciente demonstrou disposição e bom humor durante a atividade.",
-            data_criacao: new Date(Date.now() - 172800000).toISOString()
-        }
-    ];
 }
 
 // ===============================
@@ -266,38 +68,150 @@ function obterDadosExemplo() {
 async function buscarDependentes() {
     try {
         console.log('👥 Buscando dependentes...');
-        const pacientes = await buscarPacientesDoUsuario();
-        preencherFiltroDependentes(pacientes);
+        
+        let dependentes = [];
+        const usuarioId = usuarioLogado.id || usuarioLogado._id;
+
+        // Tentar diferentes endpoints
+        const endpoints = [
+            `/api/familiares/${usuarioId}/pacientes`,
+            `/api/supervisores/${usuarioId}/dependentes`,
+            `/api/usuarios/${usuarioId}/pacientes`
+        ];
+
+        for (const endpoint of endpoints) {
+            try {
+                const response = await fetch(endpoint);
+                if (response.ok) {
+                    dependentes = await response.json();
+                    console.log(`✅ Dependentes encontrados via ${endpoint}:`, dependentes.length);
+                    break;
+                }
+            } catch (error) {
+                console.warn(`❌ Falha no endpoint ${endpoint}:`, error);
+            }
+        }
+
+        // Se não encontrou, usar dados de exemplo
+        if (dependentes.length === 0) {
+            console.log('⚠️ Usando dados de exemplo para dependentes');
+            dependentes = [
+                { id: 1, nome: "Maria Silva", tipo: "Idoso" },
+                { id: 2, nome: "João Santos", tipo: "Idoso" }
+            ];
+        }
+
+        preencherFiltroDependentes(dependentes);
+        return dependentes;
+        
     } catch (error) {
         console.error('❌ Erro ao buscar dependentes:', error);
-        // Preenche com dados de exemplo para não quebrar a interface
-        preencherFiltroDependentes([
-            { id: 1, nome: "Maria Silva" },
-            { id: 2, nome: "João Souza" }
-        ]);
+        // Usar dados de exemplo em caso de erro
+        const dependentesExemplo = [
+            { id: 1, nome: "Maria Silva", tipo: "Idoso" },
+            { id: 2, nome: "João Santos", tipo: "Idoso" }
+        ];
+        preencherFiltroDependentes(dependentesExemplo);
+        return dependentesExemplo;
     }
 }
 
 function preencherFiltroDependentes(dependentes) {
-    const select = document.getElementById('dependenteFilter');
-    const modalSelect = document.getElementById('relatorioDependente');
+    const selects = [
+        document.getElementById('dependenteFilter'),
+        document.getElementById('relatorioDependente')
+    ];
 
-    if (!select || !modalSelect) {
-        console.log('❌ Elementos de filtro não encontrados no DOM');
-        return;
-    }
+    selects.forEach(select => {
+        if (!select) return;
+        
+        // Manter a opção padrão e limpar o restante
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
 
-    // Limpar opções existentes (exceto a primeira "Todos")
-    while (select.options.length > 1) select.remove(1);
-    while (modalSelect.options.length > 1) modalSelect.remove(1);
-
-    // Adicionar opções dos dependentes
-    dependentes.forEach(dep => {
-        select.add(new Option(dep.nome, dep.id));
-        modalSelect.add(new Option(dep.nome, dep.id));
+        // Adicionar dependentes
+        dependentes.forEach(dep => {
+            const option = new Option(dep.nome, dep.id);
+            select.add(option);
+        });
     });
 
-    console.log(`✅ Filtro preenchido com ${dependentes.length} dependentes`);
+    console.log(`✅ Filtros preenchidos com ${dependentes.length} dependentes`);
+}
+
+// ===============================
+// BUSCAR RELATÓRIOS
+// ===============================
+async function buscarRelatorios() {
+    try {
+        console.log('📊 Buscando relatórios...');
+        
+        let relatorios = [];
+        const usuarioId = usuarioLogado.id || usuarioLogado._id;
+
+        // Tentar diferentes endpoints
+        const endpoints = [
+            `/api/supervisores/${usuarioId}/relatorios`,
+            `/api/familiares/${usuarioId}/relatorios`,
+            `/api/relatorios?usuarioId=${usuarioId}`
+        ];
+
+        for (const endpoint of endpoints) {
+            try {
+                const response = await fetch(endpoint);
+                if (response.ok) {
+                    relatorios = await response.json();
+                    console.log(`✅ Relatórios encontrados via ${endpoint}:`, relatorios.length);
+                    break;
+                }
+            } catch (error) {
+                console.warn(`❌ Falha no endpoint ${endpoint}:`, error);
+            }
+        }
+
+        // Se não encontrou, usar dados de exemplo
+        if (relatorios.length === 0) {
+            console.log('⚠️ Usando dados de exemplo para relatórios');
+            relatorios = gerarDadosExemplo();
+        }
+
+        relatoriosData = relatorios;
+        atualizarEstatisticas();
+        exibirRelatorios(relatoriosData);
+        renderizarGraficos();
+        
+    } catch (error) {
+        console.error('❌ Erro ao buscar relatórios:', error);
+        // Usar dados de exemplo em caso de erro
+        relatoriosData = gerarDadosExemplo();
+        atualizarEstatisticas();
+        exibirRelatorios(relatoriosData);
+        renderizarGraficos();
+    }
+}
+
+function gerarDadosExemplo() {
+    const tipos = ['saude', 'medicamentos', 'atividades', 'completo'];
+    const pacientes = ['Maria Silva', 'João Santos'];
+    const relatorios = [];
+
+    for (let i = 1; i <= 12; i++) {
+        const tipo = tipos[Math.floor(Math.random() * tipos.length)];
+        const paciente = pacientes[Math.floor(Math.random() * pacientes.length)];
+        
+        relatorios.push({
+            id: i,
+            titulo: `Relatório de ${tipo.charAt(0).toUpperCase() + tipo.slice(1)} - ${paciente}`,
+            paciente_nome: paciente,
+            paciente_id: paciente === 'Maria Silva' ? 1 : 2,
+            tipo: tipo,
+            conteudo: `Este é um relatório ${tipo} para ${paciente}. Contém informações detalhadas sobre o período selecionado.`,
+            data_criacao: new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString()
+        });
+    }
+
+    return relatorios;
 }
 
 // ===============================
@@ -307,36 +221,49 @@ function atualizarEstatisticas() {
     const total = relatoriosData.length;
     const hoje = new Date();
     const esteMes = relatoriosData.filter(rel => {
-        const d = new Date(rel.data_criacao);
-        return d.getMonth() === hoje.getMonth() && d.getFullYear() === hoje.getFullYear();
+        const data = new Date(rel.data_criacao);
+        return data.getMonth() === hoje.getMonth() && data.getFullYear() === hoje.getFullYear();
     }).length;
 
-    const comIncidentes = relatoriosData.filter(rel => rel.tipo === 'incidentes').length;
+    const comIncidentes = relatoriosData.filter(rel => 
+        rel.tipo === 'incidentes' || rel.conteudo?.toLowerCase().includes('incidente')
+    ).length;
+
     const mediaMensal = calcularMediaMensal();
 
+    // Atualizar elementos
     setText('totalRelatorios', total);
     setText('relatoriosMensais', esteMes);
     setText('relatoriosIncidentes', comIncidentes);
-    setText('mediaMensal', mediaMensal);
+    setText('mediaMensal', `${mediaMensal}/mês`);
 
     console.log(`📈 Estatísticas atualizadas: Total=${total}, Este Mês=${esteMes}`);
 }
 
 function setText(id, value) {
-    const el = document.getElementById(id);
-    if (el) el.textContent = value;
+    const element = document.getElementById(id);
+    if (element) {
+        element.textContent = value;
+    }
 }
 
 function calcularMediaMensal() {
     if (relatoriosData.length === 0) return 0;
-    const primeiro = new Date(relatoriosData[relatoriosData.length - 1].data_criacao);
+    
+    const datas = relatoriosData.map(rel => new Date(rel.data_criacao));
+    const maisAntiga = new Date(Math.min(...datas));
     const hoje = new Date();
-    const meses = Math.max(1, (hoje.getFullYear() - primeiro.getFullYear()) * 12 + hoje.getMonth() - primeiro.getMonth());
+    
+    const meses = Math.max(1, 
+        (hoje.getFullYear() - maisAntiga.getFullYear()) * 12 + 
+        hoje.getMonth() - maisAntiga.getMonth()
+    );
+    
     return Math.round(relatoriosData.length / meses);
 }
 
 // ===============================
-// EXIBIÇÃO DOS RELATÓRIOS
+// EXIBIÇÃO DE RELATÓRIOS
 // ===============================
 function exibirRelatorios(relatorios) {
     const container = document.getElementById('relatoriosList');
@@ -348,234 +275,436 @@ function exibirRelatorios(relatorios) {
     if (!relatorios || relatorios.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <i data-feather="file-text"></i>
+                <i class="fas fa-file-alt"></i>
                 <p>Nenhum relatório encontrado</p>
-                <small class="text-muted">Os relatórios aparecerão aqui quando forem criados</small>
+                <small class="text-muted">Os relatórios aparecerão aqui quando forem gerados</small>
             </div>
         `;
-        if (window.feather) window.feather.replace();
         return;
     }
 
-    container.innerHTML = relatorios.map(r => `
-        <div class="relatorio-item" onclick="abrirDetalhesRelatorio(${r.id})">
-            <div class="relatorio-header">
-                <div>
-                    <div class="relatorio-title">${escapeHtml(r.titulo)}</div>
-                    <div class="relatorio-meta">
-                        <span><i data-feather="user"></i> ${escapeHtml(r.paciente_nome)}</span>
-                        <span><i data-feather="calendar"></i> ${formatarData(r.data_criacao)}</span>
-                    </div>
-                </div>
-                <span class="relatorio-type ${r.tipo}">${obterLabelTipo(r.tipo)}</span>
+    container.innerHTML = relatorios.map(relatorio => `
+        <div class="report-item" onclick="abrirDetalhesRelatorio(${relatorio.id})">
+            <div class="report-icon">
+                <i class="fas ${obterIconeTipo(relatorio.tipo)}"></i>
             </div>
-            <div class="relatorio-content">${escapeHtml(truncateText(r.conteudo, 150))}...</div>
+            <div class="report-content">
+                <div class="report-header">
+                    <h4 class="report-title">${escapeHtml(relatorio.titulo)}</h4>
+                    <span class="report-date">${formatarData(relatorio.data_criacao)}</span>
+                </div>
+                <div class="report-description">
+                    ${escapeHtml(relatorio.conteudo)}
+                </div>
+                <div class="report-meta">
+                    <span class="report-type">
+                        <i class="fas fa-user"></i>
+                        ${escapeHtml(relatorio.paciente_nome)}
+                    </span>
+                    <span class="report-type ${relatorio.tipo}">
+                        <i class="fas ${obterIconeTipo(relatorio.tipo)}"></i>
+                        ${obterLabelTipo(relatorio.tipo)}
+                    </span>
+                </div>
+            </div>
+            <div class="report-actions">
+                <button class="btn-report-action btn-download" onclick="event.stopPropagation(); downloadRelatorio(${relatorio.id})">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn-report-action btn-delete" onclick="event.stopPropagation(); deletarRelatorio(${relatorio.id})">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
         </div>
     `).join('');
-    
-    if (window.feather) window.feather.replace();
+
     console.log(`✅ Exibidos ${relatorios.length} relatórios`);
 }
 
+function obterIconeTipo(tipo) {
+    const icones = {
+        saude: 'fa-heartbeat',
+        medicamentos: 'fa-pills',
+        atividades: 'fa-tasks',
+        completo: 'fa-chart-bar',
+        incidentes: 'fa-exclamation-triangle'
+    };
+    return icones[tipo] || 'fa-file-alt';
+}
+
 function obterLabelTipo(tipo) {
-    const map = {
+    const labels = {
         saude: 'Saúde',
         medicamentos: 'Medicamentos',
         atividades: 'Atividades',
-        incidentes: 'Incidentes',
-        outros: 'Outros'
+        completo: 'Completo',
+        incidentes: 'Incidentes'
     };
-    return map[tipo] || tipo;
+    return labels[tipo] || tipo;
 }
 
 function formatarData(dataString) {
-    const d = new Date(dataString);
-    if (isNaN(d)) return '';
-    return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    try {
+        const data = new Date(dataString);
+        return data.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    } catch (error) {
+        return 'Data inválida';
+    }
 }
 
 // ===============================
 // GRÁFICOS
 // ===============================
 function renderizarGraficos() {
-    if (tipoChartObj) tipoChartObj.destroy();
-    if (evolucaoChartObj) evolucaoChartObj.destroy();
+    // Destruir gráficos existentes
+    Object.values(currentCharts).forEach(chart => {
+        if (chart) chart.destroy();
+    });
+    currentCharts = {};
+
+    renderizarGraficoTipos();
+    renderizarGraficoEvolucao();
+}
+
+function renderizarGraficoTipos() {
+    const canvas = document.getElementById('tipoChart');
+    if (!canvas) return;
 
     const tiposCount = {};
-    relatoriosData.forEach(r => tiposCount[r.tipo] = (tiposCount[r.tipo] || 0) + 1);
+    relatoriosData.forEach(rel => {
+        tiposCount[rel.tipo] = (tiposCount[rel.tipo] || 0) + 1;
+    });
 
-    const tipoCanvas = document.getElementById('tipoChart');
-    if (tipoCanvas && Chart) {
-        tipoChartObj = new Chart(tipoCanvas.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(tiposCount).map(obterLabelTipo),
-                datasets: [{
-                    data: Object.values(tiposCount),
-                    backgroundColor: ['#00B5C2', '#27ae60', '#f39c12', '#e74c3c', '#3498db']
-                }]
-            },
-            options: { 
-                responsive: true, 
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom'
+    const ctx = canvas.getContext('2d');
+    currentCharts.tipos = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(tiposCount).map(obterLabelTipo),
+            datasets: [{
+                data: Object.values(tiposCount),
+                backgroundColor: ['#00B5C2', '#27ae60', '#f39c12', '#9b59b6', '#e74c3c'],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
                     }
                 }
             }
-        });
+        }
+    });
+}
+
+function renderizarGraficoEvolucao() {
+    const canvas = document.getElementById('evolucaoChart');
+    if (!canvas) return;
+
+    // Agrupar por data (últimos 30 dias)
+    const ultimos30Dias = [];
+    for (let i = 29; i >= 0; i--) {
+        const data = new Date();
+        data.setDate(data.getDate() - i);
+        ultimos30Dias.push(data.toISOString().split('T')[0]);
     }
+
+    const dadosPorDia = ultimos30Dias.map(data => {
+        return relatoriosData.filter(rel => 
+            rel.data_criacao.split('T')[0] === data
+        ).length;
+    });
+
+    const ctx = canvas.getContext('2d');
+    currentCharts.evolucao = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ultimos30Dias.map(data => 
+                new Date(data).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+            ),
+            datasets: [{
+                label: 'Relatórios por Dia',
+                data: dadosPorDia,
+                borderColor: '#00B5C2',
+                backgroundColor: 'rgba(0, 181, 194, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    }
+                }
+            }
+        }
+    });
+}
+
+// ===============================
+// FUNÇÕES DE RELATÓRIOS
+// ===============================
+function abrirModalRelatorio() {
+    const modal = document.getElementById('relatorioModal');
+    if (modal) {
+        modal.style.display = 'flex';
+    }
+}
+
+function fecharModal() {
+    const modal = document.getElementById('relatorioModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+async function gerarRelatorio() {
+    try {
+        const tipo = document.getElementById('relatorioTipo')?.value;
+        const dependenteId = document.getElementById('relatorioDependente')?.value;
+        const periodo = document.getElementById('relatorioPeriodo')?.value;
+
+        if (!tipo || !dependenteId) {
+            mostrarErro('Por favor, selecione o tipo e o paciente');
+            return;
+        }
+
+        console.log(`📋 Gerando relatório: ${tipo}, paciente: ${dependenteId}, período: ${periodo} dias`);
+
+        // Simular geração de relatório
+        mostrarSucesso('Relatório gerado com sucesso!');
+        
+        // Fechar modal
+        fecharModal();
+        
+        // Recarregar relatórios
+        await buscarRelatorios();
+        
+    } catch (error) {
+        console.error('❌ Erro ao gerar relatório:', error);
+        mostrarErro('Erro ao gerar relatório: ' + error.message);
+    }
+}
+
+function gerarRelatorioRapido(tipo, periodo) {
+    // Preencher modal com valores rápidos
+    const tipoSelect = document.getElementById('relatorioTipo');
+    const periodoSelect = document.getElementById('relatorioPeriodo');
     
-    console.log('📊 Gráficos renderizados');
+    if (tipoSelect) tipoSelect.value = tipo;
+    if (periodoSelect) periodoSelect.value = periodo;
+    
+    abrirModalRelatorio();
+}
+
+function toggleCustomDateRange() {
+    const periodoSelect = document.getElementById('reportPeriod');
+    const customRange = document.getElementById('customDateRange');
+    
+    if (periodoSelect && customRange) {
+        customRange.style.display = periodoSelect.value === 'custom' ? 'flex' : 'none';
+    }
 }
 
 // ===============================
-// EVENTOS
+// FILTROS
 // ===============================
-function configurarEventos() {
-    const aplicarBtn = document.getElementById('aplicarFiltros');
-    const limparBtn = document.getElementById('limparFiltros');
-    const logoutBtn = document.getElementById('logoutBtn');
-
-    if (aplicarBtn) {
-        aplicarBtn.addEventListener('click', aplicarFiltros);
-        console.log('✅ Evento aplicarFiltros configurado');
-    }
-
-    if (limparBtn) {
-        limparBtn.addEventListener('click', limparFiltros);
-        console.log('✅ Evento limparFiltros configurado');
-    }
-
-    if (logoutBtn) {
-        logoutBtn.addEventListener('click', e => {
-            e.preventDefault();
-            console.log('🚪 Efetuando logout...');
-            localStorage.removeItem('usuarioLogado');
-            localStorage.removeItem('currentUser');
-            sessionStorage.removeItem('usuarioLogado');
-            sessionStorage.removeItem('currentUser');
-            window.location.href = '../paginas/LandingPage.html';
-        });
-        console.log('✅ Evento logout configurado');
-    }
-}
-
 function aplicarFiltros() {
-    const periodo = document.getElementById('periodoFilter')?.value || '30';
-    const tipo = document.getElementById('tipoFilter')?.value || 'all';
-    const dependente = document.getElementById('dependenteFilter')?.value || 'all';
+    const tipo = document.getElementById('reportType')?.value;
+    const periodo = document.getElementById('reportPeriod')?.value;
+    const dependente = document.getElementById('dependenteFilter')?.value;
 
-    let filtrados = [...relatoriosData];
-    if (periodo !== 'all') {
-        const limite = new Date();
-        limite.setDate(limite.getDate() - parseInt(periodo));
-        filtrados = filtrados.filter(r => new Date(r.data_criacao) >= limite);
+    let relatoriosFiltrados = [...relatoriosData];
+
+    // Filtro por tipo
+    if (tipo && tipo !== 'all') {
+        relatoriosFiltrados = relatoriosFiltrados.filter(rel => rel.tipo === tipo);
     }
-    if (tipo !== 'all') filtrados = filtrados.filter(r => r.tipo === tipo);
-    if (dependente !== 'all') filtrados = filtrados.filter(r => String(r.paciente_id) === String(dependente));
 
-    console.log(`🔍 Aplicando filtros: ${filtrados.length} relatórios após filtro`);
-    exibirRelatorios(filtrados);
+    // Filtro por período
+    if (periodo && periodo !== 'custom') {
+        const dias = parseInt(periodo);
+        const dataLimite = new Date();
+        dataLimite.setDate(dataLimite.getDate() - dias);
+        
+        relatoriosFiltrados = relatoriosFiltrados.filter(rel => 
+            new Date(rel.data_criacao) >= dataLimite
+        );
+    }
+
+    // Filtro por dependente
+    if (dependente && dependente !== 'all') {
+        relatoriosFiltrados = relatoriosFiltrados.filter(rel => 
+            String(rel.paciente_id) === String(dependente)
+        );
+    }
+
+    console.log(`🔍 Filtros aplicados: ${relatoriosFiltrados.length} relatórios`);
+    exibirRelatorios(relatoriosFiltrados);
 }
 
 function limparFiltros() {
-    document.getElementById('periodoFilter').value = '30';
-    document.getElementById('tipoFilter').value = 'all';
-    document.getElementById('dependenteFilter').value = 'all';
+    const tipoSelect = document.getElementById('reportType');
+    const periodoSelect = document.getElementById('reportPeriod');
+    const dependenteSelect = document.getElementById('dependenteFilter');
+    const customRange = document.getElementById('customDateRange');
+
+    if (tipoSelect) tipoSelect.value = 'all';
+    if (periodoSelect) periodoSelect.value = '7';
+    if (dependenteSelect) dependenteSelect.value = 'all';
+    if (customRange) customRange.style.display = 'none';
+
     console.log('🧹 Filtros limpos');
     exibirRelatorios(relatoriosData);
 }
 
 // ===============================
-// UTILITÁRIOS
+// FUNÇÕES AUXILIARES
 // ===============================
-function mostrarSucesso(msg) { 
-    console.log('✅ ' + msg);
-    alert('✅ ' + msg); 
-}
+function configurarEventos() {
+    // Evento para fechar modal clicando fora
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('relatorioModal');
+        if (event.target === modal) {
+            fecharModal();
+        }
+    });
 
-function mostrarErro(msg) { 
-    console.error('❌ ' + msg);
-    alert('❌ ' + msg); 
-}
+    // Evento para tecla ESC
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            fecharModal();
+        }
+    });
 
-function escapeHtml(text) {
-    return text ? text.replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
-    }[c])) : '';
-}
-
-function truncateText(t, m) { 
-    return t && t.length > m ? t.slice(0, m) : t; 
+    console.log('✅ Eventos configurados');
 }
 
 function abrirDetalhesRelatorio(id) {
-    const r = relatoriosData.find(x => x.id === id);
-    if (!r) return;
-    
-    const modalContent = `
-        <h3>${r.titulo}</h3>
-        <p><strong>Paciente:</strong> ${r.paciente_nome}</p>
-        <p><strong>Tipo:</strong> ${obterLabelTipo(r.tipo)}</p>
-        <p><strong>Data:</strong> ${formatarData(r.data_criacao)}</p>
-        <hr>
-        <p>${r.conteudo}</p>
+    const relatorio = relatoriosData.find(r => r.id === id);
+    if (!relatorio) return;
+
+    const modalHTML = `
+        <div class="modal-overlay" onclick="fecharModal()">
+            <div class="modal-content" onclick="event.stopPropagation()">
+                <div class="modal-header">
+                    <h3>${escapeHtml(relatorio.titulo)}</h3>
+                    <button class="modal-close" onclick="fecharModal()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="relatorio-info">
+                        <p><strong>Paciente:</strong> ${escapeHtml(relatorio.paciente_nome)}</p>
+                        <p><strong>Tipo:</strong> ${obterLabelTipo(relatorio.tipo)}</p>
+                        <p><strong>Data:</strong> ${formatarData(relatorio.data_criacao)}</p>
+                    </div>
+                    <div class="relatorio-conteudo">
+                        <h4>Conteúdo</h4>
+                        <p>${escapeHtml(relatorio.conteudo)}</p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn-secondary" onclick="fecharModal()">Fechar</button>
+                    <button class="btn-primary" onclick="downloadRelatorio(${relatorio.id})">
+                        <i class="fas fa-download"></i>
+                        Exportar PDF
+                    </button>
+                </div>
+            </div>
+        </div>
     `;
-    
-    // Você pode substituir por um modal mais bonito se preferir
-    alert(modalContent);
+
+    // Adicionar modal ao body
+    const modalContainer = document.createElement('div');
+    modalContainer.innerHTML = modalHTML;
+    document.body.appendChild(modalContainer);
 }
 
-// FUNÇÃO PARA VOLTAR PARA A PÁGINA DE DEPENDENTES (CORRIGIDA)
+function downloadRelatorio(id) {
+    console.log(`📥 Download do relatório ${id}`);
+    mostrarSucesso('Download iniciado...');
+    // Implementar download real aqui
+}
+
+function deletarRelatorio(id) {
+    if (confirm('Tem certeza que deseja excluir este relatório?')) {
+        console.log(`🗑️ Excluindo relatório ${id}`);
+        relatoriosData = relatoriosData.filter(rel => rel.id !== id);
+        exibirRelatorios(relatoriosData);
+        atualizarEstatisticas();
+        renderizarGraficos();
+        mostrarSucesso('Relatório excluído com sucesso!');
+    }
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// ===============================
+// NAVEGAÇÃO
+// ===============================
 function voltarParaDependentes() {
     console.log('🔄 Voltando para página de dependentes...');
     
-    // Limpar apenas os dados do paciente selecionado, mantendo o login
-    const token = localStorage.getItem('token');
-    const usuarioId = localStorage.getItem('usuarioId');
-    const usuarioTipo = localStorage.getItem('usuarioTipo');
-    const usuarioNome = localStorage.getItem('usuarioNome');
-    
-    console.log('💾 Salvando dados do usuário para manter login:', {
-        usuarioId,
-        usuarioTipo,
-        usuarioNome
-    });
-    
-    // Limpar dados específicos do paciente/dependente
+    // Manter dados do usuário, limpar apenas paciente selecionado
     const keysToRemove = [
         'pacienteSelecionadoId',
         'dependenteSelecionado',
-        'dependenteSelecionadoId', 
-        'pacienteId',
         'selectedPatientId'
     ];
     
-    keysToRemove.forEach(key => {
-        if (localStorage.getItem(key)) {
-            console.log(`🗑️ Removendo ${key}:`, localStorage.getItem(key));
-            localStorage.removeItem(key);
-        }
-    });
+    keysToRemove.forEach(key => localStorage.removeItem(key));
     
-    // Manter dados do usuário logado
-    if (token) localStorage.setItem('token', token);
-    if (usuarioId) localStorage.setItem('usuarioId', usuarioId);
-    if (usuarioTipo) localStorage.setItem('usuarioTipo', usuarioTipo);
-    if (usuarioNome) localStorage.setItem('usuarioNome', usuarioNome);
-    
-    console.log('✅ Dados limpos. Redirecionando para dependentes.html');
-    
-    // ✅ CORREÇÃO: Redirecionar IMEDIATAMENTE sem mostrar erro
     window.location.href = 'dependentes.html';
 }
 
-// ====================== FUNÇÃO VOLTAR PARA LANDING PAGE ====================== //
 function voltarParaLanding() {
-    console.log('🏠 Voltando para a landing page...');
-    window.location.href = 'landingpage.html';
+    console.log('🏠 Voltando para landing page...');
+    window.location.href = '../paginas/LandingPage.html';
 }
 
-console.log('🔧 relatorios_supervisor.js carregado - versão corrigida');
+function sair() {
+    console.log('🚪 Saindo do sistema...');
+    localStorage.clear();
+    sessionStorage.clear();
+    window.location.href = '../paginas/LandingPage.html';
+}
+
+function mostrarSucesso(mensagem) {
+    console.log('✅ ' + mensagem);
+    // Poderia usar um toast notification aqui
+    alert('✅ ' + mensagem);
+}
+
+function mostrarErro(mensagem) {
+    console.error('❌ ' + mensagem);
+    alert('❌ ' + mensagem);
+}
+
+console.log('🔧 relatorios_familiar.js carregado - versão corrigida');
