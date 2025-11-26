@@ -1330,27 +1330,122 @@ function renderizarGraficoEvolucao() {
 // ===============================
 // FUNÇÕES DE RELATÓRIOS
 // ===============================
+// ✅ FUNÇÃO CORRIGIDA: Abrir modal de relatório
 function abrirModalRelatorio() {
     console.log('🔓 Abrindo modal de relatório normal...');
     
     // Fechar outros modais
-    fecharModal();
     fecharModalInteligente();
 
-    const modal = document.getElementById('relatorioModal');
+    const modal = document.getElementById('novoRelatorioModal'); // ID CORRETO
     if (modal) {
         modal.style.display = 'flex';
-        // Garantir z-index alto
         modal.style.zIndex = '9999';
         console.log('✅ Modal normal aberto');
     } else {
-        console.error('❌ Modal normal não encontrado');
+        console.error('❌ Modal normal não encontrado - ID: novoRelatorioModal');
+        // Criar modal dinamicamente se não existir
+        criarModalRelatorio();
     }
 }
 
-// ✅ FECHAR MODAL NORMAL - CORRIGIDO
+// ✅ FUNÇÃO AUXILIAR: Criar modal se não existir
+function criarModalRelatorio() {
+    console.log('🛠️ Criando modal de relatório dinamicamente...');
+    
+    const modalHTML = `
+        <div class="modal" id="novoRelatorioModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>Novo Relatório</h3>
+                    <button class="modal-close" onclick="fecharModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="relatorioForm" onsubmit="event.preventDefault(); gerarRelatorio();">
+                        <div class="form-group">
+                            <label>Título do Relatório</label>
+                            <input type="text" id="relatorioTitulo" placeholder="Ex: Relatório Semanal de Saúde" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Dependente</label>
+                            <select id="relatorioDependente" required>
+                                <option value="">Selecione um dependente</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Tipo de Relatório</label>
+                            <select id="relatorioTipo" required>
+                                <option value="saude">Saúde</option>
+                                <option value="medicamentos">Medicamentos</option>
+                                <option value="atividades">Atividades</option>
+                                <option value="incidentes">Incidentes</option>
+                                <option value="completo">Completo</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Período (dias)</label>
+                            <select id="relatorioPeriodo">
+                                <option value="7">Últimos 7 dias</option>
+                                <option value="15">Últimos 15 dias</option>
+                                <option value="30" selected>Últimos 30 dias</option>
+                                <option value="60">Últimos 60 dias</option>
+                                <option value="90">Últimos 90 dias</option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn-primary">Gerar Relatório</button>
+                            <button type="button" class="btn-secondary" onclick="fecharModal()">Cancelar</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    `;
+
+    // Remover modal existente se houver
+    const modalExistente = document.getElementById('novoRelatorioModal');
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    // Adicionar novo modal
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+    
+    // Preencher select de dependentes
+    preencherSelectRelatorioDependentes();
+    
+    console.log('✅ Modal criado dinamicamente');
+}
+
+// ✅ FUNÇÃO AUXILIAR: Preencher select de dependentes no modal
+function preencherSelectRelatorioDependentes() {
+    const select = document.getElementById('relatorioDependente');
+    if (!select) return;
+
+    // Usar os mesmos dependentes do filtro principal
+    const dependenteFilter = document.getElementById('dependenteFilter');
+    if (dependenteFilter && dependenteFilter.options.length > 1) {
+        // Limpar opções existentes (exceto a primeira)
+        while (select.options.length > 1) {
+            select.remove(1);
+        }
+        
+        // Copiar opções do filtro principal (exceto "Todos")
+        for (let i = 1; i < dependenteFilter.options.length; i++) {
+            const option = dependenteFilter.options[i];
+            if (option.value !== 'all') {
+                const newOption = new Option(option.text, option.value);
+                select.add(newOption);
+            }
+        }
+        console.log(`✅ Select relatorioDependente preenchido com ${select.options.length - 1} pacientes`);
+    }
+}
+// ✅ FUNÇÃO CORRIGIDA: Fechar modal
 function fecharModal() {
-    const modal = document.getElementById('relatorioModal');
+    const modal = document.getElementById('novoRelatorioModal'); // ID CORRETO
     if (modal) {
         modal.style.display = 'none';
         console.log('✅ Modal normal fechado');
@@ -1363,19 +1458,22 @@ function fecharModal() {
     }
 }
 
-// ✅ FUNÇÃO ATUALIZADA: Gerar relatório sob demanda com dados reais
+// ✅ ATUALIZAR função gerarRelatorio para o novo formulário
 async function gerarRelatorio() {
     try {
+        const titulo = document.getElementById('relatorioTitulo')?.value;
         const tipo = document.getElementById('relatorioTipo')?.value;
         const dependenteId = document.getElementById('relatorioDependente')?.value;
         const periodo = document.getElementById('relatorioPeriodo')?.value;
 
-        if (!tipo || !dependenteId) {
-            mostrarErro('Por favor, selecione o tipo e o paciente');
+        if (!titulo || !tipo || !dependenteId) {
+            mostrarErro('Por favor, preencha todos os campos obrigatórios');
             return;
         }
 
-        console.log(`📋 Gerando relatório personalizado: ${tipo}, paciente: ${dependenteId}, período: ${periodo} dias`);
+        console.log(`📋 Gerando relatório personalizado: ${titulo}, tipo: ${tipo}, paciente: ${dependenteId}, período: ${periodo} dias`);
+
+        mostrarLoading(true);
 
         // Buscar dados reais para o relatório personalizado
         const dependente = await buscarDependentePorId(dependenteId);
@@ -1400,7 +1498,8 @@ async function gerarRelatorio() {
             sinaisVitais, 
             medicamentos, 
             alertas,
-            periodo
+            periodo,
+            titulo // Usar o título personalizado
         );
 
         if (relatorioPersonalizado) {
@@ -1421,6 +1520,8 @@ async function gerarRelatorio() {
     } catch (error) {
         console.error('❌ Erro ao gerar relatório:', error);
         mostrarErro('Erro ao gerar relatório: ' + error.message);
+    } finally {
+        mostrarLoading(false);
     }
 }
 
@@ -1460,7 +1561,8 @@ async function buscarAlertasPeriodo(pacienteId, periodoDias) {
     );
 }
 
-async function gerarRelatorioPersonalizado(dependente, tipo, atividades, sinais, medicamentos, alertas, periodo) {
+// ✅ ATUALIZAR função gerarRelatorioPersonalizado para aceitar título personalizado
+async function gerarRelatorioPersonalizado(dependente, tipo, atividades, sinais, medicamentos, alertas, periodo, tituloPersonalizado = null) {
     const hoje = new Date();
     
     const conteudos = {
@@ -1475,9 +1577,12 @@ async function gerarRelatorioPersonalizado(dependente, tipo, atividades, sinais,
     
     if (!conteudo) return null;
 
+    // Usar título personalizado ou gerar um padrão
+    const titulo = tituloPersonalizado || `Relatório de ${obterLabelTipo(tipo)} - ${dependente.nome} - Últimos ${periodo} dias`;
+
     return {
         id: `personalizado-${dependente.id}-${hoje.getTime()}`,
-        titulo: `Relatório de ${obterLabelTipo(tipo)} - ${dependente.nome} - Últimos ${periodo} dias`,
+        titulo: titulo,
         paciente_nome: dependente.nome,
         paciente_id: dependente.id,
         tipo: tipo,
