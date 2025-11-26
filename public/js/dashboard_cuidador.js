@@ -1813,3 +1813,144 @@ function obterConexao() {
         });
     });
 }
+
+// ====================== NOTIFICAÇÃO DE ATUALIZAÇÃO ====================== //
+
+// ✅ FUNÇÃO PARA NOTIFICAR SUPERVISOR SOBRE NOVOS REGISTROS
+async function notificarSupervisorSinaisVitais() {
+    try {
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+        const cuidadorId = localStorage.getItem('usuarioId');
+
+        if (!pacienteId || !cuidadorId) {
+            console.log('❌ Dados insuficientes para notificar supervisor');
+            return;
+        }
+
+        console.log('📢 Notificando supervisor sobre novos sinais vitais...');
+
+        // Esta chamada pode ser usada para registrar um "evento" de atualização
+        // No futuro, pode evoluir para WebSockets, mas por enquanto serve como marcador
+        const response = await fetch(`/api/pacientes/${pacienteId}/ultima-atualizacao`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                cuidador_id: cuidadorId,
+                tipo: 'sinais_vitais',
+                timestamp: new Date().toISOString()
+            })
+        });
+
+        if (response.ok) {
+            console.log('✅ Supervisor notificado sobre atualização');
+        }
+
+    } catch (error) {
+        console.error('❌ Erro ao notificar supervisor:', error);
+    }
+}
+
+// ✅ MODIFICAR A FUNÇÃO registrarSinaisVitais PARA INCLUIR NOTIFICAÇÃO
+async function registrarSinaisVitais() {
+    if (!currentPatient) return;
+
+    const formData = {
+        paciente_id: currentPatient.id,
+        cuidador_id: currentUser.id,
+        sistolica: document.getElementById("sistolica").value,
+        diastolica: document.getElementById("diastolica").value,
+        glicemia: document.getElementById("glicemia").value,
+        temperatura: document.getElementById("temperatura").value,
+        batimentos: document.getElementById("batimentos").value
+    };
+
+    try {
+        const response = await fetch("/api/sinais-vitais", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            // ✅ ADICIONAR ESTA LINHA: Notificar o supervisor
+            await notificarSupervisorSinaisVitais();
+            
+            // Fechar modal e recarregar dados
+            document.getElementById("vitalModal").style.display = "none";
+            document.getElementById("vitalForm").reset();
+            await loadVitalSigns();
+            showSuccess("Sinais vitais registrados com sucesso!");
+        } else {
+            throw new Error("Erro ao registrar sinais vitais");
+        }
+    } catch (error) {
+        console.error("Erro:", error);
+        showError("Erro ao registrar sinais vitais");
+    }
+}
+
+// ✅ ADICIONAR esta função para notificar atualizações
+async function notificarAtualizacaoSinaisVitais() {
+    try {
+        const pacienteId = localStorage.getItem('pacienteSelecionadoId');
+        const cuidadorId = localStorage.getItem('usuarioId');
+
+        if (!pacienteId || !cuidadorId) return;
+
+        console.log('📢 Notificando sistema sobre novos sinais vitais...');
+
+        // Esta chamada pode ser usada para trigger de atualização
+        await fetch(`/api/pacientes/${pacienteId}/sinais-vitais/notificar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cuidador_id: cuidadorId,
+                timestamp: new Date().toISOString()
+            })
+        });
+
+    } catch (error) {
+        console.error('❌ Erro ao notificar:', error);
+    }
+}
+
+// ✅ MODIFICAR a função registrarSinaisVitais para incluir notificação
+async function registrarSinaisVitais() {
+    if (!currentPatient) return;
+
+    const formData = {
+        paciente_id: currentPatient.id,
+        cuidador_id: currentUser.id,
+        sistolica: document.getElementById("sistolica").value,
+        diastolica: document.getElementById("diastolica").value,
+        glicemia: document.getElementById("glicemia").value,
+        temperatura: document.getElementById("temperatura").value,
+        batimentos: document.getElementById("batimentos").value
+    };
+
+    try {
+        const response = await fetch("/api/sinais-vitais", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+            // ✅ ADICIONAR: Notificar o sistema
+            await notificarAtualizacaoSinaisVitais();
+            
+            // Fechar modal e recarregar dados
+            document.getElementById("vitalModal").style.display = "none";
+            document.getElementById("vitalForm").reset();
+            await loadVitalSigns();
+            showSuccess("Sinais vitais registrados com sucesso!");
+        }
+    } catch (error) {
+        console.error("Erro:", error);
+        showError("Erro ao registrar sinais vitais");
+    }
+}

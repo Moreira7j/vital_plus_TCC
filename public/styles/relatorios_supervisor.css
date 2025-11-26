@@ -988,3 +988,568 @@ body {
         display: none; /* Em mobile mostra só o ícone */
     }
 }
+
+/* Adicionar ao CSS existente */
+.empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+}
+
+.empty-state i {
+    font-size: 3em;
+    color: #ccc;
+    margin-bottom: 15px;
+}
+
+.empty-state p {
+    font-size: 1.1em;
+    margin-bottom: 10px;
+}
+
+.empty-state .text-muted {
+    font-size: 0.9em;
+    color: #999;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+}
+
+.loading-spinner {
+    text-align: center;
+    color: white;
+}
+
+.loading-spinner i {
+    font-size: 2em;
+    margin-bottom: 10px;
+}
+
+/* ===============================
+   CORREÇÃO DOS MODAIS - Z-INDEX
+   =============================== */
+
+/* Overlay do modal - DEVE ficar acima de tudo */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Alto z-index para ficar acima de tudo */
+    backdrop-filter: blur(5px);
+}
+
+/* Conteúdo do modal */
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    max-width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    z-index: 10000; /* Mais alto que o overlay */
+    animation: modalAppear 0.3s ease-out;
+}
+
+/* Modal grande para relatório inteligente */
+.modal-lg {
+    width: 600px;
+    max-width: 95%;
+}
+
+/* Animação de entrada */
+@keyframes modalAppear {
+    from {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* Header do modal */
+.modal-header {
+    padding: 20px 24px 0;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Botão fechar do modal */
+.modal-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.modal-close:hover {
+    background-color: #f8f9fa;
+    color: #2c3e50;
+}
+
+/* Body do modal */
+.modal-body {
+    padding: 24px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+/* Footer do modal */
+.modal-footer {
+    padding: 20px 24px;
+    border-top: 1px solid #e9ecef;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    background: #f8f9fa;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+/* Garantir que o footer principal tenha z-index menor */
+footer {
+    position: relative;
+    z-index: 100; /* Menor que o modal */
+}
+
+/* Garantir que o conteúdo principal não interfira */
+.main-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Animação de saída do modal */
+@keyframes modalDisappear {
+    from {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+    to {
+        opacity: 0;
+        transform: scale(0.9) translateY(-20px);
+    }
+}
+
+/* Garantir que o body não tenha scroll quando modal aberto */
+body.modal-open {
+    overflow: hidden;
+}
+
+/* Estilos para os botões do modal */
+.modal-footer .btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.modal-footer .btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.modal-footer .btn-primary:hover {
+    background: #0056b3;
+}
+
+.modal-footer .btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.modal-footer .btn-secondary:hover {
+    background: #545b62;
+}
+
+/* Form groups no modal */
+.modal-body .form-group {
+    margin-bottom: 20px;
+}
+
+.modal-body .form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.modal-body .form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    transition: border-color 0.2s ease;
+}
+
+.modal-body .form-control:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+/* Alertas no modal */
+.modal-body .alert {
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 0;
+}
+
+.modal-body .alert-info {
+    background: #d1ecf1;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+.modal-body .alert ul {
+    margin: 10px 0 0 0;
+    padding-left: 20px;
+}
+
+.modal-body .alert li {
+    margin-bottom: 5px;
+}
+
+/* ===============================
+   ESTILOS PARA EXPORTAÇÃO PDF
+   =============================== */
+
+/* Estilos específicos para o relatório inteligente no PDF */
+.relatorio-inteligente-pdf {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #2c3e50;
+    min-height: 100vh;
+}
+
+.pdf-header {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    text-align: center;
+    border-left: 5px solid #00B5C2;
+}
+
+.pdf-header h1 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+}
+
+.pdf-header .metadata {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 15px;
+    color: #6c757d;
+    font-size: 14px;
+}
+
+.pdf-section {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+    border-left: 5px solid #27ae60;
+}
+
+.pdf-section h2 {
+    color: #2c3e50;
+    border-bottom: 2px solid #00B5C2;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    font-size: 22px;
+}
+
+/* Cartões de estatísticas */
+.estatisticas-pdf {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    margin-bottom: 25px;
+}
+
+.estatistica-card-pdf {
+    background: linear-gradient(135deg, #00B5C2, #0097a7);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 181, 194, 0.3);
+}
+
+.estatistica-valor-pdf {
+    font-size: 32px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+.estatistica-label-pdf {
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+/* Análises */
+.analise-item-pdf {
+    background: #f8f9fa;
+    border-left: 4px solid #00B5C2;
+    padding: 20px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.analise-item-pdf.sucesso { border-left-color: #27ae60; background: #f0f9f0; }
+.analise-item-pdf.alerta { border-left-color: #f39c12; background: #fef9e7; }
+.analise-item-pdf.atencao { border-left-color: #e74c3c; background: #fdedec; }
+.analise-item-pdf.info { border-left-color: #3498db; background: #ebf5fb; }
+
+.analise-header-pdf {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.analise-tipo-pdf {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    margin-right: 12px;
+}
+
+.analise-tipo-pdf.sucesso { background: #27ae60; color: white; }
+.analise-tipo-pdf.alerta { background: #f39c12; color: white; }
+.analise-tipo-pdf.atencao { background: #e74c3c; color: white; }
+.analise-tipo-pdf.info { background: #3498db; color: white; }
+
+.analise-titulo-pdf {
+    font-size: 16px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0;
+}
+
+.analise-mensagem-pdf {
+    color: #5a6c7d;
+    margin-bottom: 10px;
+    line-height: 1.5;
+}
+
+.analise-sugestao-pdf {
+    background: white;
+    padding: 12px;
+    border-radius: 6px;
+    border-left: 3px solid #00B5C2;
+    font-style: italic;
+    color: #2c3e50;
+}
+
+/* Informações do cuidador */
+.cuidador-info-pdf {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 25px;
+}
+
+.cuidador-detalhes-pdf {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* Footer do PDF */
+.pdf-footer {
+    text-align: center;
+    margin-top: 30px;
+    padding: 20px;
+    color: #6c757d;
+    font-size: 12px;
+    border-top: 1px solid #e9ecef;
+}
+
+/* Garantir boa legibilidade no PDF */
+@media print {
+    .relatorio-inteligente-pdf {
+        background: white !important;
+        color: black !important;
+    }
+    
+    .estatistica-card-pdf,
+    .cuidador-info-pdf {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+}
+
+/* ===============================
+   ESTILOS PARA BOTÕES DE PDF
+   =============================== */
+
+.btn-success {
+    background: linear-gradient(135deg, #27ae60, #219a52);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(39, 174, 96, 0.3);
+}
+
+.btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+    background: linear-gradient(135deg, #219a52, #1e8449);
+}
+
+.btn-info {
+    background: linear-gradient(135deg, #3498db, #2980b9);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.btn-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+    background: linear-gradient(135deg, #2980b9, #2573a7);
+}
+
+/* Checkbox estilizado */
+.form-check {
+    display: flex;
+    align-items: center;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #00B5C2;
+}
+
+.form-check-input {
+    margin-right: 10px;
+    transform: scale(1.2);
+}
+
+.form-check-label {
+    font-weight: 500;
+    color: #2c3e50;
+    cursor: pointer;
+}
+
+/* ===============================
+   ESTILOS PREMIUM PARA PDF
+   =============================== */
+
+.btn-premium {
+    background: linear-gradient(135deg, #00B5C2, #0097a7);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 181, 194, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-premium:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 181, 194, 0.4);
+    background: linear-gradient(135deg, #0097a7, #00838f);
+}
+
+.btn-premium:active {
+    transform: translateY(0);
+}
+
+.relatorio-actions-premium {
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #00B5C2;
+    margin-top: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.action-info {
+    text-align: center;
+}
+
+.action-info small {
+    color: #6c757d;
+    font-style: italic;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .action-buttons {
+        flex-direction: column;
+    }
+    
+    .action-buttons .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

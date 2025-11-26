@@ -1,3 +1,4 @@
+
 // Configuração da API
 const API_BASE_URL = 'http://localhost:3000/api';
 let atividades = [];
@@ -908,3 +909,5 @@ function voltarParaLanding() {
     console.log('🏠 Voltando para a landing page...');
     window.location.href = 'landingpage.html';
 }
+
+

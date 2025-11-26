@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,8 +8,12 @@
     <link rel="stylesheet" href="../styles/relatorios_supervisor.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Adicione estas linhas no head do seu HTML -->
+    <!-- OU use versões mais recentes e estáveis -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-     <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="icon" href="../assets/logo minimalista.png">
 </head>
 
 <body>
@@ -92,7 +97,7 @@
                                 <option value="365">Último ano</option>
                                 <option value="all">Todo o período</option>
                             </select>
-                            
+
                             <label for="tipoFilter">Tipo de Relatório:</label>
                             <select id="tipoFilter" class="filter-select">
                                 <option value="all">Todos os tipos</option>
@@ -107,7 +112,7 @@
                                 <option value="all">Todos os dependentes</option>
                             </select>
                         </div>
-                        
+
                         <div class="filter-actions">
                             <button class="btn-primary" onclick="aplicarFiltros()">
                                 <i class="fas fa-filter"></i>
@@ -209,7 +214,7 @@
                                 Exportar
                             </button>
                         </div>
-                        
+
                         <div class="reports-list" id="relatoriosList">
                             <!-- Relatórios serão carregados dinamicamente -->
                             <div class="empty-state">
@@ -257,7 +262,8 @@
                     </div>
                     <div class="form-group">
                         <label>Conteúdo</label>
-                        <textarea id="relatorioConteudo" rows="8" placeholder="Descreva os detalhes do relatório..." required></textarea>
+                        <textarea id="relatorioConteudo" rows="8" placeholder="Descreva os detalhes do relatório..."
+                            required></textarea>
                     </div>
                     <div class="form-actions">
                         <button type="submit" class="btn-primary">Salvar Relatório</button>
@@ -282,4 +288,5 @@
 
     <script src="../js/relatorios_supervisor.js"></script>
 </body>
+
 </html>

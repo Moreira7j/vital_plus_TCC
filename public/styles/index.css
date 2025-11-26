@@ -16,7 +16,7 @@
   
   /* Tons claros para backgrounds - mais vibrantes */
   --primary-light: rgba(0, 181, 194, 0.15);
-  --secondary-light: rgba(75, 0, 130, 0.15);
+  --secondary-light: rgba(75, 0, 130, 0.15);  
   --success-light: rgba(39, 174, 96, 0.15);
   --warning-light: rgba(243, 156, 18, 0.15);
   --danger-light: rgba(231, 76, 60, 0.15);

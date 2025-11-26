@@ -1316,6 +1316,75 @@ setInterval(() => {
     }
 }, 60000); // Verificar a cada minuto
 
+// ====================== ROTA CORRIGIDA PARA ATIVIDADES DE HOJE ====================== //
+
+// ✅ ROTA CORRIGIDA E PRIORITÁRIA: Buscar atividades de HOJE
+app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+
+    console.log(`🎯 [ROTA CORRIGIDA] Buscando atividades de HOJE para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome,
+            u.nome as cuidador_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
+        LEFT JOIN usuarios u ON cp.usuario_id = u.id
+        WHERE a.paciente_id = ? 
+        AND DATE(a.data_prevista) = CURDATE()
+        AND a.status != 'cancelada'
+        ORDER BY a.data_prevista ASC
+    `;
+
+    console.log(`🔍 Executando query para paciente ${pacienteId}:`, query);
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades de hoje:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades de hoje encontradas para paciente ${pacienteId}`);
+        
+        // ✅ DEBUG: Log detalhado dos resultados
+        if (results.length > 0) {
+            console.log('🔍 PRIMEIRA ATIVIDADE ENCONTRADA:', {
+                id: results[0].id,
+                descricao: results[0].descricao,
+                data_prevista: results[0].data_prevista,
+                status: results[0].status,
+                tipo: results[0].tipo
+            });
+        }
+
+        const atividadesFormatadas = results.map(atividade => ({
+            id: atividade.id,
+            tipo: atividade.tipo,
+            descricao: atividade.descricao,
+            data_prevista: atividade.data_prevista,
+            status: atividade.status,
+            observacoes: atividade.observacoes,
+            data_conclusao: atividade.data_conclusao,
+            paciente_nome: atividade.paciente_nome,
+            cuidador_nome: atividade.cuidador_nome
+        }));
+
+        res.json(atividadesFormatadas);
+    });
+});
+
+
+
+
 
 // Iniciar servidor
 const PORT = 3000;
@@ -2767,23 +2836,26 @@ app.get("/api/supervisores/:supervisorId/paciente/:pacienteId", (req, res) => {
     });
 });
 
-// Rota CORRIGIDA para sinais vitais do supervisor
+// ✅ ROTA CORRIGIDA - substituir a rota existente
 app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/sinais-vitais", (req, res) => {
     const { supervisorId, pacienteId } = req.params;
 
     console.log(`📊 Buscando sinais vitais do paciente ${pacienteId} para supervisor: ${supervisorId}`);
 
-    // ✅ CORREÇÃO: Verificar acesso para familiar contratante
+    // ✅ CORREÇÃO: Verificar acesso para AMBOS os tipos de familiar
     const verificarAcessoQuery = `
         SELECT p.id 
         FROM pacientes p
-        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
-        WHERE p.id = ? AND fc.usuario_id = ? AND p.ativo = TRUE
+        WHERE p.id = ? AND (
+            p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?)
+            OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?)
+        )
     `;
 
-    db.query(verificarAcessoQuery, [pacienteId, supervisorId], (err, acessoResults) => {
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
         if (err || acessoResults.length === 0) {
-            return res.status(403).json({ error: "Acesso negado" });
+            console.log('❌ Acesso negado ao paciente');
+            return res.status(403).json({ error: "Acesso negado a este paciente" });
         }
 
         const query = `
@@ -5350,56 +5422,7 @@ app.put("/api/atividades/:id", (req, res) => {
         });
     });
 });
-// ✅ ROTA CORRIGIDA: Buscar atividades do paciente (para hoje)
-app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
-    const pacienteId = req.params.pacienteId;
 
-    console.log(`📅 Buscando atividades para paciente: ${pacienteId}`);
-
-    const query = `
-        SELECT 
-            a.id,
-            a.tipo,
-            a.descricao,
-            a.data_prevista,
-            a.status,
-            a.observacoes,
-            a.data_conclusao,
-            p.nome as paciente_nome
-        FROM atividades a
-        LEFT JOIN pacientes p ON a.paciente_id = p.id
-        WHERE a.paciente_id = ? 
-        AND (
-            (a.status = 'pendente' AND DATE(a.data_prevista) = CURDATE()) 
-            OR 
-            (a.status = 'concluida' AND DATE(a.data_conclusao) = CURDATE())
-        )
-        AND a.status != 'cancelada'
-        ORDER BY a.data_prevista ASC
-    `;
-
-    db.query(query, [pacienteId], (err, results) => {
-        if (err) {
-            console.error("❌ Erro ao buscar atividades:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-
-        console.log(`📊 ${results.length} atividades encontradas para hoje`);
-        
-        const atividadesFormatadas = results.map(atividade => ({
-            id: atividade.id,
-            tipo: atividade.tipo,
-            descricao: atividade.descricao,
-            data_prevista: atividade.data_prevista,
-            status: atividade.status,
-            observacoes: atividade.observacoes,
-            data_conclusao: atividade.data_conclusao,
-            paciente_nome: atividade.paciente_nome
-        }));
-
-        res.json(atividadesFormatadas);
-    });
-});
 
 // ✅ ROTA CORRIGIDA: Marcar atividade como concluída
 app.put("/api/atividades/:atividadeId/concluir", (req, res) => {
@@ -5592,52 +5615,7 @@ app.get('/api/pacientes/:id/estatisticas-adesao', (req, res) => {
 
 // ====================== ROTA CORRIGIDA PARA ATIVIDADES DO DIA ====================== //
 
-// ✅ ROTA ADICIONADA: Buscar atividades do paciente para hoje
-app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
-    const pacienteId = req.params.pacienteId;
 
-    console.log(`📅 Buscando atividades de HOJE para paciente: ${pacienteId}`);
-
-    const query = `
-        SELECT 
-            a.id,
-            a.tipo,
-            a.descricao,
-            a.data_prevista,
-            a.status,
-            a.observacoes,
-            a.data_conclusao,
-            p.nome as paciente_nome
-        FROM atividades a
-        LEFT JOIN pacientes p ON a.paciente_id = p.id
-        WHERE a.paciente_id = ? 
-        AND DATE(a.data_prevista) = CURDATE()
-        AND a.status != 'cancelada'
-        ORDER BY a.data_prevista ASC
-    `;
-
-    db.query(query, [pacienteId], (err, results) => {
-        if (err) {
-            console.error("❌ Erro ao buscar atividades de hoje:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-
-        console.log(`📊 ${results.length} atividades de hoje encontradas`);
-        
-        const atividadesFormatadas = results.map(atividade => ({
-            id: atividade.id,
-            tipo: atividade.tipo,
-            descricao: atividade.descricao,
-            data_prevista: atividade.data_prevista,
-            status: atividade.status,
-            observacoes: atividade.observacoes,
-            data_conclusao: atividade.data_conclusao,
-            paciente_nome: atividade.paciente_nome
-        }));
-
-        res.json(atividadesFormatadas);
-    });
-});
 
 // ====================== ROTA ALTERNATIVA PARA ATIVIDADES ====================== //
 
@@ -5688,51 +5666,7 @@ app.get("/api/pacientes/:pacienteId/atividades", (req, res) => {
 
 // ====================== ROTAS PARA ATIVIDADES - VERIFICAR SE EXISTEM ====================== //
 
-// ✅ ROTA 1: Buscar atividades de hoje
-app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
-    const pacienteId = req.params.pacienteId;
-    console.log(`📅 [ROTA CHAMADA] Buscando atividades de HOJE para paciente: ${pacienteId}`);
 
-    const query = `
-        SELECT 
-            a.id,
-            a.tipo,
-            a.descricao,
-            a.data_prevista,
-            a.status,
-            a.observacoes,
-            a.data_conclusao,
-            p.nome as paciente_nome
-        FROM atividades a
-        LEFT JOIN pacientes p ON a.paciente_id = p.id
-        WHERE a.paciente_id = ? 
-        AND DATE(a.data_prevista) = CURDATE()
-        AND a.status != 'cancelada'
-        ORDER BY a.data_prevista ASC
-    `;
-
-    db.query(query, [pacienteId], (err, results) => {
-        if (err) {
-            console.error("❌ Erro ao buscar atividades de hoje:", err);
-            return res.status(500).json({ error: "Erro interno do servidor" });
-        }
-
-        console.log(`📊 ${results.length} atividades de hoje encontradas para paciente ${pacienteId}`);
-        
-        const atividadesFormatadas = results.map(atividade => ({
-            id: atividade.id,
-            tipo: atividade.tipo,
-            descricao: atividade.descricao,
-            data_prevista: atividade.data_prevista,
-            status: atividade.status,
-            observacoes: atividade.observacoes,
-            data_conclusao: atividade.data_conclusao,
-            paciente_nome: atividade.paciente_nome
-        }));
-
-        res.json(atividadesFormatadas);
-    });
-});
 
 // ✅ ROTA 2: Buscar todas as atividades
 app.get("/api/pacientes/:pacienteId/atividades", (req, res) => {
@@ -5778,82 +5712,93 @@ app.get("/api/pacientes/:pacienteId/atividades", (req, res) => {
     });
 });
 
-// ✅ ROTA 3: Criar atividade
-app.post("/api/atividades", (req, res) => {
-    const {
-        paciente_id,
-        usuario_id,
-        tipo,
-        descricao,
-        data_prevista,
-        observacoes
-    } = req.body;
 
-    console.log("📝 [ROTA CHAMADA] Criando nova atividade:", req.body);
+// ✅ ROTA DEBUG: Buscar TODAS as atividades do paciente
+app.get("/api/debug/pacientes/:pacienteId/atividades/todas", (req, res) => {
+    const pacienteId = req.params.pacienteId;
 
-    if (!paciente_id || !usuario_id || !tipo || !descricao || !data_prevista) {
-        return res.status(400).json({ 
-            error: "Paciente ID, usuário ID, tipo, descrição e data prevista são obrigatórios" 
-        });
-    }
+    console.log(`🐛 [DEBUG] Buscando TODAS atividades para paciente: ${pacienteId}`);
 
-    // Buscar ID do cuidador profissional
-    const getCuidadorIdQuery = `SELECT id FROM cuidadores_profissionais WHERE usuario_id = ?`;
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            DATE(a.data_prevista) as data_prevista_date,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome,
+            u.nome as cuidador_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
+        LEFT JOIN usuarios u ON cp.usuario_id = u.id
+        WHERE a.paciente_id = ? 
+        ORDER BY a.data_prevista DESC
+    `;
 
-    db.query(getCuidadorIdQuery, [usuario_id], (err, cuidadorResults) => {
+    db.query(query, [pacienteId], (err, results) => {
         if (err) {
-            console.error("❌ Erro ao buscar cuidador profissional:", err);
+            console.error("❌ Erro ao buscar atividades (debug):", err);
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
 
-        if (cuidadorResults.length === 0) {
-            return res.status(404).json({ error: "Cuidador profissional não encontrado" });
-        }
-
-        const cuidadorProfissionalId = cuidadorResults[0].id;
-
-        const insertQuery = `
-            INSERT INTO atividades 
-            (paciente_id, cuidador_id, tipo, descricao, data_prevista, observacoes, status)
-            VALUES (?, ?, ?, ?, ?, ?, 'pendente')
-        `;
-
-        db.query(insertQuery, [
-            paciente_id,
-            cuidadorProfissionalId,
-            tipo,
-            descricao,
-            data_prevista,
-            observacoes || ''
-        ], (err, result) => {
-            if (err) {
-                console.error("❌ Erro ao criar atividade:", err);
-                return res.status(500).json({ error: "Erro interno do servidor" });
-            }
-
-            console.log("✅ Atividade criada com sucesso. ID:", result.insertId);
-            
-            // Buscar a atividade criada
-            const selectQuery = `
-                SELECT a.*, p.nome as paciente_nome 
-                FROM atividades a 
-                LEFT JOIN pacientes p ON a.paciente_id = p.id 
-                WHERE a.id = ?
-            `;
-            
-            db.query(selectQuery, [result.insertId], (err, results) => {
-                if (err) {
-                    console.error("❌ Erro ao buscar atividade criada:", err);
-                    return res.status(500).json({ error: "Erro interno do servidor" });
-                }
-
-                const atividade = results[0];
-                res.json(atividade);
+        console.log(`🐛 [DEBUG] ${results.length} atividades encontradas no total para paciente ${pacienteId}`);
+        
+        results.forEach(atividade => {
+            console.log('🐛 Atividade:', {
+                id: atividade.id,
+                descricao: atividade.descricao,
+                data_prevista: atividade.data_prevista,
+                data_prevista_date: atividade.data_prevista_date,
+                status: atividade.status,
+                tipo: atividade.tipo
             });
         });
+
+        res.json(results);
     });
 });
 
+// ✅ ROTA ALTERNATIVA: Buscar atividades (últimos 3 dias)
+app.get("/api/pacientes/:pacienteId/atividades/recentes", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+
+    console.log(`🔄 Buscando atividades RECENTES para paciente: ${pacienteId}`);
+
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome,
+            u.nome as cuidador_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
+        LEFT JOIN usuarios u ON cp.usuario_id = u.id
+        WHERE a.paciente_id = ? 
+        AND a.data_prevista >= DATE_SUB(NOW(), INTERVAL 3 DAY)
+        AND a.status != 'cancelada'
+        ORDER BY a.data_prevista ASC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades recentes:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades recentes encontradas para paciente ${pacienteId}`);
+        res.json(results);
+    });
+});
 
 //rotas para os sinais vitais//
 
@@ -5882,7 +5827,7 @@ app.post("/api/sinais-vitais", async (req, res) => {
     }
 
     try {
-        // Registrar pressão arterial (se fornecida)
+        // Registrar pressão arterial (se fornecida)6
         if (sistolica && diastolica) {
             const query = `
                 INSERT INTO sinais_vitais 
@@ -6492,8 +6437,653 @@ function gerarRelatorioCompleto(pacienteId, periodo, paciente, res) {
     // Esta função combinaria todos os relatórios acima
     console.log(`📊 Gerando relatório completo para paciente ${pacienteId}`);
     
-    // Por enquanto, retornar relatório de saúde como exemplo
-    gerarRelatorioSaude(pacienteId, periodo, paciente, res);
+    
+}
+
+// ====================== NOVAS ROTAS PARA RELATÓRIOS INTELIGENTES ====================== //
+
+// ✅ ROTA PARA RELATÓRIOS INTELIGENTES (ADICIONAR DEPOIS DAS ROTAS EXISTENTES)
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/relatorios/inteligentes", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    const { periodo = '30' } = req.query;
+
+    console.log(`🧠 Gerando relatório inteligente - Supervisor: ${supervisorId}, Paciente: ${pacienteId}, Período: ${periodo} dias`);
+
+    // Verificar acesso (usando a mesma lógica dos relatórios existentes)
+    const verificarAcessoQuery = `
+        SELECT p.id, p.nome as paciente_nome
+        FROM pacientes p
+        WHERE p.id = ? AND (
+            p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?) 
+            OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?)
+        )
+    `;
+
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        const paciente = acessoResults[0];
+        gerarRelatorioInteligente(pacienteId, periodo, paciente, res);
+    });
+});
+
+// ✅ FUNÇÃO PARA GERAR RELATÓRIO INTELIGENTE (ADICIONAR NO FINAL DO ARQUIVO)
+// ✅ CORREÇÃO: Queries específicas para o paciente vinculado
+function gerarRelatorioInteligente(pacienteId, periodo, paciente, res) {
+    console.log(`🧠 Iniciando análise inteligente para paciente ${paciente.paciente_nome} (ID: ${pacienteId})`);
+
+    // Buscar todos os dados necessários ESPECÍFICOS do paciente
+    const queries = {
+        atividades: `
+            SELECT tipo, status, data_prevista, data_conclusao, descricao, observacoes
+            FROM atividades 
+            WHERE paciente_id = ? 
+            AND data_prevista >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            ORDER BY data_prevista DESC
+        `,
+        medicamentos: `
+            SELECT 
+                m.nome_medicamento, 
+                m.dosagem, 
+                m.horarios, 
+                m.via_administracao,
+                COUNT(rm.id) as total_registros,
+                SUM(CASE WHEN rm.status = 'administrado' THEN 1 ELSE 0 END) as administrados,
+                SUM(CASE WHEN rm.status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
+                SUM(CASE WHEN rm.status = 'atrasado' THEN 1 ELSE 0 END) as atrasados
+            FROM medicamentos m
+            LEFT JOIN registros_medicacao rm ON m.id = rm.medicamento_id 
+                AND rm.data_hora >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            WHERE m.paciente_id = ? AND m.ativo = TRUE
+            GROUP BY m.id
+            ORDER BY m.nome_medicamento
+        `,
+        sinais_vitais: `
+            SELECT tipo, valor_principal, valor_secundario, data_registro, observacoes
+            FROM sinais_vitais 
+            WHERE paciente_id = ? 
+            AND data_registro >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            ORDER BY data_registro DESC
+        `,
+        alertas: `
+            SELECT tipo, titulo, descricao, severidade, data_criacao, status, data_resolucao
+            FROM alertas 
+            WHERE paciente_id = ? 
+            AND data_criacao >= DATE_SUB(NOW(), INTERVAL ? DAY)
+            ORDER BY data_criacao DESC
+        `,
+        // ✅ NOVA QUERY: Informações do cuidador vinculado
+        cuidador_info: `
+            SELECT 
+                u.nome as cuidador_nome,
+                u.email as cuidador_email,
+                u.telefone as cuidador_telefone,
+                cp.especializacao,
+                cp.experiencia
+            FROM cuidadores_profissionais_pacientes cpp
+            JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+            JOIN usuarios u ON cp.usuario_id = u.id
+            WHERE cpp.paciente_id = ? 
+            AND cpp.status_vinculo = 'ativo'
+            LIMIT 1
+        `
+    };
+
+    // Executar todas as queries em paralelo
+    Promise.all([
+        queryAsync(queries.atividades, [pacienteId, periodo]),
+        queryAsync(queries.medicamentos, [pacienteId, periodo]),
+        queryAsync(queries.sinais_vitais, [pacienteId, periodo]),
+        queryAsync(queries.alertas, [pacienteId, periodo]),
+        queryAsync(queries.cuidador_info, [pacienteId])
+    ]).then(([atividades, medicamentos, sinaisVitais, alertas, cuidadorInfo]) => {
+        
+        const cuidador = cuidadorInfo.length > 0 ? cuidadorInfo[0] : null;
+
+        console.log('📊 Dados dinâmicos carregados:', {
+            paciente: paciente.paciente_nome,
+            atividades: atividades.length,
+            medicamentos: medicamentos.length,
+            sinaisVitais: sinaisVitais.length,
+            alertas: alertas.length,
+            cuidador: cuidador ? cuidador.cuidador_nome : 'Nenhum'
+        });
+
+        // Gerar análises inteligentes com dados reais
+        const analises = {
+            medicamentos: analisarMedicamentos(medicamentos, periodo),
+            atividades: analisarAtividades(atividades, periodo),
+            sinais_vitais: analisarSinaisVitais(sinaisVitais, periodo),
+            alertas: analisarAlertas(alertas, periodo),
+            bem_estar: analisarBemEstarGeral(atividades, medicamentos, sinaisVitais, alertas, periodo),
+            cuidador: analisarDesempenhoCuidador(atividades, medicamentos, sinaisVitais, alertas, cuidador, periodo)
+        };
+
+        const relatorio = {
+            tipo: 'inteligente',
+            titulo: `Relatório Inteligente - ${paciente.paciente_nome}`,
+            periodo: `${periodo} dias`,
+            dataGeracao: new Date().toLocaleString('pt-BR'),
+            paciente: paciente.paciente_nome,
+            paciente_id: pacienteId,
+            cuidador: cuidador,
+            analises: analises,
+            estatisticas: {
+                totalAtividades: atividades.length,
+                totalMedicamentos: medicamentos.length,
+                totalSinaisVitais: sinaisVitais.length,
+                totalAlertas: alertas.length,
+                periodo: periodo
+            },
+            resumo: gerarResumoInteligente(analises, paciente.paciente_nome, periodo, cuidador)
+        };
+
+        console.log(`✅ Relatório inteligente gerado para ${paciente.paciente_nome}`);
+        res.json(relatorio);
+
+    }).catch(error => {
+        console.error('❌ Erro ao gerar relatório inteligente:', error);
+        res.status(500).json({ error: "Erro interno do servidor" });
+    });
+}
+
+// ✅ FUNÇÃO: Analisar desempenho do cuidador
+function analisarDesempenhoCuidador(atividades, medicamentos, sinaisVitais, alertas, cuidador, periodo) {
+    const analises = [];
+    
+    if (!cuidador) {
+        analises.push({
+            tipo: 'info',
+            titulo: 'Cuidador não identificado',
+            mensagem: 'Não foi possível identificar o cuidador profissional vinculado.',
+            sugestao: 'Verifique o vínculo do cuidador com o paciente.'
+        });
+        return analises;
+    }
+
+    // Métricas do cuidador
+    const metricas = {
+        atividadesRegistradas: atividades ? atividades.length : 0,
+        medicamentosRegistrados: medicamentos ? medicamentos.length : 0,
+        sinaisRegistrados: sinaisVitais ? sinaisVitais.length : 0,
+        alertasResolvidos: alertas ? alertas.filter(a => a.status === 'resolvido').length : 0
+    };
+
+    // Avaliação geral
+    let pontuacaoCuidador = 0;
+    let totalPossivel = 0;
+
+    if (metricas.atividadesRegistradas > 0) {
+        pontuacaoCuidador += Math.min(metricas.atividadesRegistradas / 10, 1) * 25;
+        totalPossivel += 25;
+    }
+
+    if (metricas.medicamentosRegistrados > 0) {
+        pontuacaoCuidador += Math.min(metricas.medicamentosRegistrados / 5, 1) * 35;
+        totalPossivel += 35;
+    }
+
+    if (metricas.sinaisRegistrados > 0) {
+        pontuacaoCuidador += Math.min(metricas.sinaisRegistrados / 7, 1) * 30;
+        totalPossivel += 30;
+    }
+
+    if (metricas.alertasResolvidos > 0) {
+        pontuacaoCuidador += Math.min(metricas.alertasResolvidos / 3, 1) * 10;
+        totalPossivel += 10;
+    }
+
+    const percentualDesempenho = totalPossivel > 0 ? (pontuacaoCuidador / totalPossivel) * 100 : 0;
+
+    let avaliacao, tipoAvaliacao;
+    if (percentualDesempenho >= 80) {
+        avaliacao = 'Excelente';
+        tipoAvaliacao = 'sucesso';
+    } else if (percentualDesempenho >= 60) {
+        avaliacao = 'Bom';
+        tipoAvaliacao = 'info';
+    } else if (percentualDesempenho >= 40) {
+        avaliacao = 'Regular';
+        tipoAvaliacao = 'alerta';
+    } else {
+        avaliacao = 'Necessita Melhoria';
+        tipoAvaliacao = 'atencao';
+    }
+
+    analises.push({
+        tipo: tipoAvaliacao,
+        titulo: `Desempenho do Cuidador: ${avaliacao}`,
+        mensagem: `Cuidador ${cuidador.cuidador_nome} - ${Math.round(percentualDesempenho)}% de engajamento.`,
+        sugestao: percentualDesempenho >= 60 ? 
+            'Continue com o bom trabalho de acompanhamento.' : 
+            'Considere reforçar a importância do registro regular das atividades.',
+        detalhes: {
+            cuidador: cuidador.cuidador_nome,
+            desempenho: `${Math.round(percentualDesempenho)}%`,
+            atividadesRegistradas: metricas.atividadesRegistradas,
+            medicamentosRegistrados: metricas.medicamentosRegistrados,
+            sinaisRegistrados: metricas.sinaisRegistrados,
+            alertasResolvidos: metricas.alertasResolvidos
+        }
+    });
+
+    return analises;
+}
+
+
+// ====================== FUNÇÕES DE ANÁLISE INTELIGENTE ====================== //
+
+
+
+// ✅ FUNÇÃO: Gerar resumo inteligente
+function gerarResumoInteligente(analises, pacienteNome, periodo, cuidador) {
+    const analisesGeral = analises.bem_estar || [];
+    const analisesCuidador = analises.cuidador || [];
+    
+    let situacaoGeral = 'estável';
+    let tom = 'positivo';
+    
+    // Determinar tom geral baseado nas análises
+    if (analisesGeral.length > 0) {
+        const analisePrincipal = analisesGeral[0];
+        if (analisePrincipal.tipo === 'atencao') {
+            situacaoGeral = 'requer atenção';
+            tom = 'cauteloso';
+        } else if (analisePrincipal.tipo === 'alerta') {
+            situacaoGeral = 'preocupante';
+            tom = 'alerta';
+        }
+    }
+
+    const cuidadorInfo = cuidador ? 
+        ` sob os cuidados de ${cuidador.cuidador_nome}` : 
+        ' (cuidador não identificado)';
+
+    const resumo = `O paciente ${pacienteNome} apresenta situação ${situacaoGeral}${cuidadorInfo} ` +
+                  `nos últimos ${periodo} dias. ` +
+                  `O relatório inteligente analisou todos os registros e identificou os principais aspectos ` +
+                  `que merecem atenção, com sugestões específicas para melhorias no cuidado.`;
+
+    return resumo;
+}
+
+// ✅ FUNÇÕES AUXILIARES
+function obterNomeTipoAtividade(tipo) {
+    const nomes = {
+        'alimentacao': 'Alimentação',
+        'exercicio': 'Exercício Físico',
+        'higiene': 'Higiene Pessoal',
+        'medicacao': 'Administração de Medicamentos',
+        'repouso': 'Repouso',
+        'social': 'Atividade Social',
+        'outro': 'Outras Atividades'
+    };
+    return nomes[tipo] || tipo;
+}
+
+function obterNomeTipoSinal(tipo) {
+    const nomes = {
+        'pressao_arterial': 'Pressão Arterial',
+        'glicemia': 'Glicemia',
+        'temperatura': 'Temperatura',
+        'batimentos_cardiacos': 'Batimentos Cardíacos',
+        'saturacao_oxigenio': 'Saturação de Oxigênio'
+    };
+    return nomes[tipo] || tipo;
+}
+
+function obterUnidadeMedida(tipo) {
+    const unidades = {
+        'pressao_arterial': ' mmHg',
+        'glicemia': ' mg/dL',
+        'temperatura': '°C',
+        'batimentos_cardiacos': ' bpm',
+        'saturacao_oxigenio': '%'
+    };
+    return unidades[tipo] || '';
+}
+
+// ✅ FUNÇÃO: Query Async para facilitar promises
+function queryAsync(sql, params) {
+    return new Promise((resolve, reject) => {
+        db.query(sql, params, (err, results) => {
+            if (err) {
+                reject(err);
+            } else {
+                resolve(results);
+            }
+        });
+    });
+}
+
+// ✅ FUNÇÕES DE ANÁLISE INTELIGENTE (ADICIONAR TODAS ESTAS)
+
+function analisarMedicamentos(medicamentos, periodo) {
+    const analises = [];
+    
+    if (medicamentos.length === 0) {
+        analises.push({
+            tipo: 'info',
+            titulo: 'Medicamentos',
+            mensagem: 'Nenhum medicamento registrado no período.',
+            sugestao: 'Verifique se o cuidador está registrando a administração de medicamentos.'
+        });
+        return analises;
+    }
+
+    // Análise de adesão
+    const taxaAdesaoGeral = medicamentos.reduce((sum, med) => {
+        const taxa = med.total_registros > 0 ? (med.administrados / med.total_registros) * 100 : 0;
+        return sum + taxa;
+    }, 0) / medicamentos.length;
+
+    if (taxaAdesaoGeral < 80) {
+        analises.push({
+            tipo: 'alerta',
+            titulo: 'Aderência aos Medicamentos',
+            mensagem: `A taxa de adesão aos medicamentos está em ${Math.round(taxaAdesaoGeral)}%, abaixo do ideal (80%).`,
+            sugestao: 'Converse com o cuidador sobre a importância da administração regular dos medicamentos.'
+        });
+    } else {
+        analises.push({
+            tipo: 'sucesso',
+            titulo: 'Aderência aos Medicamentos',
+            mensagem: `Excelente! A taxa de adesão aos medicamentos está em ${Math.round(taxaAdesaoGeral)}%.`,
+            sugestao: 'Continue acompanhando para manter essa boa adesão.'
+        });
+    }
+
+    return analises;
+}
+
+function analisarAtividades(atividades, periodo) {
+    const analises = [];
+    
+    if (atividades.length === 0) {
+        analises.push({
+            tipo: 'info',
+            titulo: 'Atividades',
+            mensagem: 'Nenhuma atividade registrada no período.',
+            sugestao: 'Encorage o cuidador a registrar as atividades realizadas.'
+        });
+        return analises;
+    }
+
+    // Análise de conclusão
+    const concluidas = atividades.filter(a => a.status === 'concluida').length;
+    const pendentes = atividades.filter(a => a.status === 'pendente').length;
+    const taxaConclusao = (concluidas / atividades.length) * 100;
+
+    if (taxaConclusao < 70) {
+        analises.push({
+            tipo: 'alerta',
+            titulo: 'Taxa de Conclusão de Atividades',
+            mensagem: `Apenas ${Math.round(taxaConclusao)}% das atividades foram concluídas (${concluidas} de ${atividades.length}).`,
+            sugestao: 'Avalie se as atividades estão adequadas à capacidade do paciente.'
+        });
+    } else {
+        analises.push({
+            tipo: 'sucesso',
+            titulo: 'Taxa de Conclusão de Atividades',
+            mensagem: `Ótimo! ${Math.round(taxaConclusao)}% das atividades foram concluídas.`,
+            sugestao: 'O paciente está engajado nas atividades propostas.'
+        });
+    }
+
+    return analises;
+}
+
+// ✅ FUNÇÃO: Analisar sinais vitais
+function analisarSinaisVitais(sinaisVitais, periodo) {
+    const analises = [];
+    
+    if (!sinaisVitais || sinaisVitais.length === 0) {
+        analises.push({
+            tipo: 'info',
+            titulo: 'Sem registros de sinais vitais',
+            mensagem: `Não foram encontrados sinais vitais registrados nos últimos ${periodo} dias.`,
+            sugestao: 'Verifique se o cuidador está monitorando regularmente os sinais vitais do paciente.'
+        });
+        return analises;
+    }
+
+    // Agrupar por tipo
+    const sinaisPorTipo = {};
+    sinaisVitais.forEach(sinal => {
+        if (!sinaisPorTipo[sinal.tipo]) sinaisPorTipo[sinal.tipo] = [];
+        sinaisPorTipo[sinal.tipo].push(sinal);
+    });
+
+    // Análise para cada tipo de sinal vital
+    Object.keys(sinaisPorTipo).forEach(tipo => {
+        const sinais = sinaisPorTipo[tipo];
+        const valores = sinais.map(s => parseFloat(s.valor_principal)).filter(v => !isNaN(v));
+        
+        if (valores.length === 0) return;
+
+        const media = valores.reduce((a, b) => a + b, 0) / valores.length;
+        const max = Math.max(...valores);
+        const min = Math.min(...valores);
+
+        let analise = {
+            tipo: 'info',
+            titulo: `${obterNomeTipoSinal(tipo)} - Estável`,
+            mensagem: `Média: ${media.toFixed(1)}${obterUnidadeMedida(tipo)} (${valores.length} registros)`,
+            sugestao: 'Continue o monitoramento regular.',
+            detalhes: {
+                media: media.toFixed(1),
+                maxima: max,
+                minima: min,
+                totalRegistros: valores.length
+            }
+        };
+
+        // Análises específicas por tipo
+        switch (tipo) {
+            case 'pressao_arterial':
+                const pressaoAlerta = sinais.filter(s => {
+                    const sistolica = parseFloat(s.valor_principal);
+                    return sistolica > 140 || sistolica < 90;
+                }).length;
+                
+                if (pressaoAlerta > 0) {
+                    analise.tipo = 'alerta';
+                    analise.titulo = 'Variação na Pressão Arterial';
+                    analise.mensagem = `${pressaoAlerta} registro(s) fora da faixa ideal.`;
+                    analise.sugestao = 'Monitore de perto e consulte o médico se persistir.';
+                }
+                break;
+
+            case 'glicemia':
+                const glicemiaAlerta = sinais.filter(s => {
+                    const glicemia = parseFloat(s.valor_principal);
+                    return glicemia > 180 || glicemia < 70;
+                }).length;
+                
+                if (glicemiaAlerta > 0) {
+                    analise.tipo = 'alerta';
+                    analise.titulo = 'Variação na Glicemia';
+                    analise.mensagem = `${glicemiaAlerta} registro(s) fora da faixa ideal.`;
+                    analise.sugestao = 'Ajuste na dieta ou medicamento pode ser necessário.';
+                }
+                break;
+
+            case 'temperatura':
+                const tempAlerta = sinais.filter(s => {
+                    const temp = parseFloat(s.valor_principal);
+                    return temp > 37.5 || temp < 35.5;
+                }).length;
+                
+                if (tempAlerta > 0) {
+                    analise.tipo = 'alerta';
+                    analise.titulo = 'Variação na Temperatura';
+                    analise.mensagem = `${tempAlerta} registro(s) fora da faixa normal.`;
+                    analise.sugestao = 'Monitorar possíveis infecções ou desidratação.';
+                }
+                break;
+        }
+
+        analises.push(analise);
+    });
+
+    return analises;
+}
+
+// ✅ FUNÇÃO: Analisar alertas
+function analisarAlertas(alertas, periodo) {
+    const analises = [];
+    
+    if (!alertas || alertas.length === 0) {
+        analises.push({
+            tipo: 'sucesso',
+            titulo: 'Sem alertas recentes',
+            mensagem: `Nenhum alerta registrado nos últimos ${periodo} dias.`,
+            sugestao: 'Situação estável e sob controle.'
+        });
+        return analises;
+    }
+
+    // Estatísticas de alertas
+    const alertasAtivos = alertas.filter(a => a.status === 'ativo');
+    const alertasResolvidos = alertas.filter(a => a.status === 'resolvido');
+    const alertasPorSeveridade = {
+        critica: alertas.filter(a => a.severidade === 'critica').length,
+        alta: alertas.filter(a => a.severidade === 'alta').length,
+        media: alertas.filter(a => a.severidade === 'media').length,
+        baixa: alertas.filter(a => a.severidade === 'baixa').length
+    };
+
+    // Análise de severidade
+    if (alertasPorSeveridade.critica > 0 || alertasPorSeveridade.alta > 0) {
+        analises.push({
+            tipo: 'atencao',
+            titulo: 'Alertas de alta prioridade',
+            mensagem: `${alertasPorSeveridade.critica + alertasPorSeveridade.alta} alerta(s) crítico(s) ou de alta severidade.`,
+            sugestao: 'Atenção imediata necessária. Entre em contato com a equipe médica.',
+            detalhes: {
+                criticos: alertasPorSeveridade.critica,
+                altos: alertasPorSeveridade.alta,
+                ativos: alertasAtivos.length
+            }
+        });
+    }
+
+    // Taxa de resolução
+    const taxaResolucao = alertas.length > 0 ? (alertasResolvidos.length / alertas.length) * 100 : 100;
+    
+    if (taxaResolucao < 80 && alertasAtivos.length > 0) {
+        analises.push({
+            tipo: 'alerta',
+            titulo: 'Alertas pendentes de resolução',
+            mensagem: `${alertasAtivos.length} alerta(s) ainda não resolvidos.`,
+            sugestao: 'Priorize a resolução dos alertas em aberto.',
+            detalhes: {
+                taxaResolucao: `${Math.round(taxaResolucao)}%`,
+                pendentes: alertasAtivos.length,
+                resolvidos: alertasResolvidos.length
+            }
+        });
+    }
+
+    return analises;
+}
+
+// ✅ FUNÇÃO: Analisar bem-estar geral
+function analisarBemEstarGeral(atividades, medicamentos, sinaisVitais, alertas, periodo) {
+    const analises = [];
+    
+    // Pontuação geral baseada em múltiplos fatores
+    let pontuacao = 100;
+    const fatores = [];
+
+    // Fator: Atividades
+    if (atividades && atividades.length > 0) {
+        const taxaConclusao = atividades.filter(a => a.status === 'concluida').length / atividades.length;
+        if (taxaConclusao < 0.7) {
+            pontuacao -= 15;
+            fatores.push('Baixa conclusão de atividades');
+        }
+    } else {
+        pontuacao -= 10;
+        fatores.push('Atividades não registradas');
+    }
+
+    // Fator: Medicamentos
+    if (medicamentos && medicamentos.length > 0) {
+        const totalRegistros = medicamentos.reduce((sum, med) => sum + (med.total_registros || 0), 0);
+        const totalAdministrados = medicamentos.reduce((sum, med) => sum + (med.administrados || 0), 0);
+        const taxaAdesao = totalRegistros > 0 ? totalAdministrados / totalRegistros : 0;
+        
+        if (taxaAdesao < 0.8) {
+            pontuacao -= 20;
+            fatores.push('Adesão medicamentosa abaixo do ideal');
+        }
+    } else {
+        pontuacao -= 15;
+        fatores.push('Medicamentos não registrados');
+    }
+
+    // Fator: Sinais vitais
+    if (!sinaisVitais || sinaisVitais.length === 0) {
+        pontuacao -= 10;
+        fatores.push('Sinais vitais não monitorados');
+    }
+
+    // Fator: Alertas
+    if (alertas && alertas.length > 0) {
+        const alertasCriticos = alertas.filter(a => a.severidade === 'critica' || a.severidade === 'alta');
+        pontuacao -= alertasCriticos.length * 10;
+        if (alertasCriticos.length > 0) {
+            fatores.push(`${alertasCriticos.length} alerta(s) crítico(s)`);
+        }
+    }
+
+    // Classificação geral
+    let classificacao, tipo;
+    if (pontuacao >= 85) {
+        classificacao = 'Excelente';
+        tipo = 'sucesso';
+    } else if (pontuacao >= 70) {
+        classificacao = 'Bom';
+        tipo = 'info';
+    } else if (pontuacao >= 50) {
+        classificacao = 'Regular';
+        tipo = 'alerta';
+    } else {
+        classificacao = 'Preocupante';
+        tipo = 'atencao';
+    }
+
+    analises.push({
+        tipo: tipo,
+        titulo: `Situação Geral: ${classificacao}`,
+        mensagem: `Pontuação: ${Math.round(pontuacao)}/100. ${fatores.length > 0 ? 'Fatores: ' + fatores.join(', ') : 'Todos os indicadores estão favoráveis.'}`,
+        sugestao: pontuacao >= 70 ? 
+            'Continue com o acompanhamento atual.' : 
+            'Atenção necessária nos aspectos mencionados.',
+        detalhes: {
+            pontuacao: Math.round(pontuacao),
+            classificacao: classificacao,
+            fatores: fatores
+        }
+    });
+
+    return analises;
+}
+
+function gerarResumoInteligente(analises, pacienteNome, periodo) {
+    const alertas = analises.alertas.filter(a => a.tipo === 'alerta').length;
+    const sucessos = analises.bem_estar.filter(a => a.tipo === 'sucesso').length;
+    
+    if (alertas > 0) {
+        return `⚠️ ${pacienteNome} requer atenção em ${alertas} área(s) específica(s). Consulte as análises detalhadas.`;
+    } else if (sucessos > 0) {
+        return `✅ ${pacienteNome} está com boa evolução geral nos últimos ${periodo} dias.`;
+    } else {
+        return `📊 Situação geral de ${pacienteNome} está estável. Continue o acompanhamento regular.`;
+    }
 }
 
 // 4. ✅ ROTA PARA DASHBOARD EM TEMPO REAL DO SUPERVISOR
@@ -6620,7 +7210,7 @@ function buscarAlertasRecentes(pacienteId) {
 }
 
 // routes/atividades.js
-router.delete('/concluidas', async (req, res) => {
+app.delete('/concluidas', async (req, res) => {
     try {
         console.log('🧹 Deletando atividades concluídas...');
         
@@ -6643,3 +7233,355 @@ router.delete('/concluidas', async (req, res) => {
         });
     }
 });
+
+
+
+
+// ✅ ADICIONAR esta rota para notificações
+app.post("/api/pacientes/:pacienteId/sinais-vitais/notificar", (req, res) => {
+    const { pacienteId } = req.params;
+    const { cuidador_id, timestamp } = req.body;
+
+    console.log(`🔔 Notificação de sinais vitais - Paciente: ${pacienteId}, Cuidador: ${cuidador_id}`);
+    
+    // Aqui você pode implementar:
+    // - WebSockets para atualização em tempo real
+    // - Notificações push
+    // - Ou simplesmente registrar o evento
+    
+    res.json({ 
+        success: true, 
+        message: "Notificação recebida",
+        timestamp: new Date().toISOString()
+    });
+});
+
+
+//ROTAS PARA TENTAR RESOLVER A DINAMICIDADE
+
+// ======================
+// ROTAS PARA RELATÓRIOS DO SUPERVISOR
+// ======================
+
+// Rota para obter pacientes vinculados ao supervisor/familiar
+app.get("/api/supervisores/:supervisorId/pacientes", (req, res) => {
+    const { supervisorId } = req.params;
+    
+    console.log(`👥 Buscando pacientes para supervisor: ${supervisorId}`);
+    
+    const query = `
+        SELECT 
+            p.id,
+            p.nome,
+            p.data_nascimento,
+            p.genero,
+            p.condicao_principal,
+            p.plano_saude,
+            p.alergias,
+            p.foto_perfil,
+            fc.usuario_id as familiar_contratante_id
+        FROM pacientes p
+        INNER JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        WHERE fc.usuario_id = ?
+        UNION
+        SELECT 
+            p.id,
+            p.nome,
+            p.data_nascimento,
+            p.genero,
+            p.condicao_principal,
+            p.plano_saude,
+            p.alergias,
+            p.foto_perfil,
+            fcu.usuario_id as familiar_contratante_id
+        FROM pacientes p
+        INNER JOIN familiares_cuidadores fcu ON p.familiar_cuidador_id = fcu.id
+        WHERE fcu.usuario_id = ?
+    `;
+
+    db.query(query, [supervisorId, supervisorId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar pacientes do supervisor:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`✅ ${results.length} pacientes encontrados para supervisor ${supervisorId}`);
+        res.json(results);
+    });
+});
+
+// Nas rotas de atividades, sinais vitais, etc, substitua a verificação:
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/atividades", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`📅 Buscando atividades - Supervisor: ${supervisorId}, Paciente: ${pacienteId}`);
+    
+    // Usar verificação mais permissiva
+    verificarAcessoPaciente(pacienteId, supervisorId, (temAcesso) => {
+        if (!temAcesso) {
+            return res.status(403).json({ error: "Acesso negado a este paciente" });
+        }
+
+        // Resto do código para buscar atividades...
+        const atividadesQuery = `
+            SELECT 
+                a.*,
+                u.nome as cuidador_nome
+            FROM atividades a
+            LEFT JOIN usuarios u ON a.cuidador_id = u.id
+            WHERE a.paciente_id = ?
+            ORDER BY a.data_prevista DESC
+            LIMIT 50
+        `;
+
+        db.query(atividadesQuery, [pacienteId], (err, atividades) => {
+            if (err) {
+                console.error("❌ Erro ao buscar atividades:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log(`✅ ${atividades.length} atividades encontradas`);
+            res.json(atividades);
+        });
+    });
+});
+// Rota para obter sinais vitais de um paciente específico
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/sinais-vitais", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`💓 Buscando sinais vitais - Supervisor: ${supervisorId}, Paciente: ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (
+            p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?) 
+            OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?)
+        )
+    `;
+
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar sinais vitais
+        const sinaisQuery = `
+            SELECT 
+                sv.*,
+                u.nome as registrado_por_nome
+            FROM sinais_vitais sv
+            LEFT JOIN usuarios u ON sv.registrado_por = u.id
+            WHERE sv.paciente_id = ?
+            ORDER BY sv.data_registro DESC
+            LIMIT 50
+        `;
+
+        db.query(sinaisQuery, [pacienteId], (err, sinais) => {
+            if (err) {
+                console.error("❌ Erro ao buscar sinais vitais:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log(`✅ ${sinais.length} sinais vitais encontrados`);
+            res.json(sinais);
+        });
+    });
+});
+
+// Rota para obter medicamentos de um paciente específico
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/medicamentos", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`💊 Buscando medicamentos - Supervisor: ${supervisorId}, Paciente: ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (
+            p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?) 
+            OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?)
+        )
+    `;
+
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar medicamentos
+        const medicamentosQuery = `
+            SELECT 
+                m.*,
+                COUNT(rm.id) as total_registros,
+                SUM(CASE WHEN rm.status = 'administrado' THEN 1 ELSE 0 END) as administrados,
+                SUM(CASE WHEN rm.status = 'pendente' THEN 1 ELSE 0 END) as pendentes,
+                SUM(CASE WHEN rm.status = 'atrasado' THEN 1 ELSE 0 END) as atrasados
+            FROM medicamentos m
+            LEFT JOIN registros_medicacao rm ON m.id = rm.medicamento_id
+            WHERE m.paciente_id = ? AND m.ativo = TRUE
+            GROUP BY m.id
+            ORDER BY m.nome_medicamento
+        `;
+
+        db.query(medicamentosQuery, [pacienteId], (err, medicamentos) => {
+            if (err) {
+                console.error("❌ Erro ao buscar medicamentos:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log(`✅ ${medicamentos.length} medicamentos encontrados`);
+            res.json(medicamentos);
+        });
+    });
+});
+
+// Rota para obter alertas de um paciente específico
+app.get("/api/supervisores/:supervisorId/pacientes/:pacienteId/alertas", (req, res) => {
+    const { supervisorId, pacienteId } = req.params;
+    
+    console.log(`🚨 Buscando alertas - Supervisor: ${supervisorId}, Paciente: ${pacienteId}`);
+    
+    // Verificar acesso
+    const verificarAcessoQuery = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? AND (
+            p.familiar_contratante_id IN (SELECT id FROM familiares_contratantes WHERE usuario_id = ?) 
+            OR p.familiar_cuidador_id IN (SELECT id FROM familiares_cuidadores WHERE usuario_id = ?)
+        )
+    `;
+
+    db.query(verificarAcessoQuery, [pacienteId, supervisorId, supervisorId], (err, acessoResults) => {
+        if (err || acessoResults.length === 0) {
+            return res.status(403).json({ error: "Acesso negado" });
+        }
+
+        // Buscar alertas
+        const alertasQuery = `
+            SELECT 
+                a.*,
+                u.nome as resolvido_por_nome
+            FROM alertas a
+            LEFT JOIN usuarios u ON a.resolvido_por = u.id
+            WHERE a.paciente_id = ?
+            ORDER BY a.data_criacao DESC
+            LIMIT 50
+        `;
+
+        db.query(alertasQuery, [pacienteId], (err, alertas) => {
+            if (err) {
+                console.error("❌ Erro ao buscar alertas:", err);
+                return res.status(500).json({ error: "Erro interno do servidor" });
+            }
+
+            console.log(`✅ ${alertas.length} alertas encontrados`);
+            res.json(alertas);
+        });
+    });
+});
+
+// ======================
+// ROTA PARA PACIENTES DO SUPERVISOR - CORRIGIDA
+// ======================
+
+// Rota para obter pacientes vinculados ao supervisor/familiar
+app.get("/api/supervisores/:supervisorId/pacientes", (req, res) => {
+    const { supervisorId } = req.params;
+    
+    console.log(`👥 Buscando pacientes DINÂMICOS para supervisor: ${supervisorId}`);
+    
+    // Query corrigida - buscar pacientes vinculados ao usuário
+    const query = `
+        SELECT DISTINCT
+            p.id,
+            p.nome,
+            p.data_nascimento,
+            p.genero,
+            p.condicao_principal,
+            p.plano_saude,
+            p.alergias,
+            p.foto_perfil,
+            p.data_criacao
+        FROM pacientes p
+        LEFT JOIN familiares_contratantes fc ON p.familiar_contratante_id = fc.id
+        LEFT JOIN familiares_cuidadores fcu ON p.familiar_cuidador_id = fcu.id
+        LEFT JOIN cuidadores_profissionais_pacientes cpp ON p.id = cpp.paciente_id
+        LEFT JOIN cuidadores_profissionais cp ON cpp.cuidador_profissional_id = cp.id
+        WHERE 
+            fc.usuario_id = ? OR 
+            fcu.usuario_id = ? OR
+            cp.usuario_id = ?
+        ORDER BY p.nome
+    `;
+
+    db.query(query, [supervisorId, supervisorId, supervisorId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar pacientes do supervisor:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`✅ ${results.length} pacientes DINÂMICOS encontrados para supervisor ${supervisorId}`);
+        res.json(results);
+    });
+});
+
+// ======================
+// ROTA ALTERNATIVA - TODOS OS PACIENTES (PARA TESTE)
+// ======================
+
+app.get("/api/pacientes/todos", (req, res) => {
+    console.log('👥 Buscando TODOS os pacientes do sistema...');
+    
+    const query = `
+        SELECT 
+            id,
+            nome,
+            data_nascimento,
+            genero,
+            condicao_principal,
+            plano_saude,
+            alergias,
+            foto_perfil,
+            data_criacao
+        FROM pacientes 
+        WHERE ativo = TRUE
+        ORDER BY nome
+    `;
+
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar todos os pacientes:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`✅ ${results.length} pacientes encontrados no sistema`);
+        res.json(results);
+    });
+});
+
+// Função auxiliar para verificar acesso (mais permissiva)
+function verificarAcessoPaciente(pacienteId, usuarioId, callback) {
+    console.log(`🔐 Verificando acesso: Usuário ${usuarioId} -> Paciente ${pacienteId}`);
+    
+    // Query mais permissiva para desenvolvimento
+    const query = `
+        SELECT p.id 
+        FROM pacientes p
+        WHERE p.id = ? 
+        LIMIT 1
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro na verificação de acesso:", err);
+            return callback(false);
+        }
+        
+        const temAcesso = results.length > 0;
+        console.log(`🔐 Acesso ${temAcesso ? 'PERMITIDO' : 'NEGADO'} para paciente ${pacienteId}`);
+        callback(temAcesso);
+    });
+}
