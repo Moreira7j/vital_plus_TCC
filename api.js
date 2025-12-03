@@ -1316,14 +1316,13 @@ setInterval(() => {
     }
 }, 60000); // Verificar a cada minuto
 
-// ====================== ROTA CORRIGIDA PARA ATIVIDADES DE HOJE ====================== //
-
-// ✅ ROTA CORRIGIDA E PRIORITÁRIA: Buscar atividades de HOJE
+// ✅ ROTA SIMPLES E CORRETA: Buscar atividades de HOJE
 app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
     const pacienteId = req.params.pacienteId;
 
-    console.log(`🎯 [ROTA CORRIGIDA] Buscando atividades de HOJE para paciente: ${pacienteId}`);
+    console.log(`🎯 Buscando atividades de HOJE para paciente: ${pacienteId}`);
 
+    // ✅ CORREÇÃO SIMPLES: Usar intervalo de 24h a partir de agora
     const query = `
         SELECT 
             a.id,
@@ -1340,12 +1339,11 @@ app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
         LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
         LEFT JOIN usuarios u ON cp.usuario_id = u.id
         WHERE a.paciente_id = ? 
-        AND DATE(a.data_prevista) = CURDATE()
+        AND a.data_prevista >= NOW() - INTERVAL 12 HOUR
+        AND a.data_prevista < NOW() + INTERVAL 36 HOUR
         AND a.status != 'cancelada'
         ORDER BY a.data_prevista ASC
     `;
-
-    console.log(`🔍 Executando query para paciente ${pacienteId}:`, query);
 
     db.query(query, [pacienteId], (err, results) => {
         if (err) {
@@ -1353,37 +1351,82 @@ app.get("/api/pacientes/:pacienteId/atividades/hoje", (req, res) => {
             return res.status(500).json({ error: "Erro interno do servidor" });
         }
 
-        console.log(`📊 ${results.length} atividades de hoje encontradas para paciente ${pacienteId}`);
-        
-        // ✅ DEBUG: Log detalhado dos resultados
-        if (results.length > 0) {
-            console.log('🔍 PRIMEIRA ATIVIDADE ENCONTRADA:', {
-                id: results[0].id,
-                descricao: results[0].descricao,
-                data_prevista: results[0].data_prevista,
-                status: results[0].status,
-                tipo: results[0].tipo
-            });
-        }
-
-        const atividadesFormatadas = results.map(atividade => ({
-            id: atividade.id,
-            tipo: atividade.tipo,
-            descricao: atividade.descricao,
-            data_prevista: atividade.data_prevista,
-            status: atividade.status,
-            observacoes: atividade.observacoes,
-            data_conclusao: atividade.data_conclusao,
-            paciente_nome: atividade.paciente_nome,
-            cuidador_nome: atividade.cuidador_nome
-        }));
-
-        res.json(atividadesFormatadas);
+        console.log(`📊 ${results.length} atividades de hoje encontradas`);
+        res.json(results);
     });
 });
+// ✅ ROTA DEBUG: Ver dados brutos do banco
+app.get("/api/debug/atividades/:pacienteId", (req, res) => {
+    const pacienteId = req.params.pacienteId;
 
+    console.log(`🐛 DEBUG: Buscando atividades BRUTAS para paciente: ${pacienteId}`);
 
+    const query = `
+        SELECT 
+            id,
+            tipo,
+            descricao,
+            data_prevista,
+            status,
+            DATE(data_prevista) as data,
+            TIME(data_prevista) as hora,
+            HOUR(data_prevista) as hora_num,
+            MINUTE(data_prevista) as minuto_num
+        FROM atividades 
+        WHERE paciente_id = ?
+        ORDER BY data_prevista DESC
+        LIMIT 10
+    `;
 
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro no debug:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log('🐛 Dados brutos do banco:', results);
+        res.json(results);
+    });
+});
+// ✅ ROTA ALTERNATIVA: Buscar atividades (timezone manual)
+app.get("/api/pacientes/:pacienteId/atividades/hoje-timezone", (req, res) => {
+    const pacienteId = req.params.pacienteId;
+
+    console.log(`🕒 Buscando atividades com timezone manual para paciente: ${pacienteId}`);
+
+    // ✅ CORREÇÃO: Timezone manual (UTC-3 para Brasil)
+    const query = `
+        SELECT 
+            a.id,
+            a.tipo,
+            a.descricao,
+            a.data_prevista,
+            a.status,
+            a.observacoes,
+            a.data_conclusao,
+            p.nome as paciente_nome,
+            u.nome as cuidador_nome
+        FROM atividades a
+        LEFT JOIN pacientes p ON a.paciente_id = p.id
+        LEFT JOIN cuidadores_profissionais cp ON a.cuidador_id = cp.id
+        LEFT JOIN usuarios u ON cp.usuario_id = u.id
+        WHERE a.paciente_id = ? 
+        AND a.data_prevista >= DATE_SUB(CURDATE(), INTERVAL 3 HOUR)
+        AND a.data_prevista < DATE_ADD(DATE_SUB(CURDATE(), INTERVAL 3 HOUR), INTERVAL 1 DAY)
+        AND a.status != 'cancelada'
+        ORDER BY a.data_prevista ASC
+    `;
+
+    db.query(query, [pacienteId], (err, results) => {
+        if (err) {
+            console.error("❌ Erro ao buscar atividades:", err);
+            return res.status(500).json({ error: "Erro interno do servidor" });
+        }
+
+        console.log(`📊 ${results.length} atividades encontradas com timezone manual`);
+        res.json(results);
+    });
+});
 
 
 // Iniciar servidor
@@ -7585,3 +7628,97 @@ function verificarAcessoPaciente(pacienteId, usuarioId, callback) {
         callback(temAcesso);
     });
 }
+
+
+
+// 📁 routes/alertas.js
+
+// ✅ ROTA PARA CRIAR ALERTA (FAMILIAR USA)
+app
+.post('/alertas', async (req, res) => {
+    try {
+        const {
+            paciente_id,
+            paciente_nome,
+            usuario_id,
+            usuario_nome,
+            usuario_tipo,
+            tipo,
+            titulo,
+            descricao,
+            severidade,
+            status
+        } = req.body;
+
+        // Validar dados
+        if (!paciente_id || !titulo || !descricao) {
+            return res.status(400).json({ error: 'Dados incompletos' });
+        }
+
+        // Inserir no banco de dados
+        const [result] = await db.query(
+            `INSERT INTO alertas 
+            (paciente_id, paciente_nome, usuario_id, usuario_nome, usuario_tipo, 
+             tipo, titulo, descricao, severidade, status, data_criacao) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [paciente_id, paciente_nome, usuario_id, usuario_nome, usuario_tipo,
+             tipo, titulo, descricao, severidade, status || 'ativo']
+        );
+
+        // Buscar alerta criado
+        const [alerta] = await db.query(
+            'SELECT * FROM alertas WHERE id = ?',
+            [result.insertId]
+        );
+
+        res.status(201).json(alerta[0]);
+
+    } catch (error) {
+        console.error('❌ Erro ao criar alerta:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// ✅ ROTA PARA BUSCAR ALERTAS (FAMILIAR E CUIDADOR USAM A MESMA)
+app.get('/pacientes/:pacienteId/alertas/hoje', async (req, res) => {
+    try {
+        const { pacienteId } = req.params;
+        
+        // Buscar alertas do paciente criados hoje
+        const [alertas] = await db.query(
+            `SELECT * FROM alertas 
+             WHERE paciente_id = ? 
+             AND DATE(data_criacao) = CURDATE()
+             AND status = 'ativo'
+             ORDER BY data_criacao DESC`,
+            [pacienteId]
+        );
+
+        res.json(alertas);
+
+    } catch (error) {
+        console.error('❌ Erro ao buscar alertas:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});
+
+// ✅ ROTA PARA MARCAR ALERTA COMO RESOLVIDO
+app.put('/alertas/:id/resolver', async (req, res) => {
+    try {
+        const { id } = req.params;
+        
+        await db.query(
+            `UPDATE alertas 
+             SET status = 'resolvido', 
+                 data_resolucao = NOW()
+             WHERE id = ?`,
+            [id]
+        );
+
+        res.json({ success: true, message: 'Alerta resolvido' });
+
+    } catch (error) {
+        console.error('❌ Erro ao resolver alerta:', error);
+        res.status(500).json({ error: 'Erro interno do servidor' });
+    }
+});

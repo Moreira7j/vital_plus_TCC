@@ -152,7 +152,7 @@ function verificarDadosUsuario() {
     return { usuarioId, pacienteId };
 }
 
-// Carregar atividades
+// Carregar atividades - VERSÃO CORRIGIDA
 async function carregarAtividades() {
     try {
         mostrarLoading(true);
@@ -171,22 +171,26 @@ async function carregarAtividades() {
             throw new Error('Erro ao carregar atividades da API');
         }
         
-        atividades = await response.json();
+        const dadosRecebidos = await response.json();
         
-        // ✅ DEBUG: Verificar estrutura dos dados recebidos
-        console.log('🔍 ESTRUTURA DOS DADOS RECEBIDOS:');
-        if (atividades.length > 0) {
-            console.log('Primeira atividade:', atividades[0]);
-            console.log('Campos disponíveis:', Object.keys(atividades[0]));
-        }
+        // ✅ VALIDAÇÃO E NORMALIZAÇÃO DOS DADOS
+        atividades = Array.isArray(dadosRecebidos) ? dadosRecebidos : [];
         
-        console.log('📦 Atividades carregadas:', atividades);
+        // Debug detalhado
+        console.log('📦 Dados recebidos da API:', {
+            quantidade: atividades.length,
+            dados: dadosRecebidos
+        });
         
+        debugAtividadesDetalhado();
+        
+        // ✅ FORÇAR RE-RENDERIZAÇÃO
         renderizarAtividades();
         atualizarEstatisticas();
         inicializarGraficoAtividades();
+        
     } catch (error) {
-        console.error('Erro ao carregar atividades:', error);
+        console.error('❌ Erro ao carregar atividades:', error);
         atividades = obterAtividadesExemplo();
         renderizarAtividades();
         atualizarEstatisticas();
@@ -241,6 +245,7 @@ function formatarDataParaBackend(dataString, horarioString) {
     return dataFinal.toISOString().slice(0, 19).replace('T', ' ');
 }
 
+// ✅ FUNÇÃO ORIGINAL CORRIGIDA: Criar atividade
 async function criarAtividade(atividadeData) {
     try {
         console.log('📤 Iniciando criação de atividade...');
@@ -251,12 +256,12 @@ async function criarAtividade(atividadeData) {
             throw new Error('Paciente ou usuário não identificado');
         }
 
-        // ✅ CORREÇÃO: Usar data atual LOCAL com horário desejado
+        // ✅ CORREÇÃO: Usar data LOCAL (sem conversões complexas)
         const hoje = new Date();
         const [horas, minutos] = atividadeData.horario.split(':');
         
-        // Criar data LOCAL (não UTC)
-        const dataAtividadeLocal = new Date(
+        // Criar data LOCAL simples
+        const dataAtividade = new Date(
             hoje.getFullYear(),
             hoje.getMonth(),
             hoje.getDate(),
@@ -265,13 +270,12 @@ async function criarAtividade(atividadeData) {
             0
         );
 
-        // Converter para formato do backend
-        const dataPrevistaFormatada = dataAtividadeLocal.toISOString().slice(0, 19).replace('T', ' ');
+        // Formatar para o backend (formato MySQL)
+        const dataPrevistaFormatada = dataAtividade.toISOString().slice(0, 19).replace('T', ' ');
 
-        console.log('📅 Data criada (LOCAL):', {
+        console.log('📅 Data criada (SIMPLES):', {
             horario_selecionado: atividadeData.horario,
-            data_local: dataAtividadeLocal.toString(),
-            data_iso: dataAtividadeLocal.toISOString(),
+            data_local: dataAtividade.toString(),
             data_enviada: dataPrevistaFormatada
         });
 
@@ -302,11 +306,10 @@ async function criarAtividade(atividadeData) {
         return data;
 
     } catch (error) {
-        console.error('❌ Erro completo ao criar atividade:', error);
+        console.error('❌ Erro ao criar atividade:', error);
         throw error;
     }
 }
-
 // ✅ SOLUÇÃO ALTERNATIVA: Enviar data em formato específico
 async function atualizarAtividade(id, atividadeData) {
     try {
@@ -415,7 +418,18 @@ async function marcarComoConcluidaHandler(id) {
 
 function renderizarAtividades() {
     const container = document.getElementById('atividadesContainer');
+    
+    if (!container) {
+        console.error('❌ Container de atividades não encontrado!');
+        return;
+    }
+
     const atividadesFiltradas = filtrarAtividades();
+
+    console.log('🎨 Renderizando atividades:', {
+        total: atividades.length,
+        filtradas: atividadesFiltradas.length
+    });
 
     if (atividadesFiltradas.length === 0) {
         container.innerHTML = `
@@ -430,67 +444,72 @@ function renderizarAtividades() {
     }
 
     container.innerHTML = atividadesFiltradas.map(atividade => {
-        // ✅ CORREÇÃO: Usar horário LOCAL para exibição (igual ao dashboard)
-        const dataPrevista = new Date(atividade.data_prevista);
-        
-        // Usar métodos LOCAIS para exibição (getHours, getMinutes)
-        const horasLocal = String(dataPrevista.getHours()).padStart(2, '0');
-        const minutosLocal = String(dataPrevista.getMinutes()).padStart(2, '0');
-        const horarioLocal = `${horasLocal}:${minutosLocal}`;
-        
-        console.log('🔍 DEBUG - Exibindo atividade:', {
-            id: atividade.id,
-            data_prevista: atividade.data_prevista,
-            horarioLocal: horarioLocal,
-            horasLocal: dataPrevista.getHours(),
-            minutosLocal: dataPrevista.getMinutes()
-        });
-        
-        return `
-        <div class="atividade-card ${atividade.status}" data-atividade-id="${atividade.id}">
-            <div class="atividade-header">
-                <div class="atividade-info">
-                    <span class="tipo-badge ${atividade.tipo}">
-                        ${obterTextoTipo(atividade.tipo)}
-                    </span>
-                    <span class="status-badge ${atividade.status}">
-                        ${obterTextoStatus(atividade.status)}
-                    </span>
-                    <h3>${atividade.descricao}</h3>
-                </div>
-                <div class="atividade-acoes">
-                    ${atividade.status !== 'concluida' ? `
-                        <button class="btn btn-primary btn-sm" onclick="marcarComoConcluidaHandler(${atividade.id})">
-                            <i data-feather="check"></i>
-                            Concluir
+        try {
+            // ✅ CORREÇÃO: Usar horário LOCAL simples (sem conversões)
+            const dataPrevista = new Date(atividade.data_prevista);
+            
+            const horasLocal = String(dataPrevista.getHours()).padStart(2, '0');
+            const minutosLocal = String(dataPrevista.getMinutes()).padStart(2, '0');
+            const horarioLocal = `${horasLocal}:${minutosLocal}`;
+
+            console.log('🔍 DEBUG - Exibindo atividade:', {
+                id: atividade.id,
+                data_prevista: atividade.data_prevista,
+                horarioLocal: horarioLocal
+            });
+            
+            return `
+            <div class="atividade-card ${atividade.status}" data-atividade-id="${atividade.id}">
+                <div class="atividade-header">
+                    <div class="atividade-info">
+                        <span class="tipo-badge ${atividade.tipo}">
+                            ${obterTextoTipo(atividade.tipo)}
+                        </span>
+                        <span class="status-badge ${atividade.status}">
+                            ${obterTextoStatus(atividade.status)}
+                        </span>
+                        <h3>${atividade.descricao}</h3>
+                    </div>
+                    <div class="atividade-acoes">
+                        ${atividade.status !== 'concluida' ? `
+                            <button class="btn btn-primary btn-sm" onclick="marcarComoConcluidaHandler(${atividade.id})">
+                                <i data-feather="check"></i>
+                                Concluir
+                            </button>
+                        ` : `
+                            <button class="btn btn-success btn-sm" disabled>
+                                <i data-feather="check-circle"></i>
+                                Concluída
+                            </button>
+                        `}
+                        <button class="btn-icon btn-edit" onclick="editarAtividade(${atividade.id})" title="Editar">
+                            <i data-feather="edit-2"></i>
                         </button>
-                    ` : `
-                        <button class="btn btn-success btn-sm" disabled>
-                            <i data-feather="check-circle"></i>
-                            Concluída
+                        <button class="btn-icon btn-danger" onclick="abrirModalConfirmacaoExclusaoAtividade(${atividade.id})" title="Excluir">
+                            <i data-feather="trash-2"></i>
                         </button>
-                    `}
-                    <button class="btn-icon btn-edit" onclick="editarAtividade(${atividade.id})" title="Editar">
-                        <i data-feather="edit-2"></i>
-                    </button>
-                    <button class="btn-icon btn-danger" onclick="abrirModalConfirmacaoExclusaoAtividade(${atividade.id})" title="Excluir">
-                        <i data-feather="trash-2"></i>
-                    </button>
+                    </div>
+                </div>
+                <div class="atividade-body">
+                    <p><strong>Tipo:</strong> ${obterTextoTipo(atividade.tipo)}</p>
+                    <p><strong>Horário:</strong> ${horarioLocal}</p>
+                    ${atividade.observacoes ? `<p><strong>Observações:</strong> ${atividade.observacoes}</p>` : ''}
+                </div>
+                <div class="atividade-metadata">
+                    <span><i data-feather="clock"></i> Agendada para: ${horarioLocal}</span>
                 </div>
             </div>
-            <div class="atividade-body">
-                <p><strong>Tipo:</strong> ${obterTextoTipo(atividade.tipo)}</p>
-                <p><strong>Horário:</strong> ${horarioLocal}</p>
-                ${atividade.observacoes ? `<p><strong>Observações:</strong> ${atividade.observacoes}</p>` : ''}
-            </div>
-            <div class="atividade-metadata">
-                <span><i data-feather="clock"></i> Agendada para: ${horarioLocal}</span>
-            </div>
-        </div>
-        `;
+            `;
+        } catch (error) {
+            console.error('❌ Erro ao renderizar atividade:', atividade.id, error);
+            return `<div class="atividade-card error">
+                <p>Erro ao carregar atividade ${atividade.id}</p>
+            </div>`;
+        }
     }).join('');
 
     feather.replace();
+    console.log('✅ Renderização concluída');
 }
 
 // Filtros
@@ -547,7 +566,7 @@ function fecharModal() {
     document.getElementById('atividadeForm').reset();
 }
 
-// ✅ CORREÇÃO: Editar atividade - usar horário LOCAL
+// ✅ CORREÇÃO: Editar atividade - método original
 function editarAtividade(id) {
     console.log(`✏️ Editando atividade ID: ${id}`);
     
@@ -565,10 +584,10 @@ function editarAtividade(id) {
     document.getElementById('atividadeDescricao').value = atividade.descricao || '';
     document.getElementById('atividadeObservacoes').value = atividade.observacoes || '';
     
-    // ✅ CORREÇÃO: Extrair horário LOCAL (igual à exibição)
+    // ✅ CORREÇÃO: Extrair horário LOCAL (igual ao que foi salvo)
     const dataPrevista = new Date(atividade.data_prevista);
     
-    // Usar métodos LOCAIS para edição (getHours, getMinutes)
+    // Usar métodos LOCAIS para edição
     const horasLocal = String(dataPrevista.getHours()).padStart(2, '0');
     const minutosLocal = String(dataPrevista.getMinutes()).padStart(2, '0');
     const horarioLocal = `${horasLocal}:${minutosLocal}`;
@@ -603,6 +622,35 @@ function debugAtividades() {
 
 // Chame esta função após carregar as atividades:
 // debugAtividades();
+
+// ✅ FUNÇÃO DE DEBUG MELHORADA
+function debugAtividadesDetalhado() {
+    console.log('🐛 DEBUG DETALHADO DAS ATIVIDADES:');
+    console.log('📊 Total de atividades:', atividades.length);
+    
+    if (atividades.length === 0) {
+        console.log('❌ Nenhuma atividade carregada');
+        return;
+    }
+    
+    atividades.forEach((atividade, index) => {
+        const data = new Date(atividade.data_prevista);
+        console.log(`Atividade ${index + 1} - ID: ${atividade.id}:`, {
+            descricao: atividade.descricao,
+            tipo: atividade.tipo,
+            status: atividade.status,
+            data_prevista_original: atividade.data_prevista,
+            data_interpretada: data.toString(),
+            horario_local: `${String(data.getHours()).padStart(2, '0')}:${String(data.getMinutes()).padStart(2, '0')}`,
+            data_valida: !isNaN(data.getTime())
+        });
+    });
+    
+    // Verificar filtros
+    console.log('🎯 Filtros ativos:', filtrosAtivos);
+    const atividadesFiltradas = filtrarAtividades();
+    console.log('📋 Atividades após filtro:', atividadesFiltradas.length);
+}
 
 // ✅ CORREÇÃO: Salvar atividade com refresh forçado
 async function salvarAtividade(e) {

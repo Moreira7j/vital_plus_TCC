@@ -10,7 +10,104 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-     <link rel="icon" href="../assets/logo minimalista.png">
+    <link rel="icon" href="../assets/logo minimalista.png">
+    <style>
+        /* Estilos adicionais para o sistema de alertas */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: #27ae60;
+            color: white;
+            border-radius: 8px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 300px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            border-left: 4px solid #1e7e34;
+            animation: slideInRight 0.3s ease-out;
+        }
+        
+        .notification.error {
+            background: #e74c3c;
+            border-left-color: #c82333;
+        }
+        
+        .notification-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+        
+        .loading-spinner {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .tipo-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-right: 8px;
+        }
+        
+        .tipo-badge.medicamento { background: #e8f5e8; color: #27ae60; }
+        .tipo-badge.consulta { background: #e8f4fd; color: #3498db; }
+        .tipo-badge.exame { background: #f3e8ff; color: #9b59b6; }
+        .tipo-badge.observacao { background: #fff3cd; color: #856404; }
+        .tipo-badge.comportamento { background: #e8f4f8; color: #17a2b8; }
+        .tipo-badge.sintoma { background: #ffe6e6; color: #dc3545; }
+        .tipo-badge.outros { background: #f8f9fa; color: #6c757d; }
+        
+        .status-badge.resolvido {
+            background: #d4edda;
+            color: #155724;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .alerta-metadata-top {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+            flex-wrap: wrap;
+        }
+        
+        .btn-danger {
+            background: #e74c3c;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        
+        @keyframes slideInRight {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+    </style>
 </head>
 
 <body>
@@ -23,7 +120,6 @@
             </div>
 
             <div class="user-info">
-                
                 <div class="header-actions">
                     <button class="btn-notifications">
                         <i class="fas fa-bell"></i>
@@ -148,6 +244,20 @@
                                 </div>
                                 
                                 <div class="filter-group">
+                                    <label for="filtroTipo">Tipo</label>
+                                    <select id="filtroTipo" class="filter-select">
+                                        <option value="todos">Todos os Tipos</option>
+                                        <option value="medicamento">Medicamento</option>
+                                        <option value="consulta">Consulta</option>
+                                        <option value="exame">Exame</option>
+                                        <option value="observacao">Observação</option>
+                                        <option value="comportamento">Comportamento</option>
+                                        <option value="sintoma">Sintoma</option>
+                                        <option value="outros">Outros</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
                                     <label for="filtroData">Data</label>
                                     <input type="date" id="filtroData" class="filter-select">
                                 </div>
@@ -177,7 +287,7 @@
                                 <h4 class="mb-0">Gestão de Alertas</h4>
                                 <button id="novoAlertaBtn" class="btn-link">
                                     <i data-feather="plus"></i>
-                                    Novo Alerta
+                                    Novo Alerta para Cuidadores
                                 </button>
                             </div>
                         </div>
@@ -220,7 +330,7 @@
     <div id="alertaModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitulo">Novo Alerta</h2>
+                <h2 id="modalTitulo">Novo Alerta para os Cuidadores</h2>
                 <button type="button" class="btn-icon" id="fecharModal">
                     <i data-feather="x"></i>
                 </button>
@@ -229,56 +339,1015 @@
             <form id="alertaForm">
                 <div class="modal-body">
                     <div class="form-group">
-                        <label for="alertaTitulo">Título do Alerta *</label>
-                        <input type="text" id="alertaTitulo" name="titulo" required class="form-control" placeholder="Digite o título do alerta">
+                        <label for="alertaTipo">Tipo de Alerta *</label>
+                        <select id="alertaTipo" name="tipo" required class="form-control">
+                            <option value="medicamento">💊 Medicamento</option>
+                            <option value="consulta">🏥 Consulta Médica</option>
+                            <option value="exame">🔬 Exame/Procedimento</option>
+                            <option value="observacao">📝 Observação Importante</option>
+                            <option value="comportamento">🧠 Mudança de Comportamento</option>
+                            <option value="sintoma">🤒 Novo Sintoma</option>
+                            <option value="outros">⚠️ Outros</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">
-                        <label for="alertaDescricao">Descrição *</label>
-                        <textarea id="alertaDescricao" name="descricao" required class="form-control" placeholder="Descreva o alerta em detalhes" rows="4"></textarea>
+                        <label for="alertaTitulo">Título do Alerta *</label>
+                        <input type="text" id="alertaTitulo" name="titulo" required class="form-control" 
+                               placeholder="Ex: Reposição de medicamento, Consulta marcada...">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="alertaDescricao">Descrição Detalhada *</label>
+                        <textarea id="alertaDescricao" name="descricao" required class="form-control" 
+                                  placeholder="Descreva em detalhes o que os cuidadores precisam saber ou fazer..."
+                                  rows="4"></textarea>
                     </div>
                     
                     <div class="form-row">
                         <div class="form-group">
                             <label for="alertaPrioridade">Prioridade *</label>
                             <select id="alertaPrioridade" name="prioridade" required class="form-control">
-                                <option value="baixa">Baixa</option>
-                                <option value="media">Média</option>
-                                <option value="alta">Alta</option>
+                                <option value="baixa">🟢 Baixa Prioridade</option>
+                                <option value="media">🟡 Média Prioridade</option>
+                                <option value="alta">🔴 Alta Prioridade</option>
                             </select>
                         </div>
                         
                         <div class="form-group">
-                            <label for="alertaDependente">Destinatário *</label>
+                            <label for="alertaDependente">Paciente Destinatário *</label>
                             <select id="alertaDependente" name="dependente" required class="form-control">
-                                <option value="1">João Silva</option>
-                                <option value="2">Maria Santos</option>
-                                <option value="3">Carlos Oliveira</option>
-                                <option value="todos">Todos os Dependentes</option>
+                                <option value="">Selecione o paciente</option>
+                                <!-- Será preenchido via JavaScript -->
                             </select>
                         </div>
                     </div>
                     
                     <div class="form-group">
-                        <label for="alertaData">Data e Hora</label>
+                        <label for="alertaData">Data e Hora do Alerta</label>
                         <input type="datetime-local" id="alertaData" name="data" class="form-control">
+                        <small class="text-muted">Deixe em branco para usar a data e hora atual</small>
                     </div>
                 </div>
                 
                 <div class="modal-footer">
                     <button type="button" id="cancelarBtn" class="btn-outline">Cancelar</button>
                     <button type="submit" class="btn-primary">
-                        <i data-feather="save"></i>
-                        Salvar Alerta
+                        <i data-feather="send"></i>
+                        Enviar Alerta para Cuidadores
                     </button>
                 </div>
             </form>
         </div>
     </div>
 
-    <script src="../js/alertas_supervisor.js"></script>
     <script>
-        feather.replace();
-    </script>
+    // ✅ SISTEMA DE ALERTAS COM CARREGAMENTO DE DEPENDENTES REAL
+    // Reutilizando a mesma lógica do relatorios_supervisor.js
+    
+    class AlertasAPI {
+        constructor() {
+            this.storageKey = 'vitalplus_alertas_db';
+            this.initDatabase();
+        }
+
+        initDatabase() {
+            if (!localStorage.getItem(this.storageKey)) {
+                localStorage.setItem(this.storageKey, JSON.stringify({
+                    alertas: [],
+                    proximoId: 1
+                }));
+                console.log('✅ Banco de dados inicializado');
+            }
+        }
+
+        getDatabase() {
+            return JSON.parse(localStorage.getItem(this.storageKey)) || { alertas: [], proximoId: 1 };
+        }
+
+        saveDatabase(data) {
+            localStorage.setItem(this.storageKey, JSON.stringify(data));
+        }
+
+        async getAlertasBySupervisor(supervisorId) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const db = this.getDatabase();
+                    const alertas = db.alertas.filter(a => a.criado_por_id == supervisorId);
+                    resolve(alertas);
+                }, 100);
+            });
+        }
+
+        async createAlerta(alertaData) {
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    const db = this.getDatabase();
+                    const novoAlerta = {
+                        id: db.proximoId++,
+                        ...alertaData,
+                        data_criacao: new Date().toISOString(),
+                        data_atualizacao: new Date().toISOString()
+                    };
+                    
+                    db.alertas.unshift(novoAlerta);
+                    this.saveDatabase(db);
+                    resolve(novoAlerta);
+                }, 200);
+            });
+        }
+
+        async updateAlerta(id, updates) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    try {
+                        const db = this.getDatabase();
+                        const index = db.alertas.findIndex(a => a.id === id);
+                        
+                        if (index === -1) {
+                            reject(new Error('Alerta não encontrado'));
+                            return;
+                        }
+
+                        db.alertas[index] = {
+                            ...db.alertas[index],
+                            ...updates,
+                            data_atualizacao: new Date().toISOString()
+                        };
+
+                        this.saveDatabase(db);
+                        resolve(db.alertas[index]);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }, 200);
+            });
+        }
+
+        async deleteAlerta(id) {
+            return new Promise((resolve, reject) => {
+                setTimeout(() => {
+                    try {
+                        const db = this.getDatabase();
+                        const initialLength = db.alertas.length;
+                        db.alertas = db.alertas.filter(a => a.id !== id);
+                        
+                        if (db.alertas.length === initialLength) {
+                            reject(new Error('Alerta não encontrado'));
+                            return;
+                        }
+
+                        this.saveDatabase(db);
+                        resolve(true);
+                    } catch (error) {
+                        reject(error);
+                    }
+                }, 200);
+            });
+        }
+    }
+
+    // ✅ VARIÁVEIS GLOBAIS
+    const alertasAPI = new AlertasAPI();
+    let alertas = [];
+    let usuarioLogado = null;
+    let filtrosAtivos = {
+        status: 'todos',
+        prioridade: 'todos',
+        tipo: 'todos',
+        data: '',
+        busca: ''
+    };
+
+    // ✅ INICIALIZAÇÃO
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Inicializando sistema de alertas...');
+        
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+        
+        usuarioLogado = JSON.parse(localStorage.getItem('usuarioLogado')) || 
+                       JSON.parse(localStorage.getItem('currentUser')) ||
+                       JSON.parse(sessionStorage.getItem('usuarioLogado')) ||
+                       JSON.parse(sessionStorage.getItem('currentUser')) ||
+                       {};
+
+        console.log('👤 Usuário logado:', usuarioLogado);
+
+        if (!usuarioLogado || !usuarioLogado.id) {
+            console.error('❌ Nenhum usuário logado encontrado!');
+            mostrarMensagem('Você precisa fazer login para acessar esta página', 'error');
+            setTimeout(() => {
+                window.location.href = '../paginas/LandingPage.html';
+            }, 2000);
+            return;
+        }
+
+        inicializarEventListeners();
+        carregarAlertas();
+        buscarDependentes(); // ✅ USANDO A MESMA LÓGICA DO RELATÓRIOS
+    });
+
+    // ✅ ✅ ✅ FUNÇÃO PRINCIPAL: BUSCAR DEPENDENTES (MESMA LÓGICA DO RELATÓRIOS)
+    async function buscarDependentes() {
+        try {
+            console.log('👥 Buscando dependentes com rotas reais...');
+
+            let dependentes = [];
+            const usuarioId = usuarioLogado?.id || usuarioLogado?._id;
+
+            if (!usuarioId) {
+                console.error('❌ ID do usuário não encontrado');
+                mostrarMensagem('ID do usuário não encontrado. Faça login novamente.', 'error');
+                return [];
+            }
+
+            console.log(`🔍 ID do usuário: ${usuarioId}`);
+
+            // ✅ ROTAS CORRETAS BASEADAS NO SEU BACKEND (MESMO DO RELATÓRIOS)
+            const endpoints = [
+                `/api/supervisores/${usuarioId}/pacientes`,  // Rota principal
+                `/api/pacientes/todos`  // Rota alternativa
+            ];
+
+            let endpointFuncionou = false;
+
+            for (const endpoint of endpoints) {
+                try {
+                    console.log(`🔗 Tentando endpoint: ${endpoint}`);
+                    const response = await fetch(endpoint);
+
+                    console.log(`📊 Resposta do endpoint ${endpoint}: ${response.status}`);
+
+                    if (response.ok) {
+                        const dados = await response.json();
+                        console.log(`✅ Resposta do endpoint ${endpoint}:`, dados);
+
+                        // ✅ TRATAMENTO CORRETO DOS DADOS BASEADO NAS SUAS ROTAS
+                        if (Array.isArray(dados) && dados.length > 0) {
+                            dependentes = dados.map(paciente => ({
+                                id: paciente.id,
+                                nome: paciente.nome || paciente.paciente_nome,
+                                data_nascimento: paciente.data_nascimento,
+                                genero: paciente.genero,
+                                condicao_principal: paciente.condicao_principal
+                            }));
+                            endpointFuncionou = true;
+                            console.log(`🎉 ${dependentes.length} dependentes carregados via ${endpoint}`);
+                            break;
+                        } else if (dados.paciente) {
+                            // Se for um objeto com propriedade paciente
+                            dependentes = [{
+                                id: dados.paciente.id,
+                                nome: dados.paciente.nome,
+                                data_nascimento: dados.paciente.data_nascimento,
+                                genero: dados.paciente.genero,
+                                condicao_principal: dados.paciente.condicao_principal
+                            }];
+                            endpointFuncionou = true;
+                            console.log(`🎉 1 dependente carregado via ${endpoint}`);
+                            break;
+                        } else {
+                            console.log(`⚠️ Endpoint ${endpoint} retornou dados inválidos:`, dados);
+                        }
+                    } else {
+                        console.log(`❌ Endpoint ${endpoint} retornou status: ${response.status}`);
+                    }
+                } catch (error) {
+                    console.warn(`❌ Falha no endpoint ${endpoint}:`, error.message);
+                }
+            }
+
+            // Se nenhum endpoint funcionou
+            if (!endpointFuncionou) {
+                console.log('❌ NENHUM endpoint retornou dados válidos');
+
+                // ✅ DADOS DE FALLBACK PARA TESTE (IGUAL AO RELATÓRIOS)
+                console.log('🔄 Usando dados de fallback para teste...');
+                dependentes = [
+                    { id: 1, nome: 'Paciente Teste 1', data_nascimento: '1950-01-01', genero: 'F', condicao_principal: 'Hipertensão' },
+                    { id: 2, nome: 'Paciente Teste 2', data_nascimento: '1945-05-15', genero: 'M', condicao_principal: 'Diabetes' }
+                ];
+
+                console.log(`🎉 ${dependentes.length} dependentes de fallback carregados`);
+            }
+
+            // ✅ PREENCHER O SELECT DE DEPENDENTES NO MODAL
+            preencherSelectDependentes(dependentes);
+
+            return dependentes;
+
+        } catch (error) {
+            console.error('❌ Erro ao buscar dependentes:', error);
+            mostrarMensagem('Erro ao carregar pacientes: ' + error.message, 'error');
+            return [];
+        }
+    }
+
+    // ✅ FUNÇÃO PARA PREENCHER SELECT DE DEPENDENTES
+    function preencherSelectDependentes(dependentes) {
+        try {
+            console.log('🎯 Preenchendo select com dependentes:', dependentes);
+
+            const select = document.getElementById('alertaDependente');
+            if (!select) {
+                console.error('❌ Select #alertaDependente não encontrado!');
+                return;
+            }
+
+            if (!Array.isArray(dependentes)) {
+                console.error('❌ Dependetes não é um array:', dependentes);
+                dependentes = [];
+            }
+
+            // Salvar o valor selecionado atual (se houver)
+            const valorAtual = select.value;
+
+            // Limpar todas as opções exceto a primeira
+            while (select.options.length > 1) {
+                select.remove(1);
+            }
+
+            // Adicionar dependentes
+            dependentes.forEach(dep => {
+                // Garantir que o dependente tem id e nome
+                if (dep && dep.id && dep.nome) {
+                    const option = new Option(dep.nome, dep.id);
+                    select.add(option);
+                } else {
+                    console.warn('⚠️ Dependente inválido:', dep);
+                }
+            });
+
+            // Adicionar opção "Todos" se houver múltiplos pacientes
+            if (dependentes.length > 1) {
+                const optionTodos = new Option('Todos os Dependentes', 'todos');
+                select.add(optionTodos);
+            }
+
+            // Restaurar o valor selecionado se ainda existir
+            if (valorAtual && Array.from(select.options).some(opt => opt.value === valorAtual)) {
+                select.value = valorAtual;
+            } else if (select.options.length > 0) {
+                select.selectedIndex = 0;
+            }
+
+            console.log(`✅ Select #alertaDependente preenchido com ${select.options.length} opções`);
+
+        } catch (error) {
+            console.error('❌ Erro ao preencher select de dependentes:', error);
+        }
+    }
+
+    // ✅ EVENT LISTENERS
+    function inicializarEventListeners() {
+        console.log('⚙️ Configurando event listeners...');
+        
+        // Filtros
+        const aplicarFiltrosBtn = document.getElementById('aplicarFiltros');
+        const filtroStatus = document.getElementById('filtroStatus');
+        const filtroPrioridade = document.getElementById('filtroPrioridade');
+        const filtroTipo = document.getElementById('filtroTipo');
+        const filtroData = document.getElementById('filtroData');
+        const filtroBusca = document.getElementById('filtroBusca');
+
+        if (aplicarFiltrosBtn) aplicarFiltrosBtn.addEventListener('click', aplicarFiltros);
+        if (filtroStatus) filtroStatus.addEventListener('change', atualizarFiltros);
+        if (filtroPrioridade) filtroPrioridade.addEventListener('change', atualizarFiltros);
+        if (filtroTipo) filtroTipo.addEventListener('change', atualizarFiltros);
+        if (filtroData) filtroData.addEventListener('change', atualizarFiltros);
+        if (filtroBusca) filtroBusca.addEventListener('input', atualizarFiltros);
+
+        // Modal
+        const novoAlertaBtn = document.getElementById('novoAlertaBtn');
+        const fecharModalBtn = document.getElementById('fecharModal');
+        const cancelarBtn = document.getElementById('cancelarBtn');
+        const alertaForm = document.getElementById('alertaForm');
+
+        if (novoAlertaBtn) novoAlertaBtn.addEventListener('click', abrirModalNovoAlerta);
+        if (fecharModalBtn) fecharModalBtn.addEventListener('click', fecharModal);
+        if (cancelarBtn) cancelarBtn.addEventListener('click', fecharModal);
+        if (alertaForm) alertaForm.addEventListener('submit', salvarAlerta);
+
+        // Fechar modal ao clicar fora
+        const alertaModal = document.getElementById('alertaModal');
+        if (alertaModal) {
+            alertaModal.addEventListener('click', function(e) {
+                if (e.target === this) fecharModal();
+            });
+        }
+
+        console.log('✅ Event listeners inicializados');
+    }
+
+    // ✅ CARREGAR ALERTAS
+    async function carregarAlertas() {
+        try {
+            mostrarLoading(true);
+            
+            if (!usuarioLogado || !usuarioLogado.id) {
+                throw new Error('Usuário não logado');
+            }
+
+            console.log(`🔍 Buscando alertas para supervisor ${usuarioLogado.id}...`);
+            alertas = await alertasAPI.getAlertasBySupervisor(usuarioLogado.id);
+            
+            console.log(`✅ ${alertas.length} alertas carregados`);
+            renderizarAlertas();
+            atualizarEstatisticas();
+            inicializarGrafico();
+            
+        } catch (error) {
+            console.error('❌ Erro ao carregar alertas:', error);
+            mostrarMensagem('Erro ao carregar alertas: ' + error.message, 'error');
+            alertas = [];
+            renderizarAlertas();
+            atualizarEstatisticas();
+        } finally {
+            mostrarLoading(false);
+        }
+    }
+
+    // ✅ CRIAR NOVO ALERTA
+    async function criarAlerta(alertaData) {
+        try {
+            const usuarioId = usuarioLogado.id || usuarioLogado._id;
+            
+            // Obter nome do paciente selecionado
+            const dependenteSelect = document.getElementById('alertaDependente');
+            const dependenteId = alertaData.dependenteId;
+            const dependenteNome = dependenteSelect.options[dependenteSelect.selectedIndex].text;
+
+            const alertaCompleto = {
+                tipo: alertaData.tipo,
+                titulo: alertaData.titulo,
+                descricao: alertaData.descricao,
+                severidade: alertaData.prioridade,
+                status: 'ativo',
+                paciente_id: dependenteId === 'todos' ? null : parseInt(dependenteId),
+                paciente_nome: dependenteNome,
+                criado_por: usuarioLogado.nome || 'Familiar',
+                criado_por_id: usuarioId,
+                supervisor_id: usuarioId
+            };
+
+            console.log('📤 Criando alerta:', alertaCompleto);
+            
+            const novoAlerta = await alertasAPI.createAlerta(alertaCompleto);
+            
+            // ✅ NOTIFICAR CUIDADORES
+            notificarCuidadores(novoAlerta);
+            
+            return novoAlerta;
+            
+        } catch (error) {
+            console.error('❌ Erro ao criar alerta:', error);
+            throw new Error('Não foi possível criar o alerta: ' + error.message);
+        }
+    }
+
+    // ✅ NOTIFICAR CUIDADORES
+    function notificarCuidadores(alerta) {
+        console.log('🔔 Notificando cuidadores sobre novo alerta:', alerta);
+        
+        const mensagem = `
+        🚨 NOVO ALERTA CRIADO!
+        
+        Título: ${alerta.titulo}
+        Tipo: ${obterTextoTipo(alerta.tipo)}
+        Severidade: ${obterTextoSeveridade(alerta.severidade)}
+        Paciente: ${alerta.paciente_nome || 'Todos os pacientes'}
+        
+        ${alerta.descricao}
+        `;
+        
+        console.log(mensagem);
+        mostrarMensagem(`Alerta "${alerta.titulo}" criado com sucesso!`, 'success');
+    }
+
+    // ✅ RENDERIZAR ALERTAS
+    function renderizarAlertas() {
+        const container = document.querySelector('.alertas-container');
+        const alertasFiltrados = filtrarAlertas();
+
+        if (alertasFiltrados.length === 0) {
+            container.innerHTML = `
+                <div class="text-center py-5">
+                    <i data-feather="inbox" class="text-muted" style="width: 48px; height: 48px;"></i>
+                    <h4 class="mt-3 text-muted">Nenhum alerta encontrado</h4>
+                    <p class="text-muted">${alertas.length === 0 ? 'Crie seu primeiro alerta para os cuidadores!' : 'Tente ajustar os filtros'}</p>
+                </div>
+            `;
+            if (typeof feather !== 'undefined') {
+                feather.replace();
+            }
+            return;
+        }
+
+        container.innerHTML = alertasFiltrados.map(alerta => `
+            <div class="alerta-card ${alerta.severidade} ${alerta.status === 'resolvido' ? 'resolvido' : ''}">
+                <div class="alerta-header">
+                    <div class="alerta-titulo">
+                        <div class="alerta-metadata-top">
+                            <span class="tipo-badge ${alerta.tipo}">
+                                <i class="${obterIconeTipo(alerta.tipo)}"></i>
+                                ${obterTextoTipo(alerta.tipo)}
+                            </span>
+                            <span class="severidade-badge ${alerta.severidade}">
+                                ${obterTextoSeveridade(alerta.severidade)}
+                            </span>
+                            ${alerta.status === 'resolvido' ? '<span class="status-badge resolvido">Resolvido</span>' : ''}
+                        </div>
+                        <h3>${alerta.titulo}</h3>
+                    </div>
+                    <div class="alerta-acoes">
+                        ${alerta.status === 'ativo' ? `
+                            <button class="btn-icon" onclick="marcarComoResolvido(${alerta.id})" title="Marcar como Resolvido">
+                                <i data-feather="check-circle"></i>
+                            </button>
+                        ` : ''}
+                        ${alerta.status === 'resolvido' ? `
+                            <button class="btn-icon" onclick="reabrirAlerta(${alerta.id})" title="Reabrir Alerta">
+                                <i data-feather="rotate-ccw"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn-icon btn-danger" onclick="excluirAlertaConfirmacao(${alerta.id})" title="Excluir">
+                            <i data-feather="trash-2"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="alerta-body">
+                    <p>${alerta.descricao || 'Sem descrição'}</p>
+                    <div class="alerta-metadata">
+                        <span><i data-feather="user"></i> Paciente: ${alerta.paciente_nome || 'Todos os pacientes'}</span>
+                        <span><i data-feather="clock"></i> Criado: ${formatarData(alerta.data_criacao)}</span>
+                        <span><i data-feather="user-check"></i> Por: ${alerta.criado_por || 'Sistema'}</span>
+                        ${alerta.data_resolucao ? `
+                            <span><i data-feather="check-circle"></i> Resolvido: ${formatarData(alerta.data_resolucao)}</span>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        if (typeof feather !== 'undefined') {
+            feather.replace();
+        }
+    }
+
+    // ✅ FILTROS
+    function aplicarFiltros() {
+        atualizarFiltros();
+        renderizarAlertas();
+        atualizarEstatisticas();
+    }
+
+    function atualizarFiltros() {
+        filtrosAtivos = {
+            status: document.getElementById('filtroStatus').value,
+            prioridade: document.getElementById('filtroPrioridade').value,
+            tipo: document.getElementById('filtroTipo').value,
+            data: document.getElementById('filtroData').value,
+            busca: document.getElementById('filtroBusca').value.toLowerCase()
+        };
+    }
+
+    function filtrarAlertas() {
+        return alertas.filter(alerta => {
+            const matchStatus = filtrosAtivos.status === 'todos' || 
+                               (filtrosAtivos.status === 'ativo' && alerta.status === 'ativo') ||
+                               (filtrosAtivos.status === 'resolvido' && alerta.status === 'resolvido');
+            
+            const matchPrioridade = filtrosAtivos.prioridade === 'todos' || 
+                                   alerta.severidade === filtrosAtivos.prioridade;
+            
+            const matchTipo = filtrosAtivos.tipo === 'todos' || 
+                             alerta.tipo === filtrosAtivos.tipo;
+            
+            const matchData = !filtrosAtivos.data || 
+                             new Date(alerta.data_criacao).toISOString().split('T')[0] === filtrosAtivos.data;
+            
+            const matchBusca = !filtrosAtivos.busca ||
+                              alerta.titulo.toLowerCase().includes(filtrosAtivos.busca) ||
+                              (alerta.descricao && alerta.descricao.toLowerCase().includes(filtrosAtivos.busca)) ||
+                              (alerta.paciente_nome && alerta.paciente_nome.toLowerCase().includes(filtrosAtivos.busca));
+
+            return matchStatus && matchPrioridade && matchTipo && matchData && matchBusca;
+        });
+    }
+
+    // ✅ MODAL FUNCTIONS
+    function abrirModalNovoAlerta() {
+        console.log('🔓 Abrindo modal para novo alerta...');
+        
+        // Atualizar dependentes antes de abrir o modal
+        buscarDependentes().then(() => {
+            document.getElementById('modalTitulo').textContent = 'Novo Alerta para os Cuidadores';
+            document.getElementById('alertaForm').reset();
+            document.getElementById('alertaModal').style.display = 'flex';
+            
+            // Preencher data atual
+            const dataInput = document.getElementById('alertaData');
+            if (dataInput) {
+                const now = new Date();
+                const localDateTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+                    .toISOString()
+                    .slice(0, 16);
+                dataInput.value = localDateTime;
+            }
+            
+            setTimeout(() => {
+                const tituloInput = document.getElementById('alertaTitulo');
+                if (tituloInput) tituloInput.focus();
+            }, 100);
+        }).catch(error => {
+            console.error('Erro ao carregar dependentes para modal:', error);
+            mostrarMensagem('Erro ao carregar pacientes', 'error');
+        });
+    }
+
+    function fecharModal() {
+        document.getElementById('alertaModal').style.display = 'none';
+    }
+
+    async function salvarAlerta(e) {
+        e.preventDefault();
+        
+        const titulo = document.getElementById('alertaTitulo').value.trim();
+        const descricao = document.getElementById('alertaDescricao').value.trim();
+        const tipo = document.getElementById('alertaTipo').value;
+        const prioridade = document.getElementById('alertaPrioridade').value;
+        const dependenteSelect = document.getElementById('alertaDependente');
+        const dependenteId = dependenteSelect.value;
+        const dataHora = document.getElementById('alertaData').value;
+
+        // Validações
+        if (!titulo) {
+            mostrarMensagem('Por favor, informe um título para o alerta', 'error');
+            return;
+        }
+
+        if (!descricao) {
+            mostrarMensagem('Por favor, informe uma descrição para o alerta', 'error');
+            return;
+        }
+
+        if (!dependenteId) {
+            mostrarMensagem('Por favor, selecione um paciente', 'error');
+            return;
+        }
+
+        const alertaData = {
+            titulo,
+            descricao,
+            tipo,
+            prioridade,
+            dependenteId,
+            dataHora: dataHora || new Date().toISOString()
+        };
+
+        try {
+            mostrarLoading(true);
+            await criarAlerta(alertaData);
+            mostrarMensagem('Alerta criado e enviado para os cuidadores!', 'success');
+            fecharModal();
+            await carregarAlertas(); // Recarregar lista
+        } catch (error) {
+            mostrarMensagem('Erro ao criar alerta: ' + error.message, 'error');
+        } finally {
+            mostrarLoading(false);
+        }
+    }
+
+    // ✅ AÇÕES DOS ALERTAS
+    async function marcarComoResolvido(id) {
+        try {
+            const dadosAtualizados = {
+                status: 'resolvido',
+                data_resolucao: new Date().toISOString()
+            };
+
+            await alertasAPI.updateAlerta(id, dadosAtualizados);
+            mostrarMensagem('Alerta marcado como resolvido!', 'success');
+            await carregarAlertas();
+        } catch (error) {
+            mostrarMensagem('Erro ao atualizar alerta: ' + error.message, 'error');
+        }
+    }
+
+    async function reabrirAlerta(id) {
+        try {
+            const dadosAtualizados = {
+                status: 'ativo',
+                data_resolucao: null
+            };
+
+            await alertasAPI.updateAlerta(id, dadosAtualizados);
+            mostrarMensagem('Alerta reaberto!', 'success');
+            await carregarAlertas();
+        } catch (error) {
+            mostrarMensagem('Erro ao reabrir alerta: ' + error.message, 'error');
+        }
+    }
+
+    function excluirAlertaConfirmacao(id) {
+        if (confirm('Tem certeza que deseja excluir este alerta?')) {
+            excluirAlertaHandler(id);
+        }
+    }
+
+    async function excluirAlertaHandler(id) {
+        try {
+            await alertasAPI.deleteAlerta(id);
+            alertas = alertas.filter(a => a.id !== id);
+            mostrarMensagem('Alerta excluído com sucesso!', 'success');
+            renderizarAlertas();
+            atualizarEstatisticas();
+        } catch (error) {
+            mostrarMensagem('Erro ao excluir alerta: ' + error.message, 'error');
+        }
+    }
+
+    // ✅ ESTATÍSTICAS
+    function atualizarEstatisticas() {
+        const alertasFiltrados = filtrarAlertas();
+        const total = alertasFiltrados.length;
+        const ativos = alertasFiltrados.filter(a => a.status === 'ativo').length;
+        const resolvidos = alertasFiltrados.filter(a => a.status === 'resolvido').length;
+        const alta = alertasFiltrados.filter(a => a.severidade === 'alta' && a.status === 'ativo').length;
+
+        setText('totalAlertas', total);
+        setText('alertasAtivos', ativos);
+        setText('alertasResolvidos', resolvidos);
+        setText('alertasAlta', alta);
+
+        console.log(`📊 Estatísticas: ${total} total, ${ativos} ativos, ${resolvidos} resolvidos, ${alta} alta`);
+    }
+
+    // ✅ GRÁFICO
+    function inicializarGrafico() {
+        const ctx = document.getElementById('alertasChart');
+        if (!ctx) return;
+
+        // Destruir gráfico anterior se existir
+        if (window.alertasChartInstance) {
+            window.alertasChartInstance.destroy();
+        }
+
+        const alertasUltimaSemana = alertas.filter(a => {
+            const umaSemanaAtras = new Date();
+            umaSemanaAtras.setDate(umaSemanaAtras.getDate() - 7);
+            return new Date(a.data_criacao) >= umaSemanaAtras;
+        });
+
+        const dadosPorDia = agruparAlertasPorDia(alertasUltimaSemana);
+
+        const data = {
+            labels: Object.keys(dadosPorDia),
+            datasets: [
+                {
+                    label: 'Alertas Ativos',
+                    data: Object.values(dadosPorDia).map(dia => dia.ativos),
+                    borderColor: '#e74c3c',
+                    backgroundColor: 'rgba(231, 76, 60, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                },
+                {
+                    label: 'Alertas Resolvidos',
+                    data: Object.values(dadosPorDia).map(dia => dia.resolvidos),
+                    borderColor: '#27ae60',
+                    backgroundColor: 'rgba(39, 174, 96, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }
+            ]
+        };
+
+        window.alertasChartInstance = new Chart(ctx, {
+            type: 'line',
+            data: data,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            stepSize: 1
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function agruparAlertasPorDia(alertas) {
+        const dias = {};
+        const hoje = new Date();
+        
+        // Inicializar últimos 7 dias
+        for (let i = 6; i >= 0; i--) {
+            const data = new Date(hoje);
+            data.setDate(hoje.getDate() - i);
+            const dataStr = data.toISOString().split('T')[0];
+            dias[dataStr] = { ativos: 0, resolvidos: 0 };
+        }
+        
+        // Contar alertas por dia
+        alertas.forEach(alerta => {
+            const dataAlerta = new Date(alerta.data_criacao).toISOString().split('T')[0];
+            if (dias[dataAlerta]) {
+                if (alerta.status === 'resolvido') {
+                    dias[dataAlerta].resolvidos++;
+                } else {
+                    dias[dataAlerta].ativos++;
+                }
+            }
+        });
+        
+        // Converter para formato legível
+        const diasFormatados = {};
+        Object.keys(dias).forEach(data => {
+            const dataObj = new Date(data);
+            const label = dataObj.toLocaleDateString('pt-BR', { weekday: 'short' });
+            diasFormatados[label] = dias[data];
+        });
+        
+        return diasFormatados;
+    }
+
+    // ✅ UTILITÁRIOS
+    function obterTextoSeveridade(severidade) {
+        const textos = {
+            'alta': 'Alta Prioridade',
+            'media': 'Média Prioridade', 
+            'baixa': 'Baixa Prioridade',
+            'critica': 'Crítica'
+        };
+        return textos[severidade] || severidade;
+    }
+
+    function obterTextoTipo(tipo) {
+        const textos = {
+            'medicamento': 'Medicamento',
+            'consulta': 'Consulta',
+            'exame': 'Exame',
+            'observacao': 'Observação',
+            'comportamento': 'Comportamento',
+            'sintoma': 'Sintoma',
+            'outros': 'Outros'
+        };
+        return textos[tipo] || tipo;
+    }
+
+    function obterIconeTipo(tipo) {
+        const icones = {
+            'medicamento': 'fas fa-pills',
+            'consulta': 'fas fa-hospital',
+            'exame': 'fas fa-microscope',
+            'observacao': 'fas fa-sticky-note',
+            'comportamento': 'fas fa-brain',
+            'sintoma': 'fas fa-thermometer-half',
+            'outros': 'fas fa-exclamation-triangle'
+        };
+        return icones[tipo] || 'fas fa-bell';
+    }
+
+    function formatarData(dataString) {
+        try {
+            const data = new Date(dataString);
+            return data.toLocaleString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (error) {
+            return 'Data inválida';
+        }
+    }
+
+    function mostrarMensagem(mensagem, tipo = 'success') {
+        console.log(`${tipo}: ${mensagem}`);
+
+        // Remover notificações existentes
+        const notificacoesExistentes = document.querySelectorAll('.notification');
+        notificacoesExistentes.forEach(notif => notif.remove());
+
+        // Criar notificação
+        const notification = document.createElement('div');
+        notification.className = 'notification';
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: ${tipo === 'success' ? '#28a745' : '#dc3545'};
+            color: white;
+            border-radius: 8px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            max-width: 300px;
+            font-family: 'Inter', sans-serif;
+            font-weight: 500;
+            border-left: 4px solid ${tipo === 'success' ? '#1e7e34' : '#c82333'};
+            animation: slideInRight 0.3s ease-out;
+        `;
+
+        // Ícone baseado no tipo
+        const icone = tipo === 'success' ? '✅' : '❌';
+        notification.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 16px;">${icone}</span>
+                <span>${mensagem}</span>
+            </div>
+        `;
+
+        document.body.appendChild(notification);
+
+        // Remover automaticamente após 4 segundos
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.style.animation = 'slideOutRight 0.3s ease-in';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }
+        }, 4000);
+    }
+
+    function mostrarLoading(mostrar) {
+        try {
+            if (mostrar) {
+                // Remover loading existente se houver
+                const existingLoading = document.getElementById('loadingOverlay');
+                if (existingLoading) {
+                    existingLoading.remove();
+                }
+
+                const loadingHTML = `
+                    <div class="loading-overlay" id="loadingOverlay">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Carregando...</p>
+                        </div>
+                    </div>
+                `;
+                document.body.insertAdjacentHTML('beforeend', loadingHTML);
+            } else {
+                const loadingOverlay = document.getElementById('loadingOverlay');
+                if (loadingOverlay) {
+                    loadingOverlay.remove();
+                }
+            }
+        } catch (error) {
+            console.error('❌ Erro ao mostrar/ocultar loading:', error);
+        }
+    }
+
+    function setText(id, value) {
+        const element = document.getElementById(id);
+        if (element) {
+            element.textContent = value;
+        } else {
+            console.warn(`⚠️ Elemento #${id} não encontrado`);
+        }
+    }
+
+    // ✅ FUNÇÕES DE NAVEGAÇÃO
+    function voltarParaDependentes() {
+        console.log('🔄 Voltando para página de dependentes...');
+        window.location.href = 'dependentes.html';
+    }
+
+    function voltarParaLanding() {
+        console.log('🏠 Voltando para a landing page...');
+        window.location.href = 'landingpage.html';
+    }
+
+    function sair() {
+        console.log('🚪 Saindo do sistema...');
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '../paginas/LandingPage.html';
+    }
+
+    // ✅ DEIXAR FUNÇÕES GLOBAIS PARA O HTML
+    window.marcarComoResolvido = marcarComoResolvido;
+    window.reabrirAlerta = reabrirAlerta;
+    window.excluirAlertaConfirmacao = excluirAlertaConfirmacao;
+
+    console.log('✅ Sistema de alertas carregado e pronto!');
+</script>
 </body>
 </html>

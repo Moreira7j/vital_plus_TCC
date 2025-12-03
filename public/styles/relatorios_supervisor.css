@@ -1613,3 +1613,305 @@ body.modal-open {
     background-color: #f8f9fa;
     color: #2c3e50;
 }
+
+/* ===============================
+   ESTILOS ESPECÍFICOS PARA RELATÓRIOS PDF
+   =============================== */
+
+/* Estilos para o PDF - Fonte que suporta acentos */
+@font-face {
+  font-family: 'DejaVu Sans';
+  src: url('https://cdnjs.cloudflare.com/ajax/libs/dejavu-fonts/2.37/ttf/DejaVuSans.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Container principal do PDF */
+.pdf-container {
+  font-family: 'DejaVu Sans', 'Arial Unicode MS', Arial, sans-serif;
+  color: #333;
+  line-height: 1.4;
+  max-width: 210mm;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+/* Cabeçalho do PDF */
+.pdf-header {
+  border-bottom: 3px solid #00B5C2;
+  padding-bottom: 15px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pdf-logo {
+  font-size: 24px;
+  font-weight: bold;
+  color: #00B5C2;
+}
+
+.pdf-title {
+  font-size: 18px;
+  font-weight: bold;
+  color: #2c3e50;
+  text-align: center;
+  flex-grow: 1;
+}
+
+/* Seções do PDF */
+.pdf-section {
+  margin-bottom: 25px;
+  page-break-inside: avoid;
+}
+
+.pdf-section-title {
+  background-color: #f8f9fa;
+  padding: 10px 15px;
+  border-left: 4px solid #00B5C2;
+  margin-bottom: 15px;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+/* Cards de estatísticas */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  background: #fff;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #00B5C2;
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  text-transform: uppercase;
+}
+
+/* Análises e insights */
+.analysis-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  background: #fff;
+}
+
+.analysis-success {
+  border-left: 4px solid #28a745;
+  background-color: #f8fff9;
+}
+
+.analysis-warning {
+  border-left: 4px solid #ffc107;
+  background-color: #fffef0;
+}
+
+.analysis-danger {
+  border-left: 4px solid #dc3545;
+  background-color: #fff5f5;
+}
+
+.analysis-info {
+  border-left: 4px solid #17a2b8;
+  background-color: #f0f9ff;
+}
+
+.analysis-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.analysis-icon {
+  margin-right: 10px;
+  font-size: 16px;
+}
+
+.analysis-title {
+  font-weight: bold;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.analysis-content {
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.analysis-suggestion {
+  font-style: italic;
+  color: #666;
+  font-size: 14px;
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border-radius: 4px;
+}
+
+/* Tabelas no PDF */
+.pdf-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 15px 0;
+  font-size: 12px;
+}
+
+.pdf-table th {
+  background-color: #00B5C2;
+  color: white;
+  padding: 10px;
+  text-align: left;
+  font-weight: bold;
+}
+
+.pdf-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.pdf-table tr:nth-child(even) {
+  background-color: #f8f9fa;
+}
+
+/* Rodapé do PDF */
+.pdf-footer {
+  border-top: 2px solid #00B5C2;
+  padding-top: 15px;
+  margin-top: 30px;
+  text-align: center;
+  color: #666;
+  font-size: 12px;
+}
+
+/* Quebras de página para impressão */
+@media print {
+  .page-break {
+    page-break-before: always;
+  }
+  
+  .no-break {
+    page-break-inside: avoid;
+  }
+}
+
+/* Gráficos simplificados para PDF */
+.chart-placeholder {
+  background: #f8f9fa;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  margin: 15px 0;
+  color: #666;
+}
+
+/* Indicadores de status */
+.status-indicator {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.status-good { background-color: #28a745; }
+.status-warning { background-color: #ffc107; }
+.status-danger { background-color: #dc3545; }
+
+/* ===============================
+   ESTILOS PARA MELHOR VISUALIZAÇÃO DO PDF
+   =============================== */
+
+/* Garantir que o PDF tenha boa legibilidade */
+.pdf-container {
+  font-family: 'Arial Unicode MS', 'Arial', sans-serif;
+  line-height: 1.4;
+  color: #333;
+}
+
+/* Melhorar visualização de estatísticas */
+.stats-grid-pdf {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 15px 0;
+}
+
+.stat-card-pdf {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+}
+
+.stat-value-pdf {
+  font-size: 24px;
+  font-weight: bold;
+  color: #00B5C2;
+  margin-bottom: 5px;
+}
+
+.stat-label-pdf {
+  font-size: 12px;
+  color: #6c757d;
+  text-transform: uppercase;
+}
+
+/* Análises no PDF */
+.analysis-item-pdf {
+  border-left: 4px solid #00B5C2;
+  background: #f8f9fa;
+  padding: 15px;
+  margin: 10px 0;
+  border-radius: 0 8px 8px 0;
+}
+
+.analysis-success-pdf {
+  border-left-color: #28a745;
+  background: #f8fff9;
+}
+
+.analysis-warning-pdf {
+  border-left-color: #ffc107;
+  background: #fffef0;
+}
+
+.analysis-danger-pdf {
+  border-left-color: #dc3545;
+  background: #fff5f5;
+}
+
+/* Recomendações */
+.recommendations-list-pdf {
+  list-style: none;
+  padding: 0;
+}
+
+.recommendations-list-pdf li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+}
+
+.recommendations-list-pdf li:before {
+  content: "•";
+  color: #00B5C2;
+  font-weight: bold;
+  margin-right: 10px;
+}
